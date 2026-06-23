@@ -121,6 +121,7 @@ unverified cases do not pretend to have validation logs.
 
 Current progress:
 
+- `100 / 100` example scripts present
 - `10 / 100` verified
 - verified group: `01_mesh_topology`
 - validation log:

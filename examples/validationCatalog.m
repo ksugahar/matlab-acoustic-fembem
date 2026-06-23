@@ -142,6 +142,7 @@ for g = 1:numel(groups)
             "status", "planned", ...
             "reference", "radia-ngsolve", ...
             "secondaryReference", secondaryReferenceFor(groups(g).category), ...
+            "gypsilabInspiration", gypsilabInspirationFor(groups(g).category, title), ...
             "tolerance", groups(g).tolerance, ...
             "examplePath", fullfile("examples", groups(g).category, lower(id) + "_" + slug(title) + ".m"), ...
             "validationLog", "");
@@ -169,6 +170,7 @@ c = struct( ...
     "status", "", ...
     "reference", "", ...
     "secondaryReference", "", ...
+    "gypsilabInspiration", "", ...
     "tolerance", NaN, ...
     "examplePath", "", ...
     "validationLog", "");
@@ -181,6 +183,35 @@ if ismember(category, ["06_acoustic_low_frequency", "07_acoustic_helmholtz", "10
 else
     reference = "";
 end
+end
+
+
+function source = gypsilabInspirationFor(category, title)
+switch category
+    case "01_mesh_topology"
+        source = "openMsh + nonRegressionTest/meshManagement";
+    case "02_h1_scalar_fem"
+        source = "openFem + nonRegressionTest/finiteElement";
+    case "03_hcurl_edge_fem"
+        source = "openFem/femNedelec + nonRegressionTest/finiteElement/rtFemRwgNed.m";
+    case "04_laplace_bem_dense"
+        source = "openOpr + nonRegressionTest/operators + openEbd scalar products";
+    case "05_laplace_hmatrix"
+        source = "openHmx + nonRegressionTest/hierarchicalMatrix";
+    case "06_acoustic_low_frequency"
+        source = "openEbd Helmholtz kernels + radiationImpedances + acoustic papers";
+    case "07_acoustic_helmholtz"
+        source = "miscellaneous/sphereHelmholtz.m + nonRegressionTest/scattering2d/scattering3d";
+    case "08_scalar_fem_bem_coupling"
+        source = "doc/FEM-BEM coupling + nonRegressionTest/vibroAcoustic";
+    case "09_rwg_hcurl_trace"
+        source = "openFem/femRaoWiltonGlisson + femNedelec + femBemDielectrique";
+    case "10_ngsolve_bem_reference"
+        source = "Gypsilab nonRegressionTest capstones mirrored against NGSolve.BEM";
+    otherwise
+        source = "Gypsilab readable FEM/BEM examples";
+end
+source = source + " / " + title;
 end
 
 

@@ -50,6 +50,19 @@ for k = 1:numel(verified)
         "Missing example for " + verified(k).id);
     verifyNotEqual(testCase, verified(k).validationLog, "");
 end
+
+
+function testAllCasesHaveExampleScriptAndGypsilabInspiration(testCase)
+repoRoot = fileparts(fileparts(mfilename("fullpath")));
+cases = validationCatalog();
+
+for k = 1:numel(cases)
+    verifyTrue(testCase, isfile(fullfile(repoRoot, cases(k).examplePath)), ...
+        "Missing example for " + cases(k).id);
+    verifyNotEqual(testCase, cases(k).gypsilabInspiration, "", ...
+        "Missing Gypsilab inspiration for " + cases(k).id);
+end
+end
 end
 
 
