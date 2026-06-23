@@ -16,6 +16,9 @@ FEM/BEM prototypes. It prioritizes readability over performance.
 - Include acoustics as a first-class teaching lane.
 - Include low-frequency-stable Helmholtz kernels by splitting Laplace and
   Helmholtz correction terms.
+- Treat COMSOL acoustic FEM/BEM as an important internal reference for acoustic
+  coupling, sign conventions, radiation boundaries, and low-frequency behavior.
+  Use only the existing COMSOL LiveLink MATLAB session.
 - Do not optimize prematurely. NGSolve/NGSolve.BEM is the performance target;
   this repo is for understanding the method.
 
@@ -34,4 +37,3 @@ FEM/BEM prototypes. It prioritizes readability over performance.
 - Do not push it to public GitHub or PyPI.
 - Public-safe generic helpers may be mirrored into radia-mcp only when they do
   not mention private MATLAB/Gypsilab/Lukas provenance or commercial tools.
-

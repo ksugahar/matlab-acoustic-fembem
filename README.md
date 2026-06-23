@@ -93,3 +93,28 @@ K.singleLayer
 ```matlab
 run("S:\MATLAB\Gypsilab\run_tests.m")
 ```
+
+## 100-Case Validation Campaign
+
+The `examples` directory is prepared for 100 radia-ngsolve cross-validation
+cases, organized as 10 categories with 10 cases each. The catalog lives in:
+
+```matlab
+cases = validationCatalog();
+```
+
+All entries start as `planned`. A case can become `verified` only after:
+
+- the MATLAB example script exists
+- the radia-ngsolve reference exists
+- the comparison tolerance is declared
+- the run passes
+- the validation log is recorded under `S:\MATLAB\_crossval`
+
+The test suite checks that the catalog has exactly 100 unique cases and that
+unverified cases do not pretend to have validation logs.
+
+For acoustic FEM/BEM cases, COMSOL's acoustic FEM/BEM workflow is an important
+internal secondary reference. It is used to understand coupling conventions,
+radiation/open-boundary modeling, and low-frequency behavior. COMSOL references
+must stay private and must use the already-running LiveLink MATLAB session.
