@@ -8,6 +8,9 @@ FEM/BEM prototypes. It prioritizes readability over performance.
 ## Solver Scope
 
 - Keep the API short and inspectable, in the spirit of Gypsilab.
+- Follow Gypsilab's readable class style when introducing MATLAB classes:
+  properties should expose the mathematical objects, methods should be short,
+  and performance caches should not hide the algorithm.
 - Use Cubit/Coreform Netgen `.vol` as the mesh intake.
 - Accept only first-order triangle surface elements and tetrahedron volume
   elements.
@@ -21,6 +24,8 @@ FEM/BEM prototypes. It prioritizes readability over performance.
   Use only the existing COMSOL LiveLink MATLAB session.
 - Do not optimize prematurely. NGSolve/NGSolve.BEM is the performance target;
   this repo is for understanding the method.
+- Prefer readable class/source organization over vectorized cleverness or
+  production-style performance plumbing.
 
 ## MATLAB / COMSOL Session
 

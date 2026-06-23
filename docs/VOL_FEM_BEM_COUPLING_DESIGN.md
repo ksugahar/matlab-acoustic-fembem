@@ -100,6 +100,12 @@ linear algebra, and readable variable names.  Avoid clever vectorization if it
 hides the mathematics.  Once the idea is correct and tested here, NGSolve,
 NGSolve.BEM, or a compiled backend can carry the performance work.
 
+If MATLAB classes are introduced, they should follow the same rule.  A class
+should expose one mathematical object, such as a mesh, space, kernel, block, or
+coupled system.  Its source should remain close enough to the formula that a
+student can read it without first learning a private optimization framework.
+See `READABLE_CLASS_STYLE.md`.
+
 ## Cross validation ladder
 
 1. Mesh identity:

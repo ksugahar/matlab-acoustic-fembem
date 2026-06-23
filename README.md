@@ -23,6 +23,11 @@ operator structure that a reader can connect MATLAB code to the boundary
 integral equations. Lukas FEM is source-code reference material for clean-room
 assembly patterns, not the API model.
 
+When MATLAB classes are introduced, they should preserve the same feeling:
+opening the class file should show the mesh, space, operator, or block tree in
+plain mathematical terms. Hidden performance caches, clever vectorization, and
+large opaque helper layers are secondary to student understanding.
+
 ## Basic API
 
 ```matlab
