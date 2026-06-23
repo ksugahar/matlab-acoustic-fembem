@@ -39,6 +39,20 @@ end
 end
 
 
+function testVerifiedCasesHaveExampleAndLog(testCase)
+repoRoot = fileparts(fileparts(mfilename("fullpath")));
+cases = validationCatalog();
+verified = cases([cases.status] == "verified");
+
+verifyGreaterThanOrEqual(testCase, numel(verified), 10);
+for k = 1:numel(verified)
+    verifyTrue(testCase, isfile(fullfile(repoRoot, verified(k).examplePath)), ...
+        "Missing example for " + verified(k).id);
+    verifyNotEqual(testCase, verified(k).validationLog, "");
+end
+end
+
+
 function testCatalogUsesRadiaNgsolveReference(testCase)
 cases = validationCatalog();
 

@@ -114,6 +114,13 @@ All entries start as `planned`. A case can become `verified` only after:
 The test suite checks that the catalog has exactly 100 unique cases and that
 unverified cases do not pretend to have validation logs.
 
+Current progress:
+
+- `10 / 100` verified
+- verified group: `01_mesh_topology`
+- validation log:
+  `S:\MATLAB\_crossval\gypsilab_mesh_topology_10of100_20260624.md`
+
 For acoustic FEM/BEM cases, COMSOL's acoustic FEM/BEM workflow is an important
 internal secondary reference. It is used to understand coupling conventions,
 radiation/open-boundary modeling, and low-frequency behavior. COMSOL references

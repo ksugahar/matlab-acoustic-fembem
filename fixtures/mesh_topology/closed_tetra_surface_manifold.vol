@@ -1,0 +1,36 @@
+mesh3d
+dimension
+3
+geomtype
+0
+facedescriptors
+1
+1 1 0 1 1
+surfaceelements
+6
+1 1 1 0 3 1 4 2
+1 1 1 0 3 2 4 3
+1 1 1 0 3 3 4 1
+1 1 1 0 3 1 5 3
+1 1 1 0 3 3 5 2
+1 1 1 0 3 2 5 1
+volumeelements
+2
+1 4 1 2 3 4
+1 4 1 3 2 5
+points
+5
+0 0 0
+1 0 0
+0 1 0
+0 0 1
+0 0 -1
+pointelements
+0
+materials
+1
+1 air
+bcnames
+1
+1 outer
+endmesh

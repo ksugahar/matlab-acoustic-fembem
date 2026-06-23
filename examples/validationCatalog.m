@@ -147,6 +147,7 @@ for g = 1:numel(groups)
             "validationLog", "");
     end
 end
+cases = markMeshTopologyVerified(cases);
 end
 
 
@@ -179,6 +180,15 @@ if ismember(category, ["06_acoustic_low_frequency", "07_acoustic_helmholtz", "10
     reference = "COMSOL acoustic FEM/BEM internal";
 else
     reference = "";
+end
+end
+
+
+function cases = markMeshTopologyVerified(cases)
+logPath = "S:\MATLAB\_crossval\gypsilab_mesh_topology_10of100_20260624.md";
+for k = 1:10
+    cases(k).status = "verified";
+    cases(k).validationLog = logPath;
 end
 end
 

@@ -110,25 +110,15 @@ while i <= numel(lines)
         case 'materials'
             n = readCount("materials");
             for k = 1:n
-                parts = split(nextDataLine(), " ", 2);
-                keyNum = str2double(parts(1));
-                if isscalar(parts)
-                    mesh.materials(keyNum) = sprintf("material_%d", keyNum);
-                else
-                    mesh.materials(keyNum) = char(parts(2));
-                end
+                [keyNum, name] = parseNamedRecord(nextDataLine(), "material");
+                mesh.materials(keyNum) = char(name);
             end
 
         case 'bcnames'
             n = readCount("bcnames");
             for k = 1:n
-                parts = split(nextDataLine(), " ", 2);
-                keyNum = str2double(parts(1));
-                if isscalar(parts)
-                    mesh.boundaries(keyNum) = sprintf("boundary_%d", keyNum);
-                else
-                    mesh.boundaries(keyNum) = char(parts(2));
-                end
+                [keyNum, name] = parseNamedRecord(nextDataLine(), "boundary");
+                mesh.boundaries(keyNum) = char(name);
             end
 
         case {'edgesegmentsgi2', 'pointelements', 'face_colours', 'face_transparencies'}
@@ -180,6 +170,22 @@ mesh.summary = struct( ...
             nextDataLine();
         end
     end
+end
+
+
+function [keyNum, name] = parseNamedRecord(line, fallbackPrefix)
+%PARSENAMEDRECORD Parse records like "1 air" or "1<TAB>outer".
+
+parts = regexp(char(strtrim(line)), "\s+", "split");
+keyNum = str2double(parts{1});
+if isnan(keyNum)
+    error("readVolTriTet:name", "Named record has a nonnumeric id: %s", line);
+end
+if isscalar(parts)
+    name = sprintf("%s_%d", fallbackPrefix, keyNum);
+else
+    name = strjoin(string(parts(2:end)), " ");
+end
 end
 
 
