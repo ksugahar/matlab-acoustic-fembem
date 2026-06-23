@@ -33,8 +33,8 @@ Each local example should be short enough for a student to open first. The
 script may delegate to a readable implementation, but the case id, topic, and
 Gypsilab inspiration must be visible immediately.
 
-Status after initial example pass:
+Status after the 100-case gate:
 
 - all 100 case scripts exist under `examples`
-- 10 mesh/topology scripts are verified
-- 90 scripts are planned teaching cards awaiting radia-ngsolve promotion
+- 10 mesh/topology scripts are verified by dedicated `.vol` import checks
+- 90 FEM/BEM teaching scripts are verified by category-specific radia-ngsolve gates

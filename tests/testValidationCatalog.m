@@ -44,7 +44,7 @@ repoRoot = fileparts(fileparts(mfilename("fullpath")));
 cases = validationCatalog();
 verified = cases([cases.status] == "verified");
 
-verifyGreaterThanOrEqual(testCase, numel(verified), 10);
+verifyEqual(testCase, numel(verified), 100);
 for k = 1:numel(verified)
     verifyTrue(testCase, isfile(fullfile(repoRoot, verified(k).examplePath)), ...
         "Missing example for " + verified(k).id);

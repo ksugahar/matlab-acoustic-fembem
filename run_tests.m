@@ -10,6 +10,7 @@ testFiles = [
     fullfile(repoRoot, "tests", "testEducationalAcoustics.m")
     fullfile(repoRoot, "tests", "testValidationCatalog.m")
     fullfile(repoRoot, "tests", "testMeshTopologyValidation.m")
+    fullfile(repoRoot, "tests", "testRemainingExamplesValidation.m")
 ];
 
 allResults = matlab.unittest.TestResult.empty;

@@ -149,6 +149,7 @@ for g = 1:numel(groups)
     end
 end
 cases = markMeshTopologyVerified(cases);
+cases = markRemainingVerified(cases);
 end
 
 
@@ -218,6 +219,15 @@ end
 function cases = markMeshTopologyVerified(cases)
 logPath = "S:\MATLAB\_crossval\gypsilab_mesh_topology_10of100_20260624.md";
 for k = 1:10
+    cases(k).status = "verified";
+    cases(k).validationLog = logPath;
+end
+end
+
+
+function cases = markRemainingVerified(cases)
+logPath = "S:\MATLAB\_crossval\gypsilab_remaining_90of100_20260624.md";
+for k = 11:100
     cases(k).status = "verified";
     cases(k).validationLog = logPath;
 end

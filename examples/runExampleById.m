@@ -7,6 +7,7 @@ arguments
 end
 
 repoRoot = fileparts(fileparts(mfilename("fullpath")));
+addpath(fullfile(repoRoot, "matlab_api"));
 addpath(fullfile(repoRoot, "validation"));
 
 cases = validationCatalog();
@@ -18,6 +19,18 @@ item = cases(idx);
 
 if item.status == "verified" && startsWith(item.category, "01_mesh_topology")
     result = runMeshTopologyExample(caseId, "Display", options.Display);
+    return
+end
+
+if item.status == "verified"
+    result = verifyCatalogCase(item, ngsolveCapabilitySummary());
+    if options.Display
+        fprintf("%s %s\n", result.id, result.title);
+        fprintf("  status: verified\n");
+        fprintf("  category: %s\n", result.category);
+        fprintf("  gate: %s\n", result.details.gate);
+        fprintf("  passed: %d\n", result.passed);
+    end
     return
 end
 

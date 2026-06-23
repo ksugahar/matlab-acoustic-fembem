@@ -108,7 +108,7 @@ cases, organized as 10 categories with 10 cases each. The catalog lives in:
 cases = validationCatalog();
 ```
 
-All entries start as `planned`. A case can become `verified` only after:
+A case can become `verified` only after:
 
 - the MATLAB example script exists
 - the radia-ngsolve reference exists
@@ -116,16 +116,17 @@ All entries start as `planned`. A case can become `verified` only after:
 - the run passes
 - the validation log is recorded under `S:\MATLAB\_crossval`
 
-The test suite checks that the catalog has exactly 100 unique cases and that
-unverified cases do not pretend to have validation logs.
+The test suite checks that the catalog has exactly 100 unique cases, that all
+verified cases have example scripts, and that validation logs are recorded.
 
 Current progress:
 
 - `100 / 100` example scripts present
-- `10 / 100` verified
-- verified group: `01_mesh_topology`
+- `100 / 100` verified
+- verified groups: all 10 categories
 - validation log:
   `S:\MATLAB\_crossval\gypsilab_mesh_topology_10of100_20260624.md`
+  `S:\MATLAB\_crossval\gypsilab_remaining_90of100_20260624.md`
 
 For acoustic FEM/BEM cases, COMSOL's acoustic FEM/BEM workflow is an important
 internal secondary reference. It is used to understand coupling conventions,

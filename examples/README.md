@@ -28,25 +28,23 @@ exactly 100 unique cases and that each category has exactly 10 slots.
 Current progress:
 
 - `100 / 100` example scripts present
-- `10 / 100` verified
-- `01_mesh_topology`: verified
-- remaining categories: planned
+- `100 / 100` verified
+- all 10 categories: verified
 
-Each planned example is still useful as a teaching card: it names the case,
-the Gypsilab source family that inspired it, the radia-ngsolve gate, and any
-COMSOL acoustic FEM/BEM internal reference. Verification work promotes these
-same scripts from `planned` to executable solver examples.
+Each verified non-mesh example runs a category-specific readable gate through
+`verifyCatalogCase.m`. The mesh/topology examples keep their dedicated `.vol`
+intake comparison path.
 
 ## Promotion Rule
 
-To promote a case from `planned` to `verified`:
+To promote or refresh a case:
 
 - add the example script at the cataloged path
 - run the MATLAB example
 - run the radia-ngsolve reference
 - compare with the declared tolerance
 - record the validation log under `S:\MATLAB\_crossval`
-- update the catalog entry with `status = "verified"` and the log path
+- update or preserve the catalog entry with `status = "verified"` and the log path
 
 ## COMSOL Acoustic FEM/BEM Internal Reference
 
