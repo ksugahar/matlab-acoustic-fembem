@@ -1,0 +1,9 @@
+*.asv
+*.m~
+*.mlx~
+*.mat
+*.mex*
+*.log
+.pytest_cache/
+slprj/
+codegen/
