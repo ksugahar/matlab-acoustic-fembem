@@ -2,8 +2,10 @@
 
 ## Purpose
 
-This is a local, non-public MATLAB education repository for Gypsilab-style
-FEM/BEM prototypes. It prioritizes readability over performance.
+This is a local, non-public MATLAB education repository for Sugawara Lab,
+which is treated as a CAE-AI Lab. The repository teaches Gypsilab-style
+FEM/BEM prototypes and MATLAB optimization methods. It prioritizes readability,
+cross validation, and student understanding over performance.
 
 ## Solver Scope
 
@@ -26,6 +28,21 @@ FEM/BEM prototypes. It prioritizes readability over performance.
   this repo is for understanding the method.
 - Prefer readable class/source organization over vectorized cleverness or
   production-style performance plumbing.
+
+## Optimization Scope
+
+- Learn MATLAB optimization alongside Gypsilab-style FEM/BEM.
+- Prefer small, inspectable optimization examples with explicit design
+  variables, objective functions, constraints, sensitivities when available,
+  and reproducible validation gates.
+- Treat `W:\00_CAE\MATLAB\30_Optimization` as the main learning source for
+  optimization methods, but distill only private-safe, license-safe teaching
+  code into this repository.
+- Couple optimization examples to readable FEM/BEM operators where useful:
+  shape/mesh parameters, material coefficients, acoustic objectives, and
+  scalar/vector field targets are good teaching cases.
+- Do not hide optimization logic behind opaque solver wrappers. Students
+  should be able to open the `.m` file and see the algorithmic loop.
 
 ## MATLAB / COMSOL Session
 
