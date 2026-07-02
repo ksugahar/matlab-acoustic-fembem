@@ -7,6 +7,7 @@ testFiles = [
     fullfile(repoRoot, "tests", "testReadVolTriTet.m")
     fullfile(repoRoot, "tests", "testMeshImportQuality.m")
     fullfile(repoRoot, "tests", "testFirstOrderFemBemSpaces.m")
+    fullfile(repoRoot, "tests", "testLaplaceDirichletSolve.m")
     fullfile(repoRoot, "tests", "testHMatrix.m")
     fullfile(repoRoot, "tests", "testAcoustics.m")
     fullfile(repoRoot, "tests", "testCoulombGauge.m")

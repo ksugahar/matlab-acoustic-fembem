@@ -53,6 +53,26 @@ barycentric-gradient assembly loop, opening `TraceOperator.m` shows the
 one-hot injection and its artifact identity, opening `RwgSpace.m` shows the
 surface edge extraction and the RWG-to-HCurl oriented-edge map.
 
+## Boundary Value Problem Teaching Path
+
+The first BVP rung of the cross-validation ladder is the interior Laplace
+Dirichlet solve (partition and eliminate, no BEM kernel yet):
+
+```matlab
+m = FemBemModel("mesh.vol");
+g = ...;                             % one value per boundary trace node
+sol = laplaceDirichletSolve(m, g);   % u_B = g,  K_II u_I = -K_IB g
+sol.u
+sol.interiorResidualNorm
+sol.checks
+```
+
+The test suite locks the P1 patch test: for constant coefficient and linear
+boundary data the discrete solution reproduces the linear potential exactly
+(1e-12). The exterior-BEM and coupled FEM/BEM rungs of the ladder
+(`docs/VOL_FEM_BEM_COUPLING_DESIGN.md`, stages 4-5) are still ahead and need
+the singular-quadrature decision before they can be honest.
+
 ## H-matrix Teaching Path
 
 ```matlab

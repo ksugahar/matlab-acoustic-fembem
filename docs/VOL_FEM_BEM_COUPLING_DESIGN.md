@@ -122,6 +122,10 @@ See `READABLE_CLASS_STYLE.md`.
    - unit tetra/sphere-like mesh
    - analytic harmonic potential
    - FEM volume residual and BEM boundary residual separately checked
+   - FEM half landed 2026-07: `laplaceDirichletSolve` (interior Dirichlet
+     partition-eliminate solve, P1 linear patch test locked in
+     `tests/testLaplaceDirichletSolve.m`); the BEM-side residual check is
+     still ahead
 
 4. Exterior Laplace sphere:
    - capacitance or Dirichlet-to-Neumann map
