@@ -33,6 +33,58 @@ verifyEqual(testCase, K.policy, "low_frequency_stable_expm1_taylor_helmholtz_ker
 end
 
 
+function testLowFrequencyTeachingReportExposesCancellationScale(testCase)
+target = [0 0 0];
+source = [0.75 0 0];
+k = 1e-9;
+
+report = lowFrequencyHelmholtzTeachingReport(target, source, "Wavenumber", k);
+
+verifyEqual(testCase, report.kind, "low_frequency_helmholtz_teaching_report");
+verifyEqual(testCase, report.policy, "readable_bem_kernel_split_not_production_quadrature");
+verifyEqual(testCase, report.kr, 0.75e-9, "AbsTol", 1e-18);
+verifyGreaterThan(testCase, report.cancellationRatio, 1e8);
+verifyLessThan(testCase, report.stableError, 1e-15);
+verifyLessThan(testCase, report.correctionAgreement, 1e-15);
+verifyEqual(testCase, report.stableCorrection, 1i * k / (4 * pi), "RelTol", 1e-8);
+end
+
+
+function testLowFrequencyKernelManifestRecordsStrategyAndKrLimit(testCase)
+target = [0 0 0];
+source = [0.75 0 0];
+k = 1e-9;
+
+report = educationalLowFrequencyHelmholtzKernelManifest(target, source, ...
+    "Wavenumber", k);
+
+verifyEqual(testCase, report.status, "ok");
+verifyEqual(testCase, report.kind, "low_frequency_helmholtz_kernel_manifest");
+verifyEqual(testCase, report.kernelFamily, "helmholtz_single_layer");
+verifyEqual(testCase, report.lowFrequencyStrategy, "laplace_plus_expm1_taylor_correction");
+verifyEqual(testCase, report.timeConvention, "exp(+i*k*r) MATLAB teaching convention");
+verifyEqual(testCase, report.krAbs, 0.75e-9, "AbsTol", 1e-18);
+verifyTrue(testCase, report.checks.kernelFamilyMatchesExpected);
+verifyTrue(testCase, report.checks.lowFrequencyStrategyMatchesExpected);
+verifyTrue(testCase, report.checks.timeConventionMatchesExpected);
+verifyTrue(testCase, report.checks.krWithinLowFrequencyLimit);
+verifyTrue(testCase, report.checks.stableErrorWithinTolerance);
+verifyTrue(testCase, report.checks.correctionAgreementWithinTolerance);
+
+wrongStrategy = educationalLowFrequencyHelmholtzKernelManifest(target, source, ...
+    "Wavenumber", k, ...
+    "ExpectedLowFrequencyStrategy", "direct_exp_minus_laplace");
+verifyEqual(testCase, wrongStrategy.status, "needs_attention");
+verifyFalse(testCase, wrongStrategy.checks.lowFrequencyStrategyMatchesExpected);
+
+tooLargeKr = educationalLowFrequencyHelmholtzKernelManifest(target, source, ...
+    "Wavenumber", 1e-2, ...
+    "MaxKr", 1e-6);
+verifyEqual(testCase, tooLargeKr.status, "needs_attention");
+verifyFalse(testCase, tooLargeKr.checks.krWithinLowFrequencyLimit);
+end
+
+
 function testLowFrequencyDoubleLayerMatchesDirectFormula(testCase)
 target = [0 0 0];
 source = [2 0 0];

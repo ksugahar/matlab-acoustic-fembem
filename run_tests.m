@@ -5,9 +5,13 @@ addpath(fullfile(repoRoot, "validation"));
 
 testFiles = [
     fullfile(repoRoot, "tests", "testReadVolTriTet.m")
+    fullfile(repoRoot, "tests", "testEducationalMeshImportQuality.m")
     fullfile(repoRoot, "tests", "testFirstOrderFemBemSpaces.m")
     fullfile(repoRoot, "tests", "testEducationalHMatrix.m")
     fullfile(repoRoot, "tests", "testEducationalAcoustics.m")
+    fullfile(repoRoot, "tests", "testEducationalCoulombGauge.m")
+    fullfile(repoRoot, "tests", "testEducationalOptimization.m")
+    fullfile(repoRoot, "tests", "testEducationalGeometricIntegration.m")
     fullfile(repoRoot, "tests", "testValidationCatalog.m")
     fullfile(repoRoot, "tests", "testMeshTopologyValidation.m")
     fullfile(repoRoot, "tests", "testRemainingExamplesValidation.m")

@@ -38,9 +38,8 @@ cross validation, and student understanding over performance.
 - Treat `W:\00_CAE\MATLAB\30_Optimization` as the main learning source for
   optimization methods, but distill only private-safe, license-safe teaching
   code into this repository.
-- Compare MATLAB optimization examples with Optuna when useful. Use the
-  installed official public `optuna/optuna-mcp` or plain Optuna APIs; do not
-  create a lab-specific Optuna MCP server.
+- Do not maintain Optuna in this repository. When Optuna operation is needed,
+  use the official `optuna-mcp-server`.
 - Couple optimization examples to readable FEM/BEM operators where useful:
   shape/mesh parameters, material coefficients, acoustic objectives, and
   scalar/vector field targets are good teaching cases.

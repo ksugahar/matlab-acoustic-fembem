@@ -61,8 +61,917 @@ m = assembleFirstOrderFemBemTrace(m);
 
 verifyEqual(testCase, m.status, "operators_ready_first_order_h1_hcurl_rwg_trace");
 verifyEqual(testCase, m.operators.trace.rwgToHcurlEdgeIds(:), (1:6).');
+verifyEqual(testCase, m.operators.trace.surfaceMeshId, m.trace.surfaceMeshId);
+verifyEqual(testCase, m.operators.trace.traceArtifactId, m.trace.traceArtifactId);
+verifyEqual(testCase, m.operators.trace.traceOperatorArtifactId, m.trace.traceOperatorArtifactId);
+verifyEqual(testCase, m.operators.trace.traceOperatorPolicy, m.trace.traceOperatorPolicy);
+verifyEqual(testCase, m.operators.trace.traceOutputArtifactId, m.trace.traceOutputArtifactId);
+verifyEqual(testCase, m.operators.trace.traceOutputDigest, m.trace.traceOutputDigest);
+verifyEqual(testCase, m.operators.trace.traceOutputPath, m.trace.traceOutputPath);
+verifyEqual(testCase, m.operators.trace.traceObservableId, m.trace.traceObservableId);
+verifyEqual(testCase, m.operators.trace.traceObservableFamily, m.trace.traceObservableFamily);
+verifyEqual(testCase, m.operators.trace.traceBasisSchemaId, m.trace.traceBasisSchemaId);
+verifyEqual(testCase, m.operators.trace.assemblyRuleId, m.trace.assemblyRuleId);
+verifyEqual(testCase, m.operators.trace.quadratureRuleId, m.trace.quadratureRuleId);
+verifyEqual(testCase, [m.operators.trace.traceRowIdentity.trace_row_index].', (1:4).');
+verifyEqual(testCase, [m.operators.trace.traceRowIdentity.fem_node_id].', (1:4).');
+verifyEqual(testCase, [m.operators.trace.traceRowIdentity.bem_node_id].', (1:4).');
+verifyEqual(testCase, m.operators.trace.traceRowIdentity, m.trace.traceRowIdentity);
+verifyEqual(testCase, m.operators.trace.sourceFileId, m.trace.sourceFileId);
+verifyEqual(testCase, m.operators.trace.boundaryNumbers, ones(4, 1));
+verifyEqual(testCase, m.operators.trace.boundaryNames, repmat("outer", 4, 1));
+verifyEqual(testCase, m.operators.trace.boundaryRowIdentity, m.trace.boundaryRowIdentity);
+verifyEqual(testCase, [m.operators.trace.boundaryRowIdentity.surface_triangle_index].', (1:4).');
+verifyEqual(testCase, m.operators.trace.boundaryRowIdentity(2).surface_triangle_nodes, [1 4 2]);
+verifyEqual(testCase, [m.operators.trace.boundaryRowIdentity.boundary_number].', ones(4, 1));
+verifyEqual(testCase, string({m.operators.trace.boundaryRowIdentity.boundary_name}).', repmat("outer", 4, 1));
+verifyTrue(testCase, startsWith(m.identity.sourceFileId, "sha256:"));
+verifyTrue(testCase, contains(m.trace.traceOutputArtifactId, "h1_to_scalar_bem_trace_output_p1"));
+verifyTrue(testCase, startsWith(m.trace.traceOutputDigest, "sha256:"));
+verifyTrue(testCase, startsWith(m.trace.traceOutputPath, "memory://"));
+verifyTrue(testCase, contains(m.trace.traceObservableId, "boundary_trace_observable_p1"));
+verifyEqual(testCase, m.trace.traceObservableFamily, "fem_bem_boundary_trace");
+verifyEqual(testCase, m.trace.traceBasisSchemaId, "matlab_h1_p1_to_scalar_bem_p1_trace_basis_v1");
+verifyEqual(testCase, m.trace.assemblyRuleId, "first_order_tet_h1_trace_tri_p1_bem_teaching_v1");
+verifyEqual(testCase, m.trace.quadratureRuleId, "tri_p1_exact_mass_regular_kernel_teaching_v1");
 verifyEqual(testCase, size(m.operators.fem.stiffness), [4 4]);
 verifyEqual(testCase, size(m.operators.bem.surfaceMass), [4 4]);
+end
+
+
+function testTraceSurfaceMassReportKeepsBoundaryEnergyVisible(testCase)
+path = writeFixture(testCase, fourTetWithInteriorNodeVolText());
+m = volFemBemModel(path);
+u = [1; 2; -1; 0.5; 9];
+
+report = educationalFemBemTraceMassReport(m, u);
+
+verifyEqual(testCase, report.status, "ok");
+verifyEqual(testCase, report.policy, "readable_first_order_tri_tet_trace_surface_mass_gate");
+verifyNotEmpty(testCase, report.meshId);
+verifyNotEmpty(testCase, report.surfaceMeshId);
+verifyNotEmpty(testCase, report.traceArtifactId);
+verifyTrue(testCase, contains(report.surfaceMeshId, "boundary_tri_p1"));
+verifyTrue(testCase, contains(report.traceArtifactId, "h1_to_scalar_bem_trace_p1"));
+verifyEqual(testCase, report.traceShape, [4 5]);
+verifyEqual(testCase, report.interiorNodeIds, 5);
+verifyEqual(testCase, report.surfaceAreaFromMass, 1.5 + sqrt(3) / 2, "AbsTol", 1e-14);
+verifyLessThan(testCase, report.energyAbsError, 1e-14);
+verifyEqual(testCase, report.interiorBoundaryAction, 0, "AbsTol", 1e-14);
+verifyTrue(testCase, report.checks.surfaceMassSymmetric);
+verifyTrue(testCase, report.checks.energyIdentityOk);
+verifyTrue(testCase, report.checks.interiorNodesHaveZeroBoundaryAction);
+verifyTrue(testCase, report.checks.surfaceMeshIdRecorded);
+verifyTrue(testCase, report.checks.traceArtifactIdRecorded);
+end
+
+
+function testNormalFluxReportConsumesOrientationSigns(testCase)
+path = writeFixture(testCase, tetVolText());
+m = volFemBemModel(path);
+
+report = educationalFemBemNormalFluxSignReport(m, [1 2 3]);
+
+verifyEqual(testCase, report.status, "ok");
+verifyEqual(testCase, report.policy, "readable_fem_bem_normal_flux_orientation_gate");
+verifyEqual(testCase, report.resultArtifactId, "matlab_fem_bem_normal_flux_sign_report_v1");
+verifyEqual(testCase, report.expectedResultArtifactId, "matlab_fem_bem_normal_flux_sign_report_v1");
+verifyTrue(testCase, startsWith(report.resultDigest, "sha256:"));
+verifyEqual(testCase, report.expectedResultDigest, report.resultDigest);
+verifyEqual(testCase, report.normalConvention, "outward_from_volume");
+verifyEqual(testCase, report.expectedNormalConvention, "outward_from_volume");
+verifyEqual(testCase, report.triangleOrientationSignsToOutward, -ones(4, 1));
+verifyEqual(testCase, report.storedNormalFlux, [1.5; 1.0; -3.0; 0.5], "AbsTol", 1e-14);
+verifyEqual(testCase, report.orientationCorrectedNormalFlux, [-1.5; -1.0; 3.0; -0.5], "AbsTol", 1e-14);
+verifyEqual(testCase, report.outwardNormalFluxReference, [-1.5; -1.0; 3.0; -0.5], "AbsTol", 1e-14);
+verifyLessThan(testCase, report.maxAbsError, 1e-14);
+verifyLessThan(testCase, abs(report.closedSurfaceFluxSum), 1e-14);
+verifyTrue(testCase, report.checks.normalConventionRecorded);
+verifyTrue(testCase, report.checks.normalConventionMatchesExpected);
+verifyTrue(testCase, report.checks.resultArtifactIdRecorded);
+verifyTrue(testCase, report.checks.resultArtifactIdMatchesExpected);
+verifyTrue(testCase, report.checks.resultDigestRecorded);
+verifyTrue(testCase, report.checks.resultDigestMatchesExpected);
+verifyTrue(testCase, report.checks.correctedFluxMatchesOutwardReference);
+verifyTrue(testCase, report.checks.closedSurfaceFluxBalanceOk);
+
+bad = m;
+bad.trace.triangleOrientationSignsToOutward = ones(4, 1);
+badReport = educationalFemBemNormalFluxSignReport(bad, [1 2 3]);
+verifyEqual(testCase, badReport.status, "needs_attention");
+verifyFalse(testCase, badReport.checks.correctedFluxMatchesOutwardReference);
+
+wrongConvention = educationalFemBemNormalFluxSignReport( ...
+    m, [1 2 3], ...
+    "NormalConvention", "stored_from_vol", ...
+    "ExpectedNormalConvention", "outward_from_volume");
+verifyEqual(testCase, wrongConvention.status, "needs_attention");
+verifyFalse(testCase, wrongConvention.checks.normalConventionMatchesExpected);
+verifyTrue(testCase, wrongConvention.checks.correctedFluxMatchesOutwardReference);
+
+staleDigest = educationalFemBemNormalFluxSignReport( ...
+    m, [1 2 3], ...
+    "ResultDigest", "sha256:old-normal-flux-report", ...
+    "ExpectedResultDigest", report.resultDigest);
+verifyEqual(testCase, staleDigest.status, "needs_attention");
+verifyFalse(testCase, staleDigest.checks.resultDigestMatchesExpected);
+verifyTrue(testCase, staleDigest.checks.correctedFluxMatchesOutwardReference);
+end
+
+
+function testCouplingManifestKeepsTraceKernelAndSpacesTogether(testCase)
+path = writeFixture(testCase, fourTetWithInteriorNodeVolText());
+m = volFemBemModel(path);
+m = assembleFirstOrderFemBemTrace(m);
+normalFluxArtifactId = "matlab_slot360_unit_tet_normal_flux_sign_report_v1";
+normalFluxReport = educationalFemBemNormalFluxSignReport( ...
+    m, [1 2 3], ...
+    "ResultArtifactId", normalFluxArtifactId);
+verifyEqual(testCase, normalFluxReport.status, "ok");
+normalFluxDigest = normalFluxReport.resultDigest;
+linearSolverReportArtifactId = "matlab_slot367_fem_bem_linear_solver_report_v1";
+linearSolverReportDigest = "sha256:matlab_slot367_fem_bem_linear_solver_report_v1";
+linearSolverName = "minimum_norm_pinv_rank_deficient";
+linearSolverTolerance = 1e-10;
+linearSolverResidualNorm = 2e-13;
+linearSolverIterationCount = 1;
+notebookSourceArtifactId = "matlab_slot381_fem_bem_teaching_notebook_v1";
+notebookSourceDigest = "sha256:matlab-slot381-fem-bem-teaching-notebook-v1";
+notebookSourcePath = "docs/fem_bem/first_order_fem_bem_teaching.ipynb";
+parameterSetArtifactId = "matlab_slot388_fem_bem_parameter_set_v1";
+parameterSetDigest = "sha256:matlab-slot388-fem-bem-parameter-set-v1";
+parameterSetPath = "docs/fem_bem/first_order_fem_bem_parameter_set.json";
+objectiveObservableId = "matlab_slot388_trace_lsq_residual_objective_v1";
+objectiveObservableFamily = "fem_bem_trace_least_squares_objective";
+couplingConventionSchemaId = "matlab_first_order_fem_bem_coupling_convention_v1";
+postprocessRowConventionSchemaId = "matlab_fem_bem_trace_lsq_row_convention_v1";
+traceBasisSchemaId = "matlab_h1_p1_to_scalar_bem_p1_trace_basis_v1";
+
+report = educationalFemBemCouplingManifest( ...
+    m, ...
+    "ExpectedBoundaryNumbers", 1, ...
+    "ExpectedBoundaryNames", "outer", ...
+    "ExpectedTraceOperatorArtifactId", m.trace.traceOperatorArtifactId, ...
+    "ExpectedTraceOutputArtifactId", m.trace.traceOutputArtifactId, ...
+    "ExpectedTraceOutputDigest", m.trace.traceOutputDigest, ...
+    "ExpectedTraceObservableId", m.trace.traceObservableId, ...
+    "ExpectedTraceObservableFamily", "fem_bem_boundary_trace", ...
+    "NormalFluxArtifactId", normalFluxArtifactId, ...
+    "NormalFluxDigest", normalFluxDigest, ...
+    "NormalFluxConvention", "outward_from_volume", ...
+    "ExpectedNormalFluxArtifactId", normalFluxArtifactId, ...
+    "ExpectedNormalFluxDigest", normalFluxDigest, ...
+    "ExpectedNormalFluxConvention", "outward_from_volume", ...
+    "LinearSolverReportArtifactId", linearSolverReportArtifactId, ...
+    "LinearSolverReportDigest", linearSolverReportDigest, ...
+    "LinearSolverName", linearSolverName, ...
+    "LinearSolverTolerance", linearSolverTolerance, ...
+    "LinearSolverResidualNorm", linearSolverResidualNorm, ...
+    "LinearSolverIterationCount", linearSolverIterationCount, ...
+    "ExpectedLinearSolverReportArtifactId", linearSolverReportArtifactId, ...
+    "ExpectedLinearSolverReportDigest", linearSolverReportDigest, ...
+    "ExpectedLinearSolverName", linearSolverName, ...
+    "ExpectedLinearSolverTolerance", linearSolverTolerance, ...
+    "ExpectedLinearSolverResidualNormMax", 1e-12, ...
+    "ExpectedAssemblyRuleId", m.trace.assemblyRuleId, ...
+    "ExpectedQuadratureRuleId", m.trace.quadratureRuleId, ...
+    "CouplingConventionSchemaId", couplingConventionSchemaId, ...
+    "ExpectedCouplingConventionSchemaId", couplingConventionSchemaId, ...
+    "PostprocessRowConventionSchemaId", postprocessRowConventionSchemaId, ...
+    "ExpectedPostprocessRowConventionSchemaId", postprocessRowConventionSchemaId, ...
+    "ExpectedTraceBasisSchemaId", traceBasisSchemaId, ...
+    "ResultArtifactId", "matlab_slot344_fem_bem_manifest_result_v1", ...
+    "RunStartedAt", "2026-07-01T13:50:00+09:00", ...
+    "MatlabVersion", "R2026a", ...
+    "ExpectedResultArtifactId", "matlab_slot344_fem_bem_manifest_result_v1", ...
+    "ExpectedMatlabVersion", "R2026a", ...
+    "NotebookSourceArtifactId", notebookSourceArtifactId, ...
+    "NotebookSourceDigest", notebookSourceDigest, ...
+    "NotebookSourcePath", notebookSourcePath, ...
+    "ExpectedNotebookSourceArtifactId", notebookSourceArtifactId, ...
+    "ExpectedNotebookSourceDigest", notebookSourceDigest, ...
+    "ExpectedNotebookSourcePath", notebookSourcePath, ...
+    "ParameterSetArtifactId", parameterSetArtifactId, ...
+    "ParameterSetDigest", parameterSetDigest, ...
+    "ParameterSetPath", parameterSetPath, ...
+    "ExpectedParameterSetArtifactId", parameterSetArtifactId, ...
+    "ExpectedParameterSetDigest", parameterSetDigest, ...
+    "ExpectedParameterSetPath", parameterSetPath, ...
+    "ObjectiveObservableId", objectiveObservableId, ...
+    "ObjectiveObservableFamily", objectiveObservableFamily, ...
+    "ExpectedObjectiveObservableId", objectiveObservableId, ...
+    "ExpectedObjectiveObservableFamily", objectiveObservableFamily, ...
+    "TimingBreakdown", struct( ...
+        "mesh_read_s", 0.001, ...
+        "trace_assembly_s", 0.002, ...
+        "manifest_build_s", 0.003, ...
+        "json_write_s", 0.004), ...
+    "RequireLinearSolverReport", true, ...
+    "RequireNormalFluxArtifact", true, ...
+    "RequireNotebookSourceArtifact", true, ...
+    "RequireParameterSetArtifact", true, ...
+    "RequireCouplingConventionSchema", true, ...
+    "RequirePostprocessRowConventionSchema", true, ...
+    "RequireTraceBasisSchema", true, ...
+    "RequireTraceOutputArtifact", true);
+
+verifyEqual(testCase, report.status, "ok");
+verifyEqual(testCase, report.policy, "readable_fem_bem_coupling_manifest_gate");
+verifyEqual(testCase, report.couplingKind, "h1_p1_to_scalar_bem_p1_trace");
+verifyEqual(testCase, report.formulationId, "laplace_single_layer_teaching");
+verifyEqual(testCase, report.bemKernelFamily, "laplace_single_layer");
+verifyEqual(testCase, report.couplingConventionSchemaId, couplingConventionSchemaId);
+verifyEqual(testCase, report.expectedCouplingConventionSchemaId, couplingConventionSchemaId);
+verifyEqual(testCase, report.postprocessRowConventionSchemaId, postprocessRowConventionSchemaId);
+verifyEqual(testCase, report.expectedPostprocessRowConventionSchemaId, postprocessRowConventionSchemaId);
+verifyEqual(testCase, report.traceBasisSchemaId, traceBasisSchemaId);
+verifyEqual(testCase, report.operatorTraceBasisSchemaId, traceBasisSchemaId);
+verifyEqual(testCase, report.expectedTraceBasisSchemaId, traceBasisSchemaId);
+verifyEqual(testCase, report.bemKernelManifestId, "laplace_single_layer_static_kernel_manifest_v1");
+verifyEqual(testCase, report.bemKernelStrategy, "direct_laplace_1_over_4pi_r");
+verifyEqual(testCase, report.kernelTimeConvention, "static_laplace_no_time_convention");
+verifyEqual(testCase, report.assemblyRuleId, "first_order_tet_h1_trace_tri_p1_bem_teaching_v1");
+verifyEqual(testCase, report.operatorTraceAssemblyRuleId, "first_order_tet_h1_trace_tri_p1_bem_teaching_v1");
+verifyEqual(testCase, report.quadratureRuleId, "tri_p1_exact_mass_regular_kernel_teaching_v1");
+verifyEqual(testCase, report.operatorTraceQuadratureRuleId, "tri_p1_exact_mass_regular_kernel_teaching_v1");
+verifyEqual(testCase, report.volumeSpace, "H1_P1_tet");
+verifyEqual(testCase, report.surfaceSpace, "scalar_P1_tri");
+verifyEqual(testCase, report.boundaryNumbers, ones(4, 1));
+verifyEqual(testCase, report.boundaryNames, repmat("outer", 4, 1));
+verifyEqual(testCase, report.boundaryRowIdentity, m.trace.boundaryRowIdentity);
+verifyEqual(testCase, report.operatorBoundaryRowIdentity, m.trace.boundaryRowIdentity);
+verifyEqual(testCase, report.expectedBoundaryNumbers, 1);
+verifyEqual(testCase, report.expectedBoundaryNames, "outer");
+verifyEqual(testCase, report.traceOperatorArtifactId, m.trace.traceOperatorArtifactId);
+verifyEqual(testCase, report.operatorTraceOperatorArtifactId, m.trace.traceOperatorArtifactId);
+verifyEqual(testCase, report.traceOperatorPolicy, "one_hot_boundary_node_injection_from_vol_node_ids");
+verifyEqual(testCase, report.operatorTraceOperatorPolicy, "one_hot_boundary_node_injection_from_vol_node_ids");
+verifyEqual(testCase, report.traceOutputArtifactId, m.trace.traceOutputArtifactId);
+verifyEqual(testCase, report.operatorTraceOutputArtifactId, m.trace.traceOutputArtifactId);
+verifyEqual(testCase, report.traceOutputDigest, m.trace.traceOutputDigest);
+verifyEqual(testCase, report.operatorTraceOutputDigest, m.trace.traceOutputDigest);
+verifyEqual(testCase, report.traceOutputPath, m.trace.traceOutputPath);
+verifyEqual(testCase, report.operatorTraceOutputPath, m.trace.traceOutputPath);
+verifyEqual(testCase, report.traceObservableId, m.trace.traceObservableId);
+verifyEqual(testCase, report.operatorTraceObservableId, m.trace.traceObservableId);
+verifyEqual(testCase, report.traceObservableFamily, "fem_bem_boundary_trace");
+verifyEqual(testCase, report.operatorTraceObservableFamily, "fem_bem_boundary_trace");
+verifyEqual(testCase, report.normalFluxArtifactId, normalFluxArtifactId);
+verifyEqual(testCase, report.normalFluxDigest, normalFluxDigest);
+verifyEqual(testCase, report.normalFluxConvention, "outward_from_volume");
+verifyEqual(testCase, report.expectedNormalFluxArtifactId, normalFluxArtifactId);
+verifyEqual(testCase, report.expectedNormalFluxDigest, normalFluxDigest);
+verifyEqual(testCase, report.expectedNormalFluxConvention, "outward_from_volume");
+verifyEqual(testCase, report.linearSolverReportArtifactId, linearSolverReportArtifactId);
+verifyEqual(testCase, report.linearSolverReportDigest, linearSolverReportDigest);
+verifyEqual(testCase, report.linearSolverName, linearSolverName);
+verifyEqual(testCase, report.linearSolverTolerance, linearSolverTolerance, "AbsTol", 1e-15);
+verifyEqual(testCase, report.linearSolverResidualNorm, linearSolverResidualNorm, "AbsTol", 1e-18);
+verifyEqual(testCase, report.linearSolverIterationCount, linearSolverIterationCount);
+verifyEqual(testCase, report.expectedLinearSolverReportArtifactId, linearSolverReportArtifactId);
+verifyEqual(testCase, report.expectedLinearSolverReportDigest, linearSolverReportDigest);
+verifyEqual(testCase, report.expectedLinearSolverName, linearSolverName);
+verifyEqual(testCase, report.expectedLinearSolverTolerance, linearSolverTolerance, "AbsTol", 1e-15);
+verifyEqual(testCase, report.expectedLinearSolverResidualNormMax, 1e-12, "AbsTol", 1e-18);
+verifyEqual(testCase, report.resultArtifactId, "matlab_slot344_fem_bem_manifest_result_v1");
+verifyEqual(testCase, report.expectedResultArtifactId, "matlab_slot344_fem_bem_manifest_result_v1");
+verifyEqual(testCase, report.runStartedAt, "2026-07-01T13:50:00+09:00");
+verifyEqual(testCase, report.matlabVersion, "R2026a");
+verifyEqual(testCase, report.expectedMatlabVersion, "R2026a");
+verifyEqual(testCase, report.notebookSourceArtifactId, notebookSourceArtifactId);
+verifyEqual(testCase, report.notebookSourceDigest, notebookSourceDigest);
+verifyEqual(testCase, report.notebookSourcePath, notebookSourcePath);
+verifyEqual(testCase, report.expectedNotebookSourceArtifactId, notebookSourceArtifactId);
+verifyEqual(testCase, report.expectedNotebookSourceDigest, notebookSourceDigest);
+verifyEqual(testCase, report.expectedNotebookSourcePath, notebookSourcePath);
+verifyEqual(testCase, report.parameterSetArtifactId, parameterSetArtifactId);
+verifyEqual(testCase, report.parameterSetDigest, parameterSetDigest);
+verifyEqual(testCase, report.parameterSetPath, parameterSetPath);
+verifyEqual(testCase, report.expectedParameterSetArtifactId, parameterSetArtifactId);
+verifyEqual(testCase, report.expectedParameterSetDigest, parameterSetDigest);
+verifyEqual(testCase, report.expectedParameterSetPath, parameterSetPath);
+verifyEqual(testCase, report.objectiveObservableId, objectiveObservableId);
+verifyEqual(testCase, report.objectiveObservableFamily, objectiveObservableFamily);
+verifyEqual(testCase, report.expectedObjectiveObservableId, objectiveObservableId);
+verifyEqual(testCase, report.expectedObjectiveObservableFamily, objectiveObservableFamily);
+verifyEqual(testCase, report.execution.resultArtifactId, report.resultArtifactId);
+verifyEqual(testCase, report.execution.linearSolverReportArtifactId, linearSolverReportArtifactId);
+verifyEqual(testCase, report.execution.linearSolverReportDigest, linearSolverReportDigest);
+verifyEqual(testCase, report.execution.linearSolverName, linearSolverName);
+verifyEqual(testCase, report.execution.linearSolverResidualNorm, linearSolverResidualNorm, "AbsTol", 1e-18);
+verifyEqual(testCase, report.execution.matlabVersion, report.matlabVersion);
+verifyEqual(testCase, report.execution.notebookSourceArtifactId, notebookSourceArtifactId);
+verifyEqual(testCase, report.execution.notebookSourceDigest, notebookSourceDigest);
+verifyEqual(testCase, report.execution.notebookSourcePath, notebookSourcePath);
+verifyEqual(testCase, report.execution.parameterSetArtifactId, parameterSetArtifactId);
+verifyEqual(testCase, report.execution.parameterSetDigest, parameterSetDigest);
+verifyEqual(testCase, report.execution.parameterSetPath, parameterSetPath);
+verifyEqual(testCase, report.execution.objectiveObservableId, objectiveObservableId);
+verifyEqual(testCase, report.execution.objectiveObservableFamily, objectiveObservableFamily);
+verifyEqual(testCase, report.optimization.parameterSetArtifactId, parameterSetArtifactId);
+verifyEqual(testCase, report.optimization.parameterSetDigest, parameterSetDigest);
+verifyEqual(testCase, report.optimization.parameterSetPath, parameterSetPath);
+verifyEqual(testCase, report.optimization.objectiveObservableId, objectiveObservableId);
+verifyEqual(testCase, report.optimization.objectiveObservableFamily, objectiveObservableFamily);
+verifyEqual(testCase, report.timingBreakdownNames, ...
+    ["mesh_read_s"; "trace_assembly_s"; "manifest_build_s"; "json_write_s"]);
+verifyEqual(testCase, report.timingBreakdownSeconds, [0.001; 0.002; 0.003; 0.004], "AbsTol", 1e-15);
+verifyEqual(testCase, report.timingTotalSeconds, 0.010, "AbsTol", 1e-15);
+verifyEqual(testCase, report.requireTraceOutputArtifact, true);
+verifyEqual(testCase, report.requireNormalFluxArtifact, true);
+verifyEqual(testCase, report.requireLinearSolverReport, true);
+verifyEqual(testCase, report.requireNotebookSourceArtifact, true);
+verifyEqual(testCase, report.requireParameterSetArtifact, true);
+verifyEqual(testCase, report.requirePostprocessRowConventionSchema, true);
+verifyEqual(testCase, report.requireTraceBasisSchema, true);
+verifyEqual(testCase, report.traceShape, [4 5]);
+verifyEqual(testCase, report.boundaryNodeIds, (1:4).');
+verifyEqual(testCase, [report.traceRowIdentity.trace_row_index].', (1:4).');
+verifyEqual(testCase, [report.traceRowIdentity.fem_node_id].', (1:4).');
+verifyEqual(testCase, [report.traceRowIdentity.bem_node_id].', (1:4).');
+verifyEqual(testCase, [report.trace.trace_row_identity.fem_node_id].', (1:4).');
+verifyEqual(testCase, [report.operatorTraceRowIdentity.trace_row_index].', (1:4).');
+verifyEqual(testCase, [report.operatorTraceRowIdentity.fem_node_id].', (1:4).');
+verifyEqual(testCase, report.operatorTraceRowIdentity, report.traceRowIdentity);
+verifyEqual(testCase, [report.boundaryRowIdentity.surface_triangle_index].', (1:4).');
+verifyEqual(testCase, report.boundaryRowIdentity(2).surface_triangle_nodes, [1 4 2]);
+verifyEqual(testCase, [report.boundaryRowIdentity.boundary_number].', ones(4, 1));
+verifyEqual(testCase, string({report.boundaryRowIdentity.boundary_name}).', repmat("outer", 4, 1));
+verifyTrue(testCase, startsWith(report.sourceFileId, "sha256:"));
+verifyEqual(testCase, report.trace.source_file_id, report.sourceFileId);
+verifyEqual(testCase, report.trace.normal_flux_artifact_id, normalFluxArtifactId);
+verifyEqual(testCase, report.trace.normal_flux_digest, normalFluxDigest);
+verifyEqual(testCase, report.trace.normal_flux_convention, "outward_from_volume");
+verifyEqual(testCase, report.trace.linear_solver_report_artifact_id, linearSolverReportArtifactId);
+verifyEqual(testCase, report.trace.linear_solver_report_digest, linearSolverReportDigest);
+verifyEqual(testCase, report.trace.linear_solver_name, linearSolverName);
+verifyEqual(testCase, report.trace.linear_solver_residual_norm, linearSolverResidualNorm, "AbsTol", 1e-18);
+verifyEqual(testCase, report.trace.fem_bem_postprocess_row_convention_schema_id, postprocessRowConventionSchemaId);
+verifyEqual(testCase, report.trace.trace_basis_schema_id, traceBasisSchemaId);
+verifyEqual(testCase, report.operatorTraceSourceFileId, report.sourceFileId);
+verifyTrue(testCase, report.checks.couplingKindMatchesExpected);
+verifyTrue(testCase, report.checks.formulationIdMatchesExpected);
+verifyTrue(testCase, report.checks.bemKernelFamilyMatchesExpected);
+verifyTrue(testCase, report.checks.bemKernelManifestIdRecorded);
+verifyTrue(testCase, report.checks.bemKernelManifestIdMatchesExpected);
+verifyTrue(testCase, report.checks.couplingConventionSchemaIdRecordedWhenRequired);
+verifyTrue(testCase, report.checks.couplingConventionSchemaIdMatchesExpected);
+verifyTrue(testCase, report.checks.postprocessRowConventionSchemaIdRecordedWhenRequired);
+verifyTrue(testCase, report.checks.postprocessRowConventionSchemaIdMatchesExpected);
+verifyTrue(testCase, report.checks.traceBasisSchemaIdRecordedWhenRequired);
+verifyTrue(testCase, report.checks.traceBasisSchemaIdMatchesExpected);
+verifyTrue(testCase, report.checks.operatorTraceBasisSchemaIdRecorded);
+verifyTrue(testCase, report.checks.operatorTraceBasisSchemaIdMatchesTrace);
+verifyTrue(testCase, report.checks.bemKernelStrategyRecorded);
+verifyTrue(testCase, report.checks.bemKernelStrategyMatchesExpected);
+verifyTrue(testCase, report.checks.kernelTimeConventionRecorded);
+verifyTrue(testCase, report.checks.kernelTimeConventionMatchesExpected);
+verifyTrue(testCase, report.checks.assemblyRuleIdRecorded);
+verifyTrue(testCase, report.checks.operatorTraceAssemblyRuleIdRecorded);
+verifyTrue(testCase, report.checks.operatorTraceAssemblyRuleIdMatchesTrace);
+verifyTrue(testCase, report.checks.assemblyRuleIdMatchesExpected);
+verifyTrue(testCase, report.checks.quadratureRuleIdRecorded);
+verifyTrue(testCase, report.checks.operatorTraceQuadratureRuleIdRecorded);
+verifyTrue(testCase, report.checks.operatorTraceQuadratureRuleIdMatchesTrace);
+verifyTrue(testCase, report.checks.quadratureRuleIdMatchesExpected);
+verifyTrue(testCase, report.checks.volumeSpaceMatchesExpected);
+verifyTrue(testCase, report.checks.surfaceSpaceMatchesExpected);
+verifyTrue(testCase, report.checks.sourceFileIdRecorded);
+verifyTrue(testCase, report.checks.traceSourceFileIdRecorded);
+verifyTrue(testCase, report.checks.traceSourceFileIdMatchesIdentity);
+verifyTrue(testCase, report.checks.operatorTraceSourceFileIdRecorded);
+verifyTrue(testCase, report.checks.operatorTraceSourceFileIdMatchesIdentity);
+verifyTrue(testCase, report.checks.traceOperatorArtifactIdRecorded);
+verifyTrue(testCase, report.checks.operatorTraceOperatorArtifactIdRecorded);
+verifyTrue(testCase, report.checks.operatorTraceOperatorArtifactIdMatchesTrace);
+verifyTrue(testCase, report.checks.traceOperatorPolicyRecorded);
+verifyTrue(testCase, report.checks.operatorTraceOperatorPolicyRecorded);
+verifyTrue(testCase, report.checks.operatorTraceOperatorPolicyMatchesTrace);
+verifyTrue(testCase, report.checks.traceOperatorPolicyMatchesExpected);
+verifyTrue(testCase, report.checks.traceOperatorArtifactIdMatchesExpected);
+verifyTrue(testCase, report.checks.traceOutputArtifactIdRecordedWhenRequired);
+verifyTrue(testCase, report.checks.traceOutputDigestRecordedWhenRequired);
+verifyTrue(testCase, report.checks.traceOutputPathRecordedWhenRequired);
+verifyTrue(testCase, report.checks.operatorTraceOutputArtifactIdMatchesTrace);
+verifyTrue(testCase, report.checks.operatorTraceOutputDigestMatchesTrace);
+verifyTrue(testCase, report.checks.operatorTraceOutputPathMatchesTrace);
+verifyTrue(testCase, report.checks.traceOutputArtifactIdMatchesExpected);
+verifyTrue(testCase, report.checks.traceOutputDigestMatchesExpected);
+verifyTrue(testCase, report.checks.traceObservableIdRecorded);
+verifyTrue(testCase, report.checks.operatorTraceObservableIdRecorded);
+verifyTrue(testCase, report.checks.operatorTraceObservableIdMatchesTrace);
+verifyTrue(testCase, report.checks.traceObservableIdMatchesExpected);
+verifyTrue(testCase, report.checks.traceObservableFamilyRecorded);
+verifyTrue(testCase, report.checks.operatorTraceObservableFamilyRecorded);
+verifyTrue(testCase, report.checks.operatorTraceObservableFamilyMatchesTrace);
+verifyTrue(testCase, report.checks.traceObservableFamilyMatchesExpected);
+verifyTrue(testCase, report.checks.normalFluxConventionRecorded);
+verifyTrue(testCase, report.checks.normalFluxConventionMatchesExpected);
+verifyTrue(testCase, report.checks.normalFluxArtifactIdRecordedWhenRequired);
+verifyTrue(testCase, report.checks.normalFluxDigestRecordedWhenRequired);
+verifyTrue(testCase, report.checks.normalFluxArtifactIdMatchesExpected);
+verifyTrue(testCase, report.checks.normalFluxDigestMatchesExpected);
+verifyTrue(testCase, report.checks.linearSolverReportArtifactIdRecordedWhenRequired);
+verifyTrue(testCase, report.checks.linearSolverReportDigestRecordedWhenRequired);
+verifyTrue(testCase, report.checks.linearSolverNameRecordedWhenRequired);
+verifyTrue(testCase, report.checks.linearSolverToleranceRecordedWhenRequired);
+verifyTrue(testCase, report.checks.linearSolverResidualNormRecordedWhenRequired);
+verifyTrue(testCase, report.checks.linearSolverToleranceFinitePositiveWhenPresent);
+verifyTrue(testCase, report.checks.linearSolverResidualNormFiniteNonnegativeWhenPresent);
+verifyTrue(testCase, report.checks.linearSolverIterationCountNonnegativeWhenPresent);
+verifyTrue(testCase, report.checks.linearSolverReportArtifactIdMatchesExpected);
+verifyTrue(testCase, report.checks.linearSolverReportDigestMatchesExpected);
+verifyTrue(testCase, report.checks.linearSolverNameMatchesExpected);
+verifyTrue(testCase, report.checks.linearSolverToleranceMatchesExpected);
+verifyTrue(testCase, report.checks.linearSolverResidualNormBelowExpectedMax);
+verifyTrue(testCase, report.checks.resultArtifactIdRecorded);
+verifyTrue(testCase, report.checks.resultArtifactIdMatchesExpected);
+verifyTrue(testCase, report.checks.runStartedAtRecorded);
+verifyTrue(testCase, report.checks.runStartedAtIsoLike);
+verifyTrue(testCase, report.checks.matlabVersionRecorded);
+verifyTrue(testCase, report.checks.matlabVersionMatchesExpected);
+verifyTrue(testCase, report.checks.notebookSourceArtifactIdRecordedWhenRequired);
+verifyTrue(testCase, report.checks.notebookSourceDigestRecordedWhenRequired);
+verifyTrue(testCase, report.checks.notebookSourcePathRecordedWhenRequired);
+verifyTrue(testCase, report.checks.notebookSourceArtifactIdMatchesExpected);
+verifyTrue(testCase, report.checks.notebookSourceDigestMatchesExpected);
+verifyTrue(testCase, report.checks.notebookSourcePathMatchesExpected);
+verifyTrue(testCase, report.checks.parameterSetArtifactIdRecordedWhenRequired);
+verifyTrue(testCase, report.checks.parameterSetDigestRecordedWhenRequired);
+verifyTrue(testCase, report.checks.parameterSetPathRecordedWhenRequired);
+verifyTrue(testCase, report.checks.parameterSetArtifactIdMatchesExpected);
+verifyTrue(testCase, report.checks.parameterSetDigestMatchesExpected);
+verifyTrue(testCase, report.checks.parameterSetPathMatchesExpected);
+verifyTrue(testCase, report.checks.objectiveObservableIdMatchesExpected);
+verifyTrue(testCase, report.checks.objectiveObservableFamilyMatchesExpected);
+verifyTrue(testCase, report.checks.timingBreakdownRecorded);
+verifyTrue(testCase, report.checks.timingBreakdownHasFourItems);
+verifyTrue(testCase, report.checks.timingBreakdownHasAtMostFourItems);
+verifyTrue(testCase, report.checks.timingBreakdownFiniteNonnegative);
+verifyTrue(testCase, report.checks.boundaryNumbersRecorded);
+verifyTrue(testCase, report.checks.boundaryNamesRecorded);
+verifyTrue(testCase, report.checks.operatorTraceBoundaryNumbersMatch);
+verifyTrue(testCase, report.checks.operatorTraceBoundaryNamesMatch);
+verifyTrue(testCase, report.checks.boundaryRowIdentityRecorded);
+verifyTrue(testCase, report.checks.boundaryRowIdentityRowIndicesMatch);
+verifyTrue(testCase, report.checks.boundaryRowIdentityTrianglesMatch);
+verifyTrue(testCase, report.checks.boundaryRowIdentityNumbersMatch);
+verifyTrue(testCase, report.checks.boundaryRowIdentityNamesMatch);
+verifyTrue(testCase, report.checks.operatorTraceBoundaryRowIdentityRecorded);
+verifyTrue(testCase, report.checks.operatorTraceBoundaryRowIdentityMatchesTrace);
+verifyTrue(testCase, report.checks.operatorTraceBoundaryRowIdentityTrianglesMatch);
+verifyTrue(testCase, report.checks.operatorTraceBoundaryRowIdentityNumbersMatch);
+verifyTrue(testCase, report.checks.operatorTraceBoundaryRowIdentityNamesMatch);
+verifyTrue(testCase, report.checks.boundaryNumbersMatchExpected);
+verifyTrue(testCase, report.checks.boundaryNamesMatchExpected);
+verifyTrue(testCase, report.checks.traceRowsAreOneHot);
+verifyTrue(testCase, report.checks.traceRowIdentityRecorded);
+verifyTrue(testCase, report.checks.traceRowIdentityRowIndicesMatch);
+verifyTrue(testCase, report.checks.traceRowIdentityFemNodesMatch);
+verifyTrue(testCase, report.checks.traceRowIdentityBemNodesMatch);
+verifyTrue(testCase, report.checks.traceRowIdentityUnique);
+verifyTrue(testCase, report.checks.traceRowIdentityMatchesTraceMatrix);
+verifyTrue(testCase, report.checks.operatorTraceRowIdentityRecorded);
+verifyTrue(testCase, report.checks.operatorTraceRowIdentityMatchesTrace);
+verifyTrue(testCase, report.checks.operatorTraceRowIdentityRowIndicesMatch);
+verifyTrue(testCase, report.checks.operatorTraceRowIdentityFemNodesMatch);
+verifyTrue(testCase, report.checks.operatorTraceRowIdentityBemNodesMatch);
+verifyTrue(testCase, report.checks.operatorTraceRowIdentityMatchesTraceMatrix);
+
+wrongKernel = educationalFemBemCouplingManifest( ...
+    m, ...
+    "ExpectedBemKernelFamily", "helmholtz_single_layer");
+verifyEqual(testCase, wrongKernel.status, "needs_attention");
+verifyFalse(testCase, wrongKernel.checks.bemKernelFamilyMatchesExpected);
+verifyTrue(testCase, wrongKernel.checks.traceRowsAreOneHot);
+
+staleAssemblyRule = assembleFirstOrderFemBemTrace(m);
+staleAssemblyRule.trace.assemblyRuleId = "remote_field_assembly_v0";
+staleAssemblyRule.operators.trace.assemblyRuleId = "remote_field_assembly_v0";
+staleAssemblyReport = educationalFemBemCouplingManifest( ...
+    staleAssemblyRule, ...
+    "ExpectedAssemblyRuleId", m.trace.assemblyRuleId);
+verifyEqual(testCase, staleAssemblyReport.status, "needs_attention");
+verifyFalse(testCase, staleAssemblyReport.checks.assemblyRuleIdMatchesExpected);
+verifyTrue(testCase, staleAssemblyReport.checks.operatorTraceAssemblyRuleIdMatchesTrace);
+
+missingQuadratureRule = assembleFirstOrderFemBemTrace(m);
+missingQuadratureRule.trace.quadratureRuleId = "";
+missingQuadratureRule.operators.trace.quadratureRuleId = "";
+missingQuadratureReport = educationalFemBemCouplingManifest( ...
+    missingQuadratureRule, ...
+    "ExpectedQuadratureRuleId", m.trace.quadratureRuleId);
+verifyEqual(testCase, missingQuadratureReport.status, "needs_attention");
+verifyFalse(testCase, missingQuadratureReport.checks.quadratureRuleIdRecorded);
+verifyFalse(testCase, missingQuadratureReport.checks.quadratureRuleIdMatchesExpected);
+
+staleResultArtifact = educationalFemBemCouplingManifest( ...
+    m, ...
+    "ResultArtifactId", "matlab_slot344_old_result_v0", ...
+    "ExpectedResultArtifactId", "matlab_slot344_fem_bem_manifest_result_v1");
+verifyEqual(testCase, staleResultArtifact.status, "needs_attention");
+verifyFalse(testCase, staleResultArtifact.checks.resultArtifactIdMatchesExpected);
+
+missingTimingItems = educationalFemBemCouplingManifest( ...
+    m, ...
+    "TimingBreakdown", struct("mesh_read_s", 0.001));
+verifyEqual(testCase, missingTimingItems.status, "needs_attention");
+verifyTrue(testCase, missingTimingItems.checks.timingBreakdownRecorded);
+verifyFalse(testCase, missingTimingItems.checks.timingBreakdownHasFourItems);
+verifyTrue(testCase, missingTimingItems.checks.timingBreakdownHasAtMostFourItems);
+
+tooManyTimingItems = educationalFemBemCouplingManifest( ...
+    m, ...
+    "TimingBreakdown", struct( ...
+        "mesh_read_s", 0.001, ...
+        "trace_assembly_s", 0.002, ...
+        "linear_solve_s", 0.003, ...
+        "manifest_build_s", 0.004, ...
+        "json_write_s", 0.005));
+verifyEqual(testCase, tooManyTimingItems.status, "needs_attention");
+verifyTrue(testCase, tooManyTimingItems.checks.timingBreakdownHasFourItems);
+verifyFalse(testCase, tooManyTimingItems.checks.timingBreakdownHasAtMostFourItems);
+
+badRunTimestamp = educationalFemBemCouplingManifest( ...
+    m, ...
+    "RunStartedAt", "not-a-date");
+verifyEqual(testCase, badRunTimestamp.status, "needs_attention");
+verifyTrue(testCase, badRunTimestamp.checks.runStartedAtRecorded);
+verifyFalse(testCase, badRunTimestamp.checks.runStartedAtIsoLike);
+
+staleNotebookSourceDigest = educationalFemBemCouplingManifest( ...
+    m, ...
+    "NotebookSourceArtifactId", notebookSourceArtifactId, ...
+    "NotebookSourceDigest", "sha256:old-fem-bem-teaching-notebook", ...
+    "NotebookSourcePath", notebookSourcePath, ...
+    "ExpectedNotebookSourceArtifactId", notebookSourceArtifactId, ...
+    "ExpectedNotebookSourceDigest", notebookSourceDigest, ...
+    "ExpectedNotebookSourcePath", notebookSourcePath, ...
+    "RequireNotebookSourceArtifact", true);
+verifyEqual(testCase, staleNotebookSourceDigest.status, "needs_attention");
+verifyTrue(testCase, staleNotebookSourceDigest.checks.notebookSourceArtifactIdMatchesExpected);
+verifyFalse(testCase, staleNotebookSourceDigest.checks.notebookSourceDigestMatchesExpected);
+verifyTrue(testCase, staleNotebookSourceDigest.checks.notebookSourcePathRecordedWhenRequired);
+
+missingNotebookSourcePath = educationalFemBemCouplingManifest( ...
+    m, ...
+    "NotebookSourceArtifactId", notebookSourceArtifactId, ...
+    "NotebookSourceDigest", notebookSourceDigest, ...
+    "ExpectedNotebookSourcePath", notebookSourcePath, ...
+    "RequireNotebookSourceArtifact", true);
+verifyEqual(testCase, missingNotebookSourcePath.status, "needs_attention");
+verifyTrue(testCase, missingNotebookSourcePath.checks.notebookSourceArtifactIdRecordedWhenRequired);
+verifyTrue(testCase, missingNotebookSourcePath.checks.notebookSourceDigestRecordedWhenRequired);
+verifyFalse(testCase, missingNotebookSourcePath.checks.notebookSourcePathRecordedWhenRequired);
+verifyFalse(testCase, missingNotebookSourcePath.checks.notebookSourcePathMatchesExpected);
+
+staleParameterSetDigest = educationalFemBemCouplingManifest( ...
+    m, ...
+    "ParameterSetArtifactId", parameterSetArtifactId, ...
+    "ParameterSetDigest", "sha256:old-fem-bem-parameter-set", ...
+    "ParameterSetPath", parameterSetPath, ...
+    "ExpectedParameterSetArtifactId", parameterSetArtifactId, ...
+    "ExpectedParameterSetDigest", parameterSetDigest, ...
+    "ExpectedParameterSetPath", parameterSetPath, ...
+    "RequireParameterSetArtifact", true);
+verifyEqual(testCase, staleParameterSetDigest.status, "needs_attention");
+verifyTrue(testCase, staleParameterSetDigest.checks.parameterSetArtifactIdMatchesExpected);
+verifyFalse(testCase, staleParameterSetDigest.checks.parameterSetDigestMatchesExpected);
+verifyTrue(testCase, staleParameterSetDigest.checks.parameterSetPathRecordedWhenRequired);
+
+missingParameterSetPath = educationalFemBemCouplingManifest( ...
+    m, ...
+    "ParameterSetArtifactId", parameterSetArtifactId, ...
+    "ParameterSetDigest", parameterSetDigest, ...
+    "ExpectedParameterSetPath", parameterSetPath, ...
+    "RequireParameterSetArtifact", true);
+verifyEqual(testCase, missingParameterSetPath.status, "needs_attention");
+verifyTrue(testCase, missingParameterSetPath.checks.parameterSetArtifactIdRecordedWhenRequired);
+verifyTrue(testCase, missingParameterSetPath.checks.parameterSetDigestRecordedWhenRequired);
+verifyFalse(testCase, missingParameterSetPath.checks.parameterSetPathRecordedWhenRequired);
+verifyFalse(testCase, missingParameterSetPath.checks.parameterSetPathMatchesExpected);
+
+wrongObjectiveFamily = educationalFemBemCouplingManifest( ...
+    m, ...
+    "ObjectiveObservableId", objectiveObservableId, ...
+    "ObjectiveObservableFamily", "remote_field_map", ...
+    "ExpectedObjectiveObservableId", objectiveObservableId, ...
+    "ExpectedObjectiveObservableFamily", objectiveObservableFamily);
+verifyEqual(testCase, wrongObjectiveFamily.status, "needs_attention");
+verifyTrue(testCase, wrongObjectiveFamily.checks.objectiveObservableIdMatchesExpected);
+verifyFalse(testCase, wrongObjectiveFamily.checks.objectiveObservableFamilyMatchesExpected);
+
+staleCouplingConventionSchema = educationalFemBemCouplingManifest( ...
+    m, ...
+    "CouplingConventionSchemaId", "matlab_fem_bem_value_only_convention_v0", ...
+    "ExpectedCouplingConventionSchemaId", couplingConventionSchemaId, ...
+    "RequireCouplingConventionSchema", true);
+verifyEqual(testCase, staleCouplingConventionSchema.status, "needs_attention");
+verifyTrue(testCase, staleCouplingConventionSchema.checks.couplingConventionSchemaIdRecordedWhenRequired);
+verifyFalse(testCase, staleCouplingConventionSchema.checks.couplingConventionSchemaIdMatchesExpected);
+verifyTrue(testCase, staleCouplingConventionSchema.checks.couplingKindMatchesExpected);
+
+missingCouplingConventionSchema = educationalFemBemCouplingManifest( ...
+    m, ...
+    "CouplingConventionSchemaId", "", ...
+    "ExpectedCouplingConventionSchemaId", couplingConventionSchemaId, ...
+    "RequireCouplingConventionSchema", true);
+verifyEqual(testCase, missingCouplingConventionSchema.status, "needs_attention");
+verifyFalse(testCase, missingCouplingConventionSchema.checks.couplingConventionSchemaIdRecordedWhenRequired);
+verifyFalse(testCase, missingCouplingConventionSchema.checks.couplingConventionSchemaIdMatchesExpected);
+
+stalePostprocessRowConventionSchema = educationalFemBemCouplingManifest( ...
+    m, ...
+    "PostprocessRowConventionSchemaId", "matlab_fem_bem_scalar_residual_row_v0", ...
+    "ExpectedPostprocessRowConventionSchemaId", postprocessRowConventionSchemaId, ...
+    "RequirePostprocessRowConventionSchema", true);
+verifyEqual(testCase, stalePostprocessRowConventionSchema.status, "needs_attention");
+verifyTrue(testCase, stalePostprocessRowConventionSchema.checks.couplingConventionSchemaIdMatchesExpected);
+verifyTrue(testCase, stalePostprocessRowConventionSchema.checks.postprocessRowConventionSchemaIdRecordedWhenRequired);
+verifyFalse(testCase, stalePostprocessRowConventionSchema.checks.postprocessRowConventionSchemaIdMatchesExpected);
+
+missingPostprocessRowConventionSchema = educationalFemBemCouplingManifest( ...
+    m, ...
+    "PostprocessRowConventionSchemaId", "", ...
+    "ExpectedPostprocessRowConventionSchemaId", postprocessRowConventionSchemaId, ...
+    "RequirePostprocessRowConventionSchema", true);
+verifyEqual(testCase, missingPostprocessRowConventionSchema.status, "needs_attention");
+verifyFalse(testCase, missingPostprocessRowConventionSchema.checks.postprocessRowConventionSchemaIdRecordedWhenRequired);
+verifyFalse(testCase, missingPostprocessRowConventionSchema.checks.postprocessRowConventionSchemaIdMatchesExpected);
+
+staleTraceBasisSchemaModel = m;
+staleTraceBasisSchemaModel.trace.traceBasisSchemaId = "matlab_h1_trace_basis_value_only_v0";
+staleTraceBasisSchemaModel.operators.trace.traceBasisSchemaId = "matlab_h1_trace_basis_value_only_v0";
+staleTraceBasisSchema = educationalFemBemCouplingManifest( ...
+    staleTraceBasisSchemaModel, ...
+    "ExpectedTraceBasisSchemaId", traceBasisSchemaId, ...
+    "RequireTraceBasisSchema", true);
+verifyEqual(testCase, staleTraceBasisSchema.status, "needs_attention");
+verifyTrue(testCase, staleTraceBasisSchema.checks.traceBasisSchemaIdRecordedWhenRequired);
+verifyFalse(testCase, staleTraceBasisSchema.checks.traceBasisSchemaIdMatchesExpected);
+verifyTrue(testCase, staleTraceBasisSchema.checks.operatorTraceBasisSchemaIdMatchesTrace);
+verifyTrue(testCase, staleTraceBasisSchema.checks.traceRowsAreOneHot);
+
+missingTraceBasisSchemaModel = m;
+missingTraceBasisSchemaModel.trace.traceBasisSchemaId = "";
+missingTraceBasisSchemaModel.operators.trace.traceBasisSchemaId = "";
+missingTraceBasisSchema = educationalFemBemCouplingManifest( ...
+    missingTraceBasisSchemaModel, ...
+    "ExpectedTraceBasisSchemaId", traceBasisSchemaId, ...
+    "RequireTraceBasisSchema", true);
+verifyEqual(testCase, missingTraceBasisSchema.status, "needs_attention");
+verifyFalse(testCase, missingTraceBasisSchema.checks.traceBasisSchemaIdRecordedWhenRequired);
+verifyFalse(testCase, missingTraceBasisSchema.checks.traceBasisSchemaIdMatchesExpected);
+verifyFalse(testCase, missingTraceBasisSchema.checks.operatorTraceBasisSchemaIdRecorded);
+
+staleNormalFluxDigest = educationalFemBemCouplingManifest( ...
+    m, ...
+    "NormalFluxArtifactId", normalFluxArtifactId, ...
+    "NormalFluxDigest", "sha256:old-normal-flux-sign-report", ...
+    "NormalFluxConvention", "outward_from_volume", ...
+    "ExpectedNormalFluxArtifactId", normalFluxArtifactId, ...
+    "ExpectedNormalFluxDigest", normalFluxDigest, ...
+    "ExpectedNormalFluxConvention", "outward_from_volume", ...
+    "RequireNormalFluxArtifact", true);
+verifyEqual(testCase, staleNormalFluxDigest.status, "needs_attention");
+verifyTrue(testCase, staleNormalFluxDigest.checks.normalFluxArtifactIdMatchesExpected);
+verifyFalse(testCase, staleNormalFluxDigest.checks.normalFluxDigestMatchesExpected);
+verifyTrue(testCase, staleNormalFluxDigest.checks.traceRowsAreOneHot);
+
+missingNormalFluxArtifact = educationalFemBemCouplingManifest( ...
+    m, ...
+    "RequireNormalFluxArtifact", true);
+verifyEqual(testCase, missingNormalFluxArtifact.status, "needs_attention");
+verifyFalse(testCase, missingNormalFluxArtifact.checks.normalFluxArtifactIdRecordedWhenRequired);
+verifyFalse(testCase, missingNormalFluxArtifact.checks.normalFluxDigestRecordedWhenRequired);
+verifyTrue(testCase, missingNormalFluxArtifact.checks.traceRowsAreOneHot);
+
+wrongNormalFluxConvention = educationalFemBemCouplingManifest( ...
+    m, ...
+    "NormalFluxArtifactId", normalFluxArtifactId, ...
+    "NormalFluxDigest", normalFluxDigest, ...
+    "NormalFluxConvention", "stored_triangle_orientation", ...
+    "ExpectedNormalFluxConvention", "outward_from_volume", ...
+    "RequireNormalFluxArtifact", true);
+verifyEqual(testCase, wrongNormalFluxConvention.status, "needs_attention");
+verifyFalse(testCase, wrongNormalFluxConvention.checks.normalFluxConventionMatchesExpected);
+verifyTrue(testCase, wrongNormalFluxConvention.checks.normalFluxDigestRecordedWhenRequired);
+
+staleSolverReportDigest = educationalFemBemCouplingManifest( ...
+    m, ...
+    "LinearSolverReportArtifactId", linearSolverReportArtifactId, ...
+    "LinearSolverReportDigest", "sha256:old-linear-solver-report", ...
+    "LinearSolverName", linearSolverName, ...
+    "LinearSolverTolerance", linearSolverTolerance, ...
+    "LinearSolverResidualNorm", linearSolverResidualNorm, ...
+    "LinearSolverIterationCount", linearSolverIterationCount, ...
+    "ExpectedLinearSolverReportArtifactId", linearSolverReportArtifactId, ...
+    "ExpectedLinearSolverReportDigest", linearSolverReportDigest, ...
+    "ExpectedLinearSolverName", linearSolverName, ...
+    "ExpectedLinearSolverTolerance", linearSolverTolerance, ...
+    "ExpectedLinearSolverResidualNormMax", 1e-12, ...
+    "RequireLinearSolverReport", true);
+verifyEqual(testCase, staleSolverReportDigest.status, "needs_attention");
+verifyTrue(testCase, staleSolverReportDigest.checks.linearSolverReportArtifactIdMatchesExpected);
+verifyFalse(testCase, staleSolverReportDigest.checks.linearSolverReportDigestMatchesExpected);
+verifyTrue(testCase, staleSolverReportDigest.checks.linearSolverResidualNormBelowExpectedMax);
+
+missingSolverReport = educationalFemBemCouplingManifest( ...
+    m, ...
+    "RequireLinearSolverReport", true);
+verifyEqual(testCase, missingSolverReport.status, "needs_attention");
+verifyFalse(testCase, missingSolverReport.checks.linearSolverReportArtifactIdRecordedWhenRequired);
+verifyFalse(testCase, missingSolverReport.checks.linearSolverReportDigestRecordedWhenRequired);
+verifyFalse(testCase, missingSolverReport.checks.linearSolverResidualNormRecordedWhenRequired);
+verifyTrue(testCase, missingSolverReport.checks.traceRowsAreOneHot);
+
+badSolverResidual = educationalFemBemCouplingManifest( ...
+    m, ...
+    "LinearSolverReportArtifactId", linearSolverReportArtifactId, ...
+    "LinearSolverReportDigest", linearSolverReportDigest, ...
+    "LinearSolverName", linearSolverName, ...
+    "LinearSolverTolerance", linearSolverTolerance, ...
+    "LinearSolverResidualNorm", 2e-6, ...
+    "LinearSolverIterationCount", linearSolverIterationCount, ...
+    "ExpectedLinearSolverResidualNormMax", 1e-12, ...
+    "RequireLinearSolverReport", true);
+verifyEqual(testCase, badSolverResidual.status, "needs_attention");
+verifyFalse(testCase, badSolverResidual.checks.linearSolverResidualNormBelowExpectedMax);
+verifyTrue(testCase, badSolverResidual.checks.linearSolverReportDigestRecordedWhenRequired);
+
+wrongSolverName = educationalFemBemCouplingManifest( ...
+    m, ...
+    "LinearSolverReportArtifactId", linearSolverReportArtifactId, ...
+    "LinearSolverReportDigest", linearSolverReportDigest, ...
+    "LinearSolverName", "direct_lu", ...
+    "LinearSolverTolerance", linearSolverTolerance, ...
+    "LinearSolverResidualNorm", linearSolverResidualNorm, ...
+    "LinearSolverIterationCount", linearSolverIterationCount, ...
+    "ExpectedLinearSolverName", linearSolverName, ...
+    "RequireLinearSolverReport", true);
+verifyEqual(testCase, wrongSolverName.status, "needs_attention");
+verifyFalse(testCase, wrongSolverName.checks.linearSolverNameMatchesExpected);
+verifyTrue(testCase, wrongSolverName.checks.linearSolverResidualNormFiniteNonnegativeWhenPresent);
+
+lowFrequencyKernel = educationalFemBemCouplingManifest( ...
+    m, ...
+    "FormulationId", "acoustic_low_frequency_single_layer_teaching", ...
+    "BemKernelFamily", "helmholtz_single_layer", ...
+    "BemKernelManifestId", "lf_helmholtz_k1e-9_expm1_taylor_v1", ...
+    "BemKernelStrategy", "laplace_plus_expm1_taylor_correction", ...
+    "KernelTimeConvention", "exp(+i*k*r) MATLAB teaching convention", ...
+    "ExpectedFormulationId", "acoustic_low_frequency_single_layer_teaching", ...
+    "ExpectedBemKernelFamily", "helmholtz_single_layer", ...
+    "ExpectedBemKernelManifestId", "lf_helmholtz_k1e-9_expm1_taylor_v1", ...
+    "ExpectedBemKernelStrategy", "laplace_plus_expm1_taylor_correction", ...
+    "ExpectedKernelTimeConvention", "exp(+i*k*r) MATLAB teaching convention");
+verifyEqual(testCase, lowFrequencyKernel.status, "ok");
+verifyEqual(testCase, lowFrequencyKernel.bemKernelManifestId, ...
+    "lf_helmholtz_k1e-9_expm1_taylor_v1");
+verifyTrue(testCase, lowFrequencyKernel.checks.bemKernelManifestIdMatchesExpected);
+verifyTrue(testCase, lowFrequencyKernel.checks.bemKernelStrategyMatchesExpected);
+verifyTrue(testCase, lowFrequencyKernel.checks.kernelTimeConventionMatchesExpected);
+
+staleKernelManifest = educationalFemBemCouplingManifest( ...
+    m, ...
+    "BemKernelFamily", "helmholtz_single_layer", ...
+    "BemKernelManifestId", "old_direct_helmholtz_manifest", ...
+    "BemKernelStrategy", "laplace_plus_expm1_taylor_correction", ...
+    "KernelTimeConvention", "exp(+i*k*r) MATLAB teaching convention", ...
+    "ExpectedBemKernelFamily", "helmholtz_single_layer", ...
+    "ExpectedBemKernelManifestId", "lf_helmholtz_k1e-9_expm1_taylor_v1", ...
+    "ExpectedBemKernelStrategy", "laplace_plus_expm1_taylor_correction", ...
+    "ExpectedKernelTimeConvention", "exp(+i*k*r) MATLAB teaching convention");
+verifyEqual(testCase, staleKernelManifest.status, "needs_attention");
+verifyFalse(testCase, staleKernelManifest.checks.bemKernelManifestIdMatchesExpected);
+verifyTrue(testCase, staleKernelManifest.checks.bemKernelStrategyMatchesExpected);
+
+wrongKernelStrategy = educationalFemBemCouplingManifest( ...
+    m, ...
+    "BemKernelFamily", "helmholtz_single_layer", ...
+    "BemKernelManifestId", "lf_helmholtz_k1e-9_expm1_taylor_v1", ...
+    "BemKernelStrategy", "direct_exp_minus_laplace", ...
+    "KernelTimeConvention", "exp(+i*k*r) MATLAB teaching convention", ...
+    "ExpectedBemKernelFamily", "helmholtz_single_layer", ...
+    "ExpectedBemKernelManifestId", "lf_helmholtz_k1e-9_expm1_taylor_v1", ...
+    "ExpectedBemKernelStrategy", "laplace_plus_expm1_taylor_correction");
+verifyEqual(testCase, wrongKernelStrategy.status, "needs_attention");
+verifyTrue(testCase, wrongKernelStrategy.checks.bemKernelManifestIdMatchesExpected);
+verifyFalse(testCase, wrongKernelStrategy.checks.bemKernelStrategyMatchesExpected);
+
+badSource = assembleFirstOrderFemBemTrace(m);
+badSource.trace.sourceFileId = "sha256:stale_vol_source";
+badSourceReport = educationalFemBemCouplingManifest(badSource);
+verifyEqual(testCase, badSourceReport.status, "needs_attention");
+verifyFalse(testCase, badSourceReport.checks.traceSourceFileIdMatchesIdentity);
+verifyTrue(testCase, badSourceReport.checks.operatorTraceSourceFileIdMatchesIdentity);
+
+badBoundaryName = assembleFirstOrderFemBemTrace(m);
+badBoundaryName.trace.boundaryNames(2) = "coil";
+badBoundaryNameReport = educationalFemBemCouplingManifest( ...
+    badBoundaryName, ...
+    "ExpectedBoundaryNames", "outer");
+verifyEqual(testCase, badBoundaryNameReport.status, "needs_attention");
+verifyFalse(testCase, badBoundaryNameReport.checks.operatorTraceBoundaryNamesMatch);
+verifyFalse(testCase, badBoundaryNameReport.checks.boundaryNamesMatchExpected);
+
+badBoundaryNumber = assembleFirstOrderFemBemTrace(m);
+badBoundaryNumber.trace.boundaryNumbers(2) = 2;
+badBoundaryNumberReport = educationalFemBemCouplingManifest( ...
+    badBoundaryNumber, ...
+    "ExpectedBoundaryNumbers", 1);
+verifyEqual(testCase, badBoundaryNumberReport.status, "needs_attention");
+verifyFalse(testCase, badBoundaryNumberReport.checks.operatorTraceBoundaryNumbersMatch);
+verifyFalse(testCase, badBoundaryNumberReport.checks.boundaryRowIdentityNumbersMatch);
+verifyFalse(testCase, badBoundaryNumberReport.checks.boundaryNumbersMatchExpected);
+
+badBoundaryRowIdentity = assembleFirstOrderFemBemTrace(m);
+badBoundaryRowIdentity.operators.trace.boundaryRowIdentity(2).surface_triangle_nodes = [1 4 3];
+badBoundaryRowIdentityReport = educationalFemBemCouplingManifest(badBoundaryRowIdentity);
+verifyEqual(testCase, badBoundaryRowIdentityReport.status, "needs_attention");
+verifyFalse(testCase, badBoundaryRowIdentityReport.checks.operatorTraceBoundaryRowIdentityMatchesTrace);
+verifyFalse(testCase, badBoundaryRowIdentityReport.checks.operatorTraceBoundaryRowIdentityTrianglesMatch);
+
+badTraceOperator = assembleFirstOrderFemBemTrace(m);
+badTraceOperator.operators.trace.traceOperatorArtifactId = ...
+    "netgen_vol:stale:h1_to_scalar_bem_trace_operator_p1";
+badTraceOperatorReport = educationalFemBemCouplingManifest(badTraceOperator);
+verifyEqual(testCase, badTraceOperatorReport.status, "needs_attention");
+verifyFalse(testCase, badTraceOperatorReport.checks.operatorTraceOperatorArtifactIdMatchesTrace);
+
+badTraceOperatorPolicy = assembleFirstOrderFemBemTrace(m);
+badTraceOperatorPolicy.operators.trace.traceOperatorPolicy = "remote_field_observation_map";
+badTraceOperatorPolicyReport = educationalFemBemCouplingManifest(badTraceOperatorPolicy);
+verifyEqual(testCase, badTraceOperatorPolicyReport.status, "needs_attention");
+verifyFalse(testCase, badTraceOperatorPolicyReport.checks.operatorTraceOperatorPolicyMatchesTrace);
+
+badTracePolicy = assembleFirstOrderFemBemTrace(m);
+badTracePolicy.trace.traceOperatorPolicy = "remote_field_observation_map";
+badTracePolicy.operators.trace.traceOperatorPolicy = "remote_field_observation_map";
+badTracePolicyReport = educationalFemBemCouplingManifest(badTracePolicy);
+verifyEqual(testCase, badTracePolicyReport.status, "needs_attention");
+verifyFalse(testCase, badTracePolicyReport.checks.traceOperatorPolicyMatchesExpected);
+
+badTraceOutput = assembleFirstOrderFemBemTrace(m);
+badTraceOutput.operators.trace.traceOutputArtifactId = ...
+    "netgen_vol:stale:h1_to_scalar_bem_trace_output_p1";
+badTraceOutputReport = educationalFemBemCouplingManifest( ...
+    badTraceOutput, ...
+    "ExpectedTraceOutputArtifactId", m.trace.traceOutputArtifactId);
+verifyEqual(testCase, badTraceOutputReport.status, "needs_attention");
+verifyFalse(testCase, badTraceOutputReport.checks.operatorTraceOutputArtifactIdMatchesTrace);
+verifyTrue(testCase, badTraceOutputReport.checks.traceOutputArtifactIdMatchesExpected);
+
+badTraceOutputDigest = assembleFirstOrderFemBemTrace(m);
+badTraceOutputDigestReport = educationalFemBemCouplingManifest( ...
+    badTraceOutputDigest, ...
+    "ExpectedTraceOutputDigest", "sha256:stale_trace_output_digest");
+verifyEqual(testCase, badTraceOutputDigestReport.status, "needs_attention");
+verifyFalse(testCase, badTraceOutputDigestReport.checks.traceOutputDigestMatchesExpected);
+
+missingTraceOutputPath = assembleFirstOrderFemBemTrace(m);
+missingTraceOutputPath.trace.traceOutputPath = "";
+missingTraceOutputPath.operators.trace.traceOutputPath = "";
+missingTraceOutputPathReport = educationalFemBemCouplingManifest( ...
+    missingTraceOutputPath, ...
+    "RequireTraceOutputArtifact", true);
+verifyEqual(testCase, missingTraceOutputPathReport.status, "needs_attention");
+verifyFalse(testCase, missingTraceOutputPathReport.checks.traceOutputPathRecordedWhenRequired);
+
+badTraceObservable = assembleFirstOrderFemBemTrace(m);
+badTraceObservable.operators.trace.traceObservableId = ...
+    "stale_remote_field_map_observable";
+badTraceObservableReport = educationalFemBemCouplingManifest( ...
+    badTraceObservable, ...
+    "ExpectedTraceObservableId", m.trace.traceObservableId);
+verifyEqual(testCase, badTraceObservableReport.status, "needs_attention");
+verifyFalse(testCase, badTraceObservableReport.checks.operatorTraceObservableIdMatchesTrace);
+verifyTrue(testCase, badTraceObservableReport.checks.traceObservableIdMatchesExpected);
+
+badTraceObservableFamily = assembleFirstOrderFemBemTrace(m);
+badTraceObservableFamily.trace.traceObservableFamily = "remote_field_map";
+badTraceObservableFamily.operators.trace.traceObservableFamily = "remote_field_map";
+badTraceObservableFamilyReport = educationalFemBemCouplingManifest( ...
+    badTraceObservableFamily, ...
+    "ExpectedTraceObservableFamily", "fem_bem_boundary_trace");
+verifyEqual(testCase, badTraceObservableFamilyReport.status, "needs_attention");
+verifyTrue(testCase, badTraceObservableFamilyReport.checks.operatorTraceObservableFamilyMatchesTrace);
+verifyFalse(testCase, badTraceObservableFamilyReport.checks.traceObservableFamilyMatchesExpected);
+
+badTrace = assembleFirstOrderFemBemTrace(m);
+badTrace.operators.trace.femNodeIds(3) = 4;
+badReport = educationalFemBemCouplingManifest(badTrace);
+verifyEqual(testCase, badReport.status, "needs_attention");
+verifyFalse(testCase, badReport.checks.traceRowIdentityUnique);
+verifyFalse(testCase, badReport.checks.traceRowIdentityMatchesTraceMatrix);
+
+badOperatorRowIdentity = assembleFirstOrderFemBemTrace(m);
+badOperatorRowIdentity.operators.trace.traceRowIdentity(3).fem_node_id = 4;
+badOperatorRowIdentityReport = educationalFemBemCouplingManifest(badOperatorRowIdentity);
+verifyEqual(testCase, badOperatorRowIdentityReport.status, "needs_attention");
+verifyFalse(testCase, badOperatorRowIdentityReport.checks.operatorTraceRowIdentityMatchesTrace);
+verifyFalse(testCase, badOperatorRowIdentityReport.checks.operatorTraceRowIdentityFemNodesMatch);
+verifyFalse(testCase, badOperatorRowIdentityReport.checks.operatorTraceRowIdentityMatchesTraceMatrix);
 end
 
 

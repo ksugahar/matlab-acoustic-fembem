@@ -49,12 +49,12 @@ while i <= numel(lines)
         case 'facedescriptors'
             skipCountedSection();
 
-        case 'surfaceelements'
+        case {'surfaceelements', 'surfaceelementsuv'}
             n = readCount("surfaceelements");
             tri = zeros(n, 3);
             col = zeros(n, 1);
             for k = 1:n
-                vals = sscanf(char(nextDataLine()), "%d").';
+                vals = sscanf(char(nextDataLine()), "%f").';
                 if numel(vals) < 5
                     error("readVolTriTet:surface", "Surface record %d is too short.", k);
                 end
@@ -125,9 +125,11 @@ while i <= numel(lines)
             skipCountedSection();
 
         case 'curvedelements'
-            % High-order data may follow. The first-order tri/tet topology is
-            % already sufficient for the first Lukas/Gypsilab coupling tests.
-            break
+            nCurved = readCount("curvedelements");
+            if nCurved ~= 0
+                error("readVolTriTet:curved", ...
+                    "Curved/high-order .vol elements are not accepted in the first-order FEM/BEM lane.");
+            end
 
         otherwise
             error("readVolTriTet:section", "Unsupported .vol section: %s", key);
@@ -135,6 +137,7 @@ while i <= numel(lines)
 end
 
 assertNodeReferences(mesh);
+mesh.boundaryOrientation = boundaryOrientationSummary(mesh);
 mesh.traceNodeIds = unique(mesh.tri(:));
 mesh.summary = struct( ...
     "points", size(mesh.vtx, 1), ...
@@ -170,6 +173,83 @@ mesh.summary = struct( ...
             nextDataLine();
         end
     end
+end
+
+
+function summary = boundaryOrientationSummary(mesh)
+%BOUNDARYORIENTATIONSUMMARY Classify stored triangle normals against adjacent tets.
+
+nTri = size(mesh.tri, 1);
+rows = repmat(struct( ...
+    "triangleIndex", 0, ...
+    "boundaryNumber", 0, ...
+    "nodes", zeros(1, 3), ...
+    "adjacentTetIndex", 0, ...
+    "orientationSignToOutward", 0, ...
+    "normalOrientation", "unknown", ...
+    "storedAreaVector", zeros(1, 3), ...
+    "outwardAreaVector", zeros(1, 3)), nTri, 1);
+signs = zeros(nTri, 1);
+adjacent = zeros(nTri, 1);
+
+for k = 1:nTri
+    triNodes = mesh.tri(k, :);
+    rows(k).triangleIndex = k;
+    rows(k).boundaryNumber = mesh.triCol(k);
+    rows(k).nodes = triNodes;
+    p1 = mesh.vtx(triNodes(1), :);
+    p2 = mesh.vtx(triNodes(2), :);
+    p3 = mesh.vtx(triNodes(3), :);
+    areaVec = 0.5 * cross(p2 - p1, p3 - p1);
+    rows(k).storedAreaVector = areaVec;
+
+    tetHits = find(all(ismember(triNodes, mesh.tet), 2));
+    if numel(tetHits) ~= 1 || norm(areaVec) == 0
+        rows(k).normalOrientation = "unknown";
+        continue
+    end
+
+    tetIndex = tetHits(1);
+    tetCentroid = mean(mesh.vtx(mesh.tet(tetIndex, :), :), 1);
+    faceCentroid = mean(mesh.vtx(triNodes, :), 1);
+    dotOutward = dot(areaVec, faceCentroid - tetCentroid);
+    if dotOutward > 0
+        sign = 1;
+        label = "outward";
+    elseif dotOutward < 0
+        sign = -1;
+        label = "inward";
+    else
+        sign = 0;
+        label = "unknown";
+    end
+    signs(k) = sign;
+    adjacent(k) = tetIndex;
+    rows(k).adjacentTetIndex = tetIndex;
+    rows(k).orientationSignToOutward = sign;
+    rows(k).normalOrientation = label;
+    if sign == -1
+        rows(k).outwardAreaVector = -areaVec;
+    else
+        rows(k).outwardAreaVector = areaVec;
+    end
+end
+
+if all(signs == 1)
+    orientation = "outward";
+elseif all(signs == -1)
+    orientation = "inward";
+elseif any(signs == 0)
+    orientation = "unknown_or_open";
+else
+    orientation = "mixed";
+end
+
+summary = struct( ...
+    "boundaryOrientation", orientation, ...
+    "triangleOrientationSignsToOutward", signs, ...
+    "adjacentTetIndices", adjacent, ...
+    "rows", rows);
 end
 
 
