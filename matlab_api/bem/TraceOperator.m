@@ -70,8 +70,12 @@ methods
         g = T.matrix * u;
     end
 
-    function s = size(T, varargin)
-        s = size(T.matrix, varargin{:});
+    function s = shape(T, dim)
+        %SHAPE [nBem, nFem] of the trace matrix (not the object array size).
+        s = size(T.matrix);
+        if nargin == 2
+            s = s(dim);
+        end
     end
 end
 end
