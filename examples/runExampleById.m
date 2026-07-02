@@ -7,7 +7,7 @@ arguments
 end
 
 repoRoot = fileparts(fileparts(mfilename("fullpath")));
-addpath(fullfile(repoRoot, "matlab_api"));
+addpath(genpath(fullfile(repoRoot, "matlab_api")));
 addpath(fullfile(repoRoot, "validation"));
 
 cases = validationCatalog();

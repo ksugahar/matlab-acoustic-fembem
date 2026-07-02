@@ -6,7 +6,7 @@ arguments
 end
 
 repoRoot = gypsilabRepoRoot();
-addpath(fullfile(repoRoot, "matlab_api"));
+addpath(genpath(fullfile(repoRoot, "matlab_api")));
 cases = meshTopologyCaseTable();
 results = repmat(emptyResult(), numel(cases), 1);
 

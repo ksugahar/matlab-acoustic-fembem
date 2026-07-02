@@ -7,7 +7,7 @@ end
 
 function setupOnce(~)
 repoRoot = fileparts(fileparts(mfilename("fullpath")));
-addpath(fullfile(repoRoot, "matlab_api"));
+addpath(genpath(fullfile(repoRoot, "matlab_api")));
 end
 
 

@@ -1,5 +1,5 @@
 repoRoot = fileparts(mfilename("fullpath"));
-addpath(fullfile(repoRoot, "matlab_api"));
+addpath(genpath(fullfile(repoRoot, "matlab_api")));
 addpath(fullfile(repoRoot, "examples"));
 addpath(fullfile(repoRoot, "validation"));
 
