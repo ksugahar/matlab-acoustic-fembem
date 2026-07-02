@@ -9,7 +9,7 @@ summary = struct();
 summary.source = volFile;
 try
     mesh = readVolTriTet(volFile);
-    model = volFemBem(volFile);
+    model = FemBemModel(volFile);
     summary.ok = true;
     summary.errorIdentifier = "";
     summary.errorMessage = "";
@@ -19,8 +19,8 @@ try
     summary.materials = mesh.summary.materials;
     summary.boundaries = mesh.summary.boundaries;
     summary.traceNodeCount = numel(mesh.traceNodeIds);
-    summary.hcurlEdges = size(model.topology.hcurl.edges, 1);
-    summary.rwgDofs = numel(model.topology.rwg.dofEdgeIds);
+    summary.hcurlEdges = size(model.hcurl.edges, 1);
+    summary.rwgDofs = numel(model.rwg.dofEdgeIds);
     summary.materialNames = mapValues(mesh.materials);
     summary.boundaryNames = mapValues(mesh.boundaries);
 catch err

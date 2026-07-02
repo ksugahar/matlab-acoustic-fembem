@@ -1,7 +1,13 @@
-function tests = testEducationalAcoustics
-%TESTEDUCATIONALACOUSTICS Tests for readable acoustic BEM scaffolds.
+function tests = testAcoustics
+%TESTACOUSTICS Tests for readable acoustic BEM scaffolds.
 
 tests = functiontests(localfunctions);
+end
+
+
+function setupOnce(~)
+repoRoot = fileparts(fileparts(mfilename("fullpath")));
+addpath(genpath(fullfile(repoRoot, "matlab_api")));
 end
 
 
@@ -10,7 +16,7 @@ target = [0 0 0];
 source = [2 0 0];
 k = 3.0;
 
-op = educationalAcousticSingleLayer(target, source, "Wavenumber", k);
+op = AcousticSingleLayer(target, source, "Wavenumber", k);
 expected = exp(1i * k * 2) / (4 * pi * 2);
 
 verifyEqual(testCase, op.matrix, expected, "AbsTol", 1e-14);
@@ -24,7 +30,7 @@ target = [0 0 0];
 source = [0.75 0 0];
 k = 1e-9;
 
-K = lowFrequencyStableHelmholtzKernel(target, source, "Wavenumber", k);
+K = HelmholtzKernel(target, source, "Wavenumber", k);
 expectedCorrection = 1i * k / (4 * pi) - k^2 * 0.75 / (8 * pi);
 
 verifyEqual(testCase, K.singleLayerLaplace, 1 / (4 * pi * 0.75), "AbsTol", 1e-14);
@@ -38,7 +44,7 @@ target = [0 0 0];
 source = [0.75 0 0];
 k = 1e-9;
 
-report = lowFrequencyHelmholtzTeachingReport(target, source, "Wavenumber", k);
+report = lowFrequencyHelmholtzReport(target, source, "Wavenumber", k);
 
 verifyEqual(testCase, report.kind, "low_frequency_helmholtz_teaching_report");
 verifyEqual(testCase, report.policy, "readable_bem_kernel_split_not_production_quadrature");
@@ -55,7 +61,7 @@ target = [0 0 0];
 source = [0.75 0 0];
 k = 1e-9;
 
-report = educationalLowFrequencyHelmholtzKernelManifest(target, source, ...
+report = helmholtzKernelManifest(target, source, ...
     "Wavenumber", k);
 
 verifyEqual(testCase, report.status, "ok");
@@ -71,13 +77,13 @@ verifyTrue(testCase, report.checks.krWithinLowFrequencyLimit);
 verifyTrue(testCase, report.checks.stableErrorWithinTolerance);
 verifyTrue(testCase, report.checks.correctionAgreementWithinTolerance);
 
-wrongStrategy = educationalLowFrequencyHelmholtzKernelManifest(target, source, ...
+wrongStrategy = helmholtzKernelManifest(target, source, ...
     "Wavenumber", k, ...
     "ExpectedLowFrequencyStrategy", "direct_exp_minus_laplace");
 verifyEqual(testCase, wrongStrategy.status, "needs_attention");
 verifyFalse(testCase, wrongStrategy.checks.lowFrequencyStrategyMatchesExpected);
 
-tooLargeKr = educationalLowFrequencyHelmholtzKernelManifest(target, source, ...
+tooLargeKr = helmholtzKernelManifest(target, source, ...
     "Wavenumber", 1e-2, ...
     "MaxKr", 1e-6);
 verifyEqual(testCase, tooLargeKr.status, "needs_attention");
@@ -91,13 +97,14 @@ source = [2 0 0];
 normal = [-1 0 0];
 k = 1e-7;
 
-K = lowFrequencyStableHelmholtzKernel(target, source, ...
+K = HelmholtzKernel(target, source, ...
     "Wavenumber", k, "SourceNormals", normal);
 
 delta = target - source;
 r = norm(delta);
 expected = dot(delta, normal) * exp(1i * k * r) * (1 - 1i * k * r) / (4 * pi * r^3);
 
+verifyTrue(testCase, K.hasDoubleLayer);
 verifyEqual(testCase, K.doubleLayerSourceNormal, expected, "RelTol", 1e-12);
 verifyEqual(testCase, K.doubleLayerSourceNormalCorrection, 0, "AbsTol", 1e-12);
 end
@@ -107,7 +114,7 @@ function testZeroWavenumberReducesToLaplaceKernel(testCase)
 target = [0 0 0; 0 1 0];
 source = [2 0 0; 2 1 0];
 
-op = educationalAcousticSingleLayer(target, source, "Wavenumber", 0.0);
+op = AcousticSingleLayer(target, source, "Wavenumber", 0.0);
 expected = directLaplace(target, source);
 
 verifyEqual(testCase, op.matrix, expected, "AbsTol", 1e-14);
@@ -115,18 +122,16 @@ end
 
 
 function testSurfaceTrianglesUseAreaWeights(testCase)
-surface = struct();
-surface.vtx = [ ...
-    0 0 0
-    1 0 0
-    0 1 0];
-surface.elt = [1 2 3];
+path = writeFixture(testCase, tetVolText());
+mesh = VolMesh(path);
+surface = mesh.boundary();
 
-op = educationalAcousticSingleLayer(surface, surface, ...
+op = AcousticSingleLayer(surface, surface, ...
     "Wavenumber", 0.0, "DiagonalValue", 0.25);
 
-verifyEqual(testCase, op.sourceWeights, 0.5, "AbsTol", 1e-14);
-verifyEqual(testCase, op.matrix, 0.25, "AbsTol", 1e-14);
+verifyEqual(testCase, op.shape(), [4 4]);
+verifyEqual(testCase, op.sourceWeights, [0.5; 0.5; sqrt(3)/2; 0.5], "AbsTol", 1e-14);
+verifyEqual(testCase, diag(op.matrix), 0.25 * ones(4, 1), "AbsTol", 1e-14);
 end
 
 
@@ -137,4 +142,52 @@ for i = 1:size(target, 1)
     r = sqrt(sum(delta.^2, 2));
     A(i, :) = (1 ./ (4 * pi * r)).';
 end
+end
+
+
+function path = writeFixture(testCase, text)
+path = string(fullfile(tempdir, "acousticsTest_" + char(java.util.UUID.randomUUID()) + ".vol"));
+fid = fopen(path, "w");
+cleanup = onCleanup(@() fclose(fid));
+fprintf(fid, "%s", text);
+clear cleanup
+testCase.addTeardown(@() delete(path));
+end
+
+
+function text = tetVolText()
+text = join([
+    "mesh3d"
+    "dimension"
+    "3"
+    "geomtype"
+    "0"
+    "facedescriptors"
+    "1"
+    "1 1 0 1 1"
+    "surfaceelements"
+    "4"
+    "1 1 1 0 3 1 2 3"
+    "1 1 1 0 3 1 4 2"
+    "1 1 1 0 3 2 4 3"
+    "1 1 1 0 3 3 4 1"
+    "volumeelements"
+    "1"
+    "1 4 1 2 3 4"
+    "points"
+    "4"
+    "0 0 0"
+    "1 0 0"
+    "0 1 0"
+    "0 0 1"
+    "pointelements"
+    "0"
+    "materials"
+    "1"
+    "1 air"
+    "bcnames"
+    "1"
+    "1 outer"
+    "endmesh"
+    ], newline);
 end

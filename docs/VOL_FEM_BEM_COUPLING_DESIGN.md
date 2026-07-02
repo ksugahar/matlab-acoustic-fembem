@@ -51,36 +51,35 @@ The H(curl)/RWG case must not be treated as a simple node trace:
 - Gypsilab: RWG unknowns on the boundary surface
 - coupling map: boundary oriented edges, not only boundary nodes
 
-## Proposed readable MATLAB API
+## Readable MATLAB API (class form, 2026-07)
 
 Keep the user-facing path as short as Gypsilab:
 
 ```matlab
-m = volFemBem("model.vol");
-uh = h1(m);       % H1 P1 tetrahedra
-ah = hcurl(m);    % HCurl Nedelec0 tetrahedra
-jh = rwg(m);      % boundary RWG0 dofs
-ops = assembleFirstOrderFemBemTrace(m);
+m = FemBemModel("model.vol");
+m.h1          % H1Space, P1 tetrahedra
+m.hcurl       % Nedelec0Space, HCurl tetrahedra
+m.rwg         % RwgSpace, boundary RWG0 dofs
+m.trace       % TraceOperator, H1 -> boundary P1
+m = m.assemble();
 ```
 
-The model struct should stay boring and inspectable:
+One class per mathematical object (see `READABLE_CLASS_STYLE.md` and the name
+map in `CLASS_API_REFACTOR.md`); the model stays boring and inspectable:
 
 ```matlab
-model.mesh.vtx
-model.mesh.tet
-model.mesh.tri
-model.mesh.traceNodeIds
-model.lukas.geo
-model.gypsilab.boundaryMesh
-model.spaces
-model.topology
-model.operators
-model.result
+m.mesh.vtx / m.mesh.tet / m.mesh.tri     % VolMesh, parsed .vol + identity
+m.mesh.traceNodeIds
+m.surface.vtx / m.surface.tri            % SurfaceMesh, compact boundary
+m.surface.rowIdentity                    % boundary-condition row identity
+m.spaceCatalog()
+m.operators                              % after assemble()
 ```
 
 Lukas FEM is source-code reference material for clean-room assembly style.  It
 should not dictate the public MATLAB API.  The public API should remain
-Gypsilab-like: small names, explicit spaces, and readable structs.
+Gypsilab-like: small names, explicit spaces, and readable classes whose
+properties expose the mathematical data directly.
 
 ## Readability over performance
 
@@ -153,7 +152,7 @@ compiled backend target for large problems.
 
 For this repository, that is a feature rather than a flaw: Gypsilab's value is
 that it makes H-matrix BEM unusually readable in MATLAB.  The local
-`educationalLaplaceHMatrix` scaffold intentionally copies that teaching
+`HMatrix` class intentionally copies that teaching
 quality, not its full feature set.
 
 ## MEX candidates

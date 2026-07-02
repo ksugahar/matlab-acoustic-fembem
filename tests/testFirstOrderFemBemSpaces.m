@@ -5,27 +5,33 @@ tests = functiontests(localfunctions);
 end
 
 
+function setupOnce(~)
+repoRoot = fileparts(fileparts(mfilename("fullpath")));
+addpath(genpath(fullfile(repoRoot, "matlab_api")));
+end
+
+
 function testSimpleApiBuildsH1HcurlRwg(testCase)
 path = writeFixture(testCase, tetVolText());
 
-m = volFemBem(path);
+m = FemBemModel(path);
 
 verifyEqual(testCase, m.status, "vol_ready_first_order_h1_hcurl_rwg");
 verifyEqual(testCase, m.h1.basis, "P1");
 verifyEqual(testCase, m.hcurl.basis, "Nedelec0");
-verifyEqual(testCase, m.rwg.basis, "RWG0");
+verifyEqual(testCase, m.rwg.basis, "RWG");
 verifyEqual(testCase, size(m.hcurl.edges, 1), 6);
 verifyEqual(testCase, numel(m.rwg.dofEdgeIds), 6);
-verifyEqual(testCase, m.rwg.hcurlEdgeIds(:), (1:6).');
+verifyEqual(testCase, m.rwgToHcurlEdgeIds(:), (1:6).');
 end
 
 
 function testH1StiffnessOnUnitTetra(testCase)
 path = writeFixture(testCase, tetVolText());
-m = volFemBem(path);
+m = FemBemModel(path);
 
-fem = m.h1.stiffness();
-K = full(fem.stiffness);
+[K, fem] = m.h1.stiffness();
+K = full(K);
 expected = (1 / 6) * [ ...
      3 -1 -1 -1
     -1  1  0  0
@@ -41,57 +47,56 @@ end
 function testBoundaryCompactionKeepsTraceToInteriorVolumeNodes(testCase)
 path = writeFixture(testCase, fourTetWithInteriorNodeVolText());
 
-m = volFemBem(path);
+m = FemBemModel(path);
 
-verifyEqual(testCase, size(m.h1.nodes, 1), 5);
-verifyEqual(testCase, size(m.rwg.vtx, 1), 4);
-verifyEqual(testCase, m.rwg.globalNodeIds, (1:4).');
-verifyEqual(testCase, size(m.topology.trace.h1ToScalarBem), [4 5]);
+verifyEqual(testCase, size(m.mesh.vtx, 1), 5);
+verifyEqual(testCase, size(m.surface.vtx, 1), 4);
+verifyEqual(testCase, m.surface.volNodeIds, (1:4).');
+verifyEqual(testCase, size(m.trace.matrix), [4 5]);
 
 u = (10:10:50).';
-verifyEqual(testCase, m.topology.trace.h1ToScalarBem * u, u(1:4));
+verifyEqual(testCase, m.trace * u, u(1:4));
 end
 
 
 function testAssembledTraceScaffoldContainsHcurlRwgMap(testCase)
 path = writeFixture(testCase, tetVolText());
-m = volFemBemModel(path);
+m = FemBemModel(path);
 
-m = assembleFirstOrderFemBemTrace(m);
+m = m.assemble();
 
 verifyEqual(testCase, m.status, "operators_ready_first_order_h1_hcurl_rwg_trace");
-verifyEqual(testCase, m.operators.trace.rwgToHcurlEdgeIds(:), (1:6).');
+verifyEqual(testCase, m.operators.rwgToHcurlEdgeIds(:), (1:6).');
 verifyEqual(testCase, m.operators.trace.surfaceMeshId, m.trace.surfaceMeshId);
-verifyEqual(testCase, m.operators.trace.traceArtifactId, m.trace.traceArtifactId);
-verifyEqual(testCase, m.operators.trace.traceOperatorArtifactId, m.trace.traceOperatorArtifactId);
-verifyEqual(testCase, m.operators.trace.traceOperatorPolicy, m.trace.traceOperatorPolicy);
-verifyEqual(testCase, m.operators.trace.traceOutputArtifactId, m.trace.traceOutputArtifactId);
-verifyEqual(testCase, m.operators.trace.traceOutputDigest, m.trace.traceOutputDigest);
-verifyEqual(testCase, m.operators.trace.traceOutputPath, m.trace.traceOutputPath);
-verifyEqual(testCase, m.operators.trace.traceObservableId, m.trace.traceObservableId);
-verifyEqual(testCase, m.operators.trace.traceObservableFamily, m.trace.traceObservableFamily);
-verifyEqual(testCase, m.operators.trace.traceBasisSchemaId, m.trace.traceBasisSchemaId);
+verifyEqual(testCase, m.operators.trace.artifactId, m.trace.artifactId);
+verifyEqual(testCase, m.operators.trace.operatorArtifactId, m.trace.operatorArtifactId);
+verifyEqual(testCase, m.operators.trace.operatorPolicy, m.trace.operatorPolicy);
+verifyEqual(testCase, m.operators.trace.outputArtifactId, m.trace.outputArtifactId);
+verifyEqual(testCase, m.operators.trace.outputDigest, m.trace.outputDigest);
+verifyEqual(testCase, m.operators.trace.outputPath, m.trace.outputPath);
+verifyEqual(testCase, m.operators.trace.observableId, m.trace.observableId);
+verifyEqual(testCase, m.operators.trace.observableFamily, m.trace.observableFamily);
+verifyEqual(testCase, m.operators.trace.basisSchemaId, m.trace.basisSchemaId);
 verifyEqual(testCase, m.operators.trace.assemblyRuleId, m.trace.assemblyRuleId);
 verifyEqual(testCase, m.operators.trace.quadratureRuleId, m.trace.quadratureRuleId);
-verifyEqual(testCase, [m.operators.trace.traceRowIdentity.trace_row_index].', (1:4).');
-verifyEqual(testCase, [m.operators.trace.traceRowIdentity.fem_node_id].', (1:4).');
-verifyEqual(testCase, [m.operators.trace.traceRowIdentity.bem_node_id].', (1:4).');
-verifyEqual(testCase, m.operators.trace.traceRowIdentity, m.trace.traceRowIdentity);
+verifyEqual(testCase, [m.operators.trace.rowIdentity.trace_row_index].', (1:4).');
+verifyEqual(testCase, [m.operators.trace.rowIdentity.fem_node_id].', (1:4).');
+verifyEqual(testCase, [m.operators.trace.rowIdentity.bem_node_id].', (1:4).');
+verifyEqual(testCase, m.operators.trace.rowIdentity, m.trace.rowIdentity);
 verifyEqual(testCase, m.operators.trace.sourceFileId, m.trace.sourceFileId);
-verifyEqual(testCase, m.operators.trace.boundaryNumbers, ones(4, 1));
-verifyEqual(testCase, m.operators.trace.boundaryNames, repmat("outer", 4, 1));
-verifyEqual(testCase, m.operators.trace.boundaryRowIdentity, m.trace.boundaryRowIdentity);
-verifyEqual(testCase, [m.operators.trace.boundaryRowIdentity.surface_triangle_index].', (1:4).');
-verifyEqual(testCase, m.operators.trace.boundaryRowIdentity(2).surface_triangle_nodes, [1 4 2]);
-verifyEqual(testCase, [m.operators.trace.boundaryRowIdentity.boundary_number].', ones(4, 1));
-verifyEqual(testCase, string({m.operators.trace.boundaryRowIdentity.boundary_name}).', repmat("outer", 4, 1));
-verifyTrue(testCase, startsWith(m.identity.sourceFileId, "sha256:"));
-verifyTrue(testCase, contains(m.trace.traceOutputArtifactId, "h1_to_scalar_bem_trace_output_p1"));
-verifyTrue(testCase, startsWith(m.trace.traceOutputDigest, "sha256:"));
-verifyTrue(testCase, startsWith(m.trace.traceOutputPath, "memory://"));
-verifyTrue(testCase, contains(m.trace.traceObservableId, "boundary_trace_observable_p1"));
-verifyEqual(testCase, m.trace.traceObservableFamily, "fem_bem_boundary_trace");
-verifyEqual(testCase, m.trace.traceBasisSchemaId, "matlab_h1_p1_to_scalar_bem_p1_trace_basis_v1");
+verifyEqual(testCase, m.surface.col, ones(4, 1));
+verifyEqual(testCase, m.surface.names, repmat("outer", 4, 1));
+verifyEqual(testCase, [m.surface.rowIdentity.surface_triangle_index].', (1:4).');
+verifyEqual(testCase, m.surface.rowIdentity(2).surface_triangle_nodes, [1 4 2]);
+verifyEqual(testCase, [m.surface.rowIdentity.boundary_number].', ones(4, 1));
+verifyEqual(testCase, string({m.surface.rowIdentity.boundary_name}).', repmat("outer", 4, 1));
+verifyTrue(testCase, startsWith(m.mesh.sourceFileId, "sha256:"));
+verifyTrue(testCase, contains(m.trace.outputArtifactId, "h1_to_scalar_bem_trace_output_p1"));
+verifyTrue(testCase, startsWith(m.trace.outputDigest, "sha256:"));
+verifyTrue(testCase, startsWith(m.trace.outputPath, "memory://"));
+verifyTrue(testCase, contains(m.trace.observableId, "boundary_trace_observable_p1"));
+verifyEqual(testCase, m.trace.observableFamily, "fem_bem_boundary_trace");
+verifyEqual(testCase, m.trace.basisSchemaId, "matlab_h1_p1_to_scalar_bem_p1_trace_basis_v1");
 verifyEqual(testCase, m.trace.assemblyRuleId, "first_order_tet_h1_trace_tri_p1_bem_teaching_v1");
 verifyEqual(testCase, m.trace.quadratureRuleId, "tri_p1_exact_mass_regular_kernel_teaching_v1");
 verifyEqual(testCase, size(m.operators.fem.stiffness), [4 4]);
@@ -101,10 +106,10 @@ end
 
 function testTraceSurfaceMassReportKeepsBoundaryEnergyVisible(testCase)
 path = writeFixture(testCase, fourTetWithInteriorNodeVolText());
-m = volFemBemModel(path);
+m = FemBemModel(path);
 u = [1; 2; -1; 0.5; 9];
 
-report = educationalFemBemTraceMassReport(m, u);
+report = femBemTraceMassReport(m, u);
 
 verifyEqual(testCase, report.status, "ok");
 verifyEqual(testCase, report.policy, "readable_first_order_tri_tet_trace_surface_mass_gate");
@@ -128,9 +133,9 @@ end
 
 function testNormalFluxReportConsumesOrientationSigns(testCase)
 path = writeFixture(testCase, tetVolText());
-m = volFemBemModel(path);
+m = FemBemModel(path);
 
-report = educationalFemBemNormalFluxSignReport(m, [1 2 3]);
+report = femBemNormalFluxSignReport(m, [1 2 3]);
 
 verifyEqual(testCase, report.status, "ok");
 verifyEqual(testCase, report.policy, "readable_fem_bem_normal_flux_orientation_gate");
@@ -156,12 +161,12 @@ verifyTrue(testCase, report.checks.correctedFluxMatchesOutwardReference);
 verifyTrue(testCase, report.checks.closedSurfaceFluxBalanceOk);
 
 bad = m;
-bad.trace.triangleOrientationSignsToOutward = ones(4, 1);
-badReport = educationalFemBemNormalFluxSignReport(bad, [1 2 3]);
+bad.surface.orientation.triangleOrientationSignsToOutward = ones(4, 1);
+badReport = femBemNormalFluxSignReport(bad, [1 2 3]);
 verifyEqual(testCase, badReport.status, "needs_attention");
 verifyFalse(testCase, badReport.checks.correctedFluxMatchesOutwardReference);
 
-wrongConvention = educationalFemBemNormalFluxSignReport( ...
+wrongConvention = femBemNormalFluxSignReport( ...
     m, [1 2 3], ...
     "NormalConvention", "stored_from_vol", ...
     "ExpectedNormalConvention", "outward_from_volume");
@@ -169,7 +174,7 @@ verifyEqual(testCase, wrongConvention.status, "needs_attention");
 verifyFalse(testCase, wrongConvention.checks.normalConventionMatchesExpected);
 verifyTrue(testCase, wrongConvention.checks.correctedFluxMatchesOutwardReference);
 
-staleDigest = educationalFemBemNormalFluxSignReport( ...
+staleDigest = femBemNormalFluxSignReport( ...
     m, [1 2 3], ...
     "ResultDigest", "sha256:old-normal-flux-report", ...
     "ExpectedResultDigest", report.resultDigest);
@@ -181,10 +186,10 @@ end
 
 function testCouplingManifestKeepsTraceKernelAndSpacesTogether(testCase)
 path = writeFixture(testCase, fourTetWithInteriorNodeVolText());
-m = volFemBemModel(path);
-m = assembleFirstOrderFemBemTrace(m);
+m = FemBemModel(path);
+m = m.assemble();
 normalFluxArtifactId = "matlab_slot360_unit_tet_normal_flux_sign_report_v1";
-normalFluxReport = educationalFemBemNormalFluxSignReport( ...
+normalFluxReport = femBemNormalFluxSignReport( ...
     m, [1 2 3], ...
     "ResultArtifactId", normalFluxArtifactId);
 verifyEqual(testCase, normalFluxReport.status, "ok");
@@ -207,14 +212,14 @@ couplingConventionSchemaId = "matlab_first_order_fem_bem_coupling_convention_v1"
 postprocessRowConventionSchemaId = "matlab_fem_bem_trace_lsq_row_convention_v1";
 traceBasisSchemaId = "matlab_h1_p1_to_scalar_bem_p1_trace_basis_v1";
 
-report = educationalFemBemCouplingManifest( ...
+report = femBemCouplingManifest( ...
     m, ...
     "ExpectedBoundaryNumbers", 1, ...
     "ExpectedBoundaryNames", "outer", ...
-    "ExpectedTraceOperatorArtifactId", m.trace.traceOperatorArtifactId, ...
-    "ExpectedTraceOutputArtifactId", m.trace.traceOutputArtifactId, ...
-    "ExpectedTraceOutputDigest", m.trace.traceOutputDigest, ...
-    "ExpectedTraceObservableId", m.trace.traceObservableId, ...
+    "ExpectedTraceOperatorArtifactId", m.trace.operatorArtifactId, ...
+    "ExpectedTraceOutputArtifactId", m.trace.outputArtifactId, ...
+    "ExpectedTraceOutputDigest", m.trace.outputDigest, ...
+    "ExpectedTraceObservableId", m.trace.observableId, ...
     "ExpectedTraceObservableFamily", "fem_bem_boundary_trace", ...
     "NormalFluxArtifactId", normalFluxArtifactId, ...
     "NormalFluxDigest", normalFluxDigest, ...
@@ -298,22 +303,21 @@ verifyEqual(testCase, report.volumeSpace, "H1_P1_tet");
 verifyEqual(testCase, report.surfaceSpace, "scalar_P1_tri");
 verifyEqual(testCase, report.boundaryNumbers, ones(4, 1));
 verifyEqual(testCase, report.boundaryNames, repmat("outer", 4, 1));
-verifyEqual(testCase, report.boundaryRowIdentity, m.trace.boundaryRowIdentity);
-verifyEqual(testCase, report.operatorBoundaryRowIdentity, m.trace.boundaryRowIdentity);
+verifyEqual(testCase, report.boundaryRowIdentity, m.surface.rowIdentity);
 verifyEqual(testCase, report.expectedBoundaryNumbers, 1);
 verifyEqual(testCase, report.expectedBoundaryNames, "outer");
-verifyEqual(testCase, report.traceOperatorArtifactId, m.trace.traceOperatorArtifactId);
-verifyEqual(testCase, report.operatorTraceOperatorArtifactId, m.trace.traceOperatorArtifactId);
+verifyEqual(testCase, report.traceOperatorArtifactId, m.trace.operatorArtifactId);
+verifyEqual(testCase, report.operatorTraceOperatorArtifactId, m.trace.operatorArtifactId);
 verifyEqual(testCase, report.traceOperatorPolicy, "one_hot_boundary_node_injection_from_vol_node_ids");
 verifyEqual(testCase, report.operatorTraceOperatorPolicy, "one_hot_boundary_node_injection_from_vol_node_ids");
-verifyEqual(testCase, report.traceOutputArtifactId, m.trace.traceOutputArtifactId);
-verifyEqual(testCase, report.operatorTraceOutputArtifactId, m.trace.traceOutputArtifactId);
-verifyEqual(testCase, report.traceOutputDigest, m.trace.traceOutputDigest);
-verifyEqual(testCase, report.operatorTraceOutputDigest, m.trace.traceOutputDigest);
-verifyEqual(testCase, report.traceOutputPath, m.trace.traceOutputPath);
-verifyEqual(testCase, report.operatorTraceOutputPath, m.trace.traceOutputPath);
-verifyEqual(testCase, report.traceObservableId, m.trace.traceObservableId);
-verifyEqual(testCase, report.operatorTraceObservableId, m.trace.traceObservableId);
+verifyEqual(testCase, report.traceOutputArtifactId, m.trace.outputArtifactId);
+verifyEqual(testCase, report.operatorTraceOutputArtifactId, m.trace.outputArtifactId);
+verifyEqual(testCase, report.traceOutputDigest, m.trace.outputDigest);
+verifyEqual(testCase, report.operatorTraceOutputDigest, m.trace.outputDigest);
+verifyEqual(testCase, report.traceOutputPath, m.trace.outputPath);
+verifyEqual(testCase, report.operatorTraceOutputPath, m.trace.outputPath);
+verifyEqual(testCase, report.traceObservableId, m.trace.observableId);
+verifyEqual(testCase, report.operatorTraceObservableId, m.trace.observableId);
 verifyEqual(testCase, report.traceObservableFamily, "fem_bem_boundary_trace");
 verifyEqual(testCase, report.operatorTraceObservableFamily, "fem_bem_boundary_trace");
 verifyEqual(testCase, report.normalFluxArtifactId, normalFluxArtifactId);
@@ -510,18 +514,11 @@ verifyTrue(testCase, report.checks.timingBreakdownHasAtMostFourItems);
 verifyTrue(testCase, report.checks.timingBreakdownFiniteNonnegative);
 verifyTrue(testCase, report.checks.boundaryNumbersRecorded);
 verifyTrue(testCase, report.checks.boundaryNamesRecorded);
-verifyTrue(testCase, report.checks.operatorTraceBoundaryNumbersMatch);
-verifyTrue(testCase, report.checks.operatorTraceBoundaryNamesMatch);
 verifyTrue(testCase, report.checks.boundaryRowIdentityRecorded);
 verifyTrue(testCase, report.checks.boundaryRowIdentityRowIndicesMatch);
 verifyTrue(testCase, report.checks.boundaryRowIdentityTrianglesMatch);
 verifyTrue(testCase, report.checks.boundaryRowIdentityNumbersMatch);
 verifyTrue(testCase, report.checks.boundaryRowIdentityNamesMatch);
-verifyTrue(testCase, report.checks.operatorTraceBoundaryRowIdentityRecorded);
-verifyTrue(testCase, report.checks.operatorTraceBoundaryRowIdentityMatchesTrace);
-verifyTrue(testCase, report.checks.operatorTraceBoundaryRowIdentityTrianglesMatch);
-verifyTrue(testCase, report.checks.operatorTraceBoundaryRowIdentityNumbersMatch);
-verifyTrue(testCase, report.checks.operatorTraceBoundaryRowIdentityNamesMatch);
 verifyTrue(testCase, report.checks.boundaryNumbersMatchExpected);
 verifyTrue(testCase, report.checks.boundaryNamesMatchExpected);
 verifyTrue(testCase, report.checks.traceRowsAreOneHot);
@@ -538,41 +535,38 @@ verifyTrue(testCase, report.checks.operatorTraceRowIdentityFemNodesMatch);
 verifyTrue(testCase, report.checks.operatorTraceRowIdentityBemNodesMatch);
 verifyTrue(testCase, report.checks.operatorTraceRowIdentityMatchesTraceMatrix);
 
-wrongKernel = educationalFemBemCouplingManifest( ...
+wrongKernel = femBemCouplingManifest( ...
     m, ...
     "ExpectedBemKernelFamily", "helmholtz_single_layer");
 verifyEqual(testCase, wrongKernel.status, "needs_attention");
 verifyFalse(testCase, wrongKernel.checks.bemKernelFamilyMatchesExpected);
 verifyTrue(testCase, wrongKernel.checks.traceRowsAreOneHot);
 
-staleAssemblyRule = assembleFirstOrderFemBemTrace(m);
-staleAssemblyRule.trace.assemblyRuleId = "remote_field_assembly_v0";
-staleAssemblyRule.operators.trace.assemblyRuleId = "remote_field_assembly_v0";
-staleAssemblyReport = educationalFemBemCouplingManifest( ...
-    staleAssemblyRule, ...
-    "ExpectedAssemblyRuleId", m.trace.assemblyRuleId);
+% assemblyRuleId is a TraceOperator constant now, so assembly-rule drift is
+% simulated by expecting a different rule id instead of mutating the model.
+staleAssemblyReport = femBemCouplingManifest( ...
+    m, ...
+    "ExpectedAssemblyRuleId", "remote_field_assembly_v0");
 verifyEqual(testCase, staleAssemblyReport.status, "needs_attention");
 verifyFalse(testCase, staleAssemblyReport.checks.assemblyRuleIdMatchesExpected);
 verifyTrue(testCase, staleAssemblyReport.checks.operatorTraceAssemblyRuleIdMatchesTrace);
 
-missingQuadratureRule = assembleFirstOrderFemBemTrace(m);
-missingQuadratureRule.trace.quadratureRuleId = "";
-missingQuadratureRule.operators.trace.quadratureRuleId = "";
-missingQuadratureReport = educationalFemBemCouplingManifest( ...
-    missingQuadratureRule, ...
-    "ExpectedQuadratureRuleId", m.trace.quadratureRuleId);
-verifyEqual(testCase, missingQuadratureReport.status, "needs_attention");
-verifyFalse(testCase, missingQuadratureReport.checks.quadratureRuleIdRecorded);
-verifyFalse(testCase, missingQuadratureReport.checks.quadratureRuleIdMatchesExpected);
+% quadratureRuleId is a TraceOperator constant now, so the old blanked-rule
+% mutation becomes an expected-mismatch drift probe.
+staleQuadratureReport = femBemCouplingManifest( ...
+    m, ...
+    "ExpectedQuadratureRuleId", "remote_field_quadrature_v0");
+verifyEqual(testCase, staleQuadratureReport.status, "needs_attention");
+verifyFalse(testCase, staleQuadratureReport.checks.quadratureRuleIdMatchesExpected);
 
-staleResultArtifact = educationalFemBemCouplingManifest( ...
+staleResultArtifact = femBemCouplingManifest( ...
     m, ...
     "ResultArtifactId", "matlab_slot344_old_result_v0", ...
     "ExpectedResultArtifactId", "matlab_slot344_fem_bem_manifest_result_v1");
 verifyEqual(testCase, staleResultArtifact.status, "needs_attention");
 verifyFalse(testCase, staleResultArtifact.checks.resultArtifactIdMatchesExpected);
 
-missingTimingItems = educationalFemBemCouplingManifest( ...
+missingTimingItems = femBemCouplingManifest( ...
     m, ...
     "TimingBreakdown", struct("mesh_read_s", 0.001));
 verifyEqual(testCase, missingTimingItems.status, "needs_attention");
@@ -580,7 +574,7 @@ verifyTrue(testCase, missingTimingItems.checks.timingBreakdownRecorded);
 verifyFalse(testCase, missingTimingItems.checks.timingBreakdownHasFourItems);
 verifyTrue(testCase, missingTimingItems.checks.timingBreakdownHasAtMostFourItems);
 
-tooManyTimingItems = educationalFemBemCouplingManifest( ...
+tooManyTimingItems = femBemCouplingManifest( ...
     m, ...
     "TimingBreakdown", struct( ...
         "mesh_read_s", 0.001, ...
@@ -592,14 +586,14 @@ verifyEqual(testCase, tooManyTimingItems.status, "needs_attention");
 verifyTrue(testCase, tooManyTimingItems.checks.timingBreakdownHasFourItems);
 verifyFalse(testCase, tooManyTimingItems.checks.timingBreakdownHasAtMostFourItems);
 
-badRunTimestamp = educationalFemBemCouplingManifest( ...
+badRunTimestamp = femBemCouplingManifest( ...
     m, ...
     "RunStartedAt", "not-a-date");
 verifyEqual(testCase, badRunTimestamp.status, "needs_attention");
 verifyTrue(testCase, badRunTimestamp.checks.runStartedAtRecorded);
 verifyFalse(testCase, badRunTimestamp.checks.runStartedAtIsoLike);
 
-staleNotebookSourceDigest = educationalFemBemCouplingManifest( ...
+staleNotebookSourceDigest = femBemCouplingManifest( ...
     m, ...
     "NotebookSourceArtifactId", notebookSourceArtifactId, ...
     "NotebookSourceDigest", "sha256:old-fem-bem-teaching-notebook", ...
@@ -613,7 +607,7 @@ verifyTrue(testCase, staleNotebookSourceDigest.checks.notebookSourceArtifactIdMa
 verifyFalse(testCase, staleNotebookSourceDigest.checks.notebookSourceDigestMatchesExpected);
 verifyTrue(testCase, staleNotebookSourceDigest.checks.notebookSourcePathRecordedWhenRequired);
 
-missingNotebookSourcePath = educationalFemBemCouplingManifest( ...
+missingNotebookSourcePath = femBemCouplingManifest( ...
     m, ...
     "NotebookSourceArtifactId", notebookSourceArtifactId, ...
     "NotebookSourceDigest", notebookSourceDigest, ...
@@ -625,7 +619,7 @@ verifyTrue(testCase, missingNotebookSourcePath.checks.notebookSourceDigestRecord
 verifyFalse(testCase, missingNotebookSourcePath.checks.notebookSourcePathRecordedWhenRequired);
 verifyFalse(testCase, missingNotebookSourcePath.checks.notebookSourcePathMatchesExpected);
 
-staleParameterSetDigest = educationalFemBemCouplingManifest( ...
+staleParameterSetDigest = femBemCouplingManifest( ...
     m, ...
     "ParameterSetArtifactId", parameterSetArtifactId, ...
     "ParameterSetDigest", "sha256:old-fem-bem-parameter-set", ...
@@ -639,7 +633,7 @@ verifyTrue(testCase, staleParameterSetDigest.checks.parameterSetArtifactIdMatche
 verifyFalse(testCase, staleParameterSetDigest.checks.parameterSetDigestMatchesExpected);
 verifyTrue(testCase, staleParameterSetDigest.checks.parameterSetPathRecordedWhenRequired);
 
-missingParameterSetPath = educationalFemBemCouplingManifest( ...
+missingParameterSetPath = femBemCouplingManifest( ...
     m, ...
     "ParameterSetArtifactId", parameterSetArtifactId, ...
     "ParameterSetDigest", parameterSetDigest, ...
@@ -651,7 +645,7 @@ verifyTrue(testCase, missingParameterSetPath.checks.parameterSetDigestRecordedWh
 verifyFalse(testCase, missingParameterSetPath.checks.parameterSetPathRecordedWhenRequired);
 verifyFalse(testCase, missingParameterSetPath.checks.parameterSetPathMatchesExpected);
 
-wrongObjectiveFamily = educationalFemBemCouplingManifest( ...
+wrongObjectiveFamily = femBemCouplingManifest( ...
     m, ...
     "ObjectiveObservableId", objectiveObservableId, ...
     "ObjectiveObservableFamily", "remote_field_map", ...
@@ -661,7 +655,7 @@ verifyEqual(testCase, wrongObjectiveFamily.status, "needs_attention");
 verifyTrue(testCase, wrongObjectiveFamily.checks.objectiveObservableIdMatchesExpected);
 verifyFalse(testCase, wrongObjectiveFamily.checks.objectiveObservableFamilyMatchesExpected);
 
-staleCouplingConventionSchema = educationalFemBemCouplingManifest( ...
+staleCouplingConventionSchema = femBemCouplingManifest( ...
     m, ...
     "CouplingConventionSchemaId", "matlab_fem_bem_value_only_convention_v0", ...
     "ExpectedCouplingConventionSchemaId", couplingConventionSchemaId, ...
@@ -671,7 +665,7 @@ verifyTrue(testCase, staleCouplingConventionSchema.checks.couplingConventionSche
 verifyFalse(testCase, staleCouplingConventionSchema.checks.couplingConventionSchemaIdMatchesExpected);
 verifyTrue(testCase, staleCouplingConventionSchema.checks.couplingKindMatchesExpected);
 
-missingCouplingConventionSchema = educationalFemBemCouplingManifest( ...
+missingCouplingConventionSchema = femBemCouplingManifest( ...
     m, ...
     "CouplingConventionSchemaId", "", ...
     "ExpectedCouplingConventionSchemaId", couplingConventionSchemaId, ...
@@ -680,7 +674,7 @@ verifyEqual(testCase, missingCouplingConventionSchema.status, "needs_attention")
 verifyFalse(testCase, missingCouplingConventionSchema.checks.couplingConventionSchemaIdRecordedWhenRequired);
 verifyFalse(testCase, missingCouplingConventionSchema.checks.couplingConventionSchemaIdMatchesExpected);
 
-stalePostprocessRowConventionSchema = educationalFemBemCouplingManifest( ...
+stalePostprocessRowConventionSchema = femBemCouplingManifest( ...
     m, ...
     "PostprocessRowConventionSchemaId", "matlab_fem_bem_scalar_residual_row_v0", ...
     "ExpectedPostprocessRowConventionSchemaId", postprocessRowConventionSchemaId, ...
@@ -690,7 +684,7 @@ verifyTrue(testCase, stalePostprocessRowConventionSchema.checks.couplingConventi
 verifyTrue(testCase, stalePostprocessRowConventionSchema.checks.postprocessRowConventionSchemaIdRecordedWhenRequired);
 verifyFalse(testCase, stalePostprocessRowConventionSchema.checks.postprocessRowConventionSchemaIdMatchesExpected);
 
-missingPostprocessRowConventionSchema = educationalFemBemCouplingManifest( ...
+missingPostprocessRowConventionSchema = femBemCouplingManifest( ...
     m, ...
     "PostprocessRowConventionSchemaId", "", ...
     "ExpectedPostprocessRowConventionSchemaId", postprocessRowConventionSchemaId, ...
@@ -699,32 +693,21 @@ verifyEqual(testCase, missingPostprocessRowConventionSchema.status, "needs_atten
 verifyFalse(testCase, missingPostprocessRowConventionSchema.checks.postprocessRowConventionSchemaIdRecordedWhenRequired);
 verifyFalse(testCase, missingPostprocessRowConventionSchema.checks.postprocessRowConventionSchemaIdMatchesExpected);
 
-staleTraceBasisSchemaModel = m;
-staleTraceBasisSchemaModel.trace.traceBasisSchemaId = "matlab_h1_trace_basis_value_only_v0";
-staleTraceBasisSchemaModel.operators.trace.traceBasisSchemaId = "matlab_h1_trace_basis_value_only_v0";
-staleTraceBasisSchema = educationalFemBemCouplingManifest( ...
-    staleTraceBasisSchemaModel, ...
+% basisSchemaId is a TraceOperator constant now; a stale schema is simulated
+% by overriding the recorded TraceBasisSchemaId option. The manifest also
+% flags the override as diverging from the operator constant.
+staleTraceBasisSchema = femBemCouplingManifest( ...
+    m, ...
+    "TraceBasisSchemaId", "matlab_h1_trace_basis_value_only_v0", ...
     "ExpectedTraceBasisSchemaId", traceBasisSchemaId, ...
     "RequireTraceBasisSchema", true);
 verifyEqual(testCase, staleTraceBasisSchema.status, "needs_attention");
 verifyTrue(testCase, staleTraceBasisSchema.checks.traceBasisSchemaIdRecordedWhenRequired);
 verifyFalse(testCase, staleTraceBasisSchema.checks.traceBasisSchemaIdMatchesExpected);
-verifyTrue(testCase, staleTraceBasisSchema.checks.operatorTraceBasisSchemaIdMatchesTrace);
+verifyFalse(testCase, staleTraceBasisSchema.checks.operatorTraceBasisSchemaIdMatchesTrace);
 verifyTrue(testCase, staleTraceBasisSchema.checks.traceRowsAreOneHot);
 
-missingTraceBasisSchemaModel = m;
-missingTraceBasisSchemaModel.trace.traceBasisSchemaId = "";
-missingTraceBasisSchemaModel.operators.trace.traceBasisSchemaId = "";
-missingTraceBasisSchema = educationalFemBemCouplingManifest( ...
-    missingTraceBasisSchemaModel, ...
-    "ExpectedTraceBasisSchemaId", traceBasisSchemaId, ...
-    "RequireTraceBasisSchema", true);
-verifyEqual(testCase, missingTraceBasisSchema.status, "needs_attention");
-verifyFalse(testCase, missingTraceBasisSchema.checks.traceBasisSchemaIdRecordedWhenRequired);
-verifyFalse(testCase, missingTraceBasisSchema.checks.traceBasisSchemaIdMatchesExpected);
-verifyFalse(testCase, missingTraceBasisSchema.checks.operatorTraceBasisSchemaIdRecorded);
-
-staleNormalFluxDigest = educationalFemBemCouplingManifest( ...
+staleNormalFluxDigest = femBemCouplingManifest( ...
     m, ...
     "NormalFluxArtifactId", normalFluxArtifactId, ...
     "NormalFluxDigest", "sha256:old-normal-flux-sign-report", ...
@@ -738,7 +721,7 @@ verifyTrue(testCase, staleNormalFluxDigest.checks.normalFluxArtifactIdMatchesExp
 verifyFalse(testCase, staleNormalFluxDigest.checks.normalFluxDigestMatchesExpected);
 verifyTrue(testCase, staleNormalFluxDigest.checks.traceRowsAreOneHot);
 
-missingNormalFluxArtifact = educationalFemBemCouplingManifest( ...
+missingNormalFluxArtifact = femBemCouplingManifest( ...
     m, ...
     "RequireNormalFluxArtifact", true);
 verifyEqual(testCase, missingNormalFluxArtifact.status, "needs_attention");
@@ -746,7 +729,7 @@ verifyFalse(testCase, missingNormalFluxArtifact.checks.normalFluxArtifactIdRecor
 verifyFalse(testCase, missingNormalFluxArtifact.checks.normalFluxDigestRecordedWhenRequired);
 verifyTrue(testCase, missingNormalFluxArtifact.checks.traceRowsAreOneHot);
 
-wrongNormalFluxConvention = educationalFemBemCouplingManifest( ...
+wrongNormalFluxConvention = femBemCouplingManifest( ...
     m, ...
     "NormalFluxArtifactId", normalFluxArtifactId, ...
     "NormalFluxDigest", normalFluxDigest, ...
@@ -757,7 +740,7 @@ verifyEqual(testCase, wrongNormalFluxConvention.status, "needs_attention");
 verifyFalse(testCase, wrongNormalFluxConvention.checks.normalFluxConventionMatchesExpected);
 verifyTrue(testCase, wrongNormalFluxConvention.checks.normalFluxDigestRecordedWhenRequired);
 
-staleSolverReportDigest = educationalFemBemCouplingManifest( ...
+staleSolverReportDigest = femBemCouplingManifest( ...
     m, ...
     "LinearSolverReportArtifactId", linearSolverReportArtifactId, ...
     "LinearSolverReportDigest", "sha256:old-linear-solver-report", ...
@@ -776,7 +759,7 @@ verifyTrue(testCase, staleSolverReportDigest.checks.linearSolverReportArtifactId
 verifyFalse(testCase, staleSolverReportDigest.checks.linearSolverReportDigestMatchesExpected);
 verifyTrue(testCase, staleSolverReportDigest.checks.linearSolverResidualNormBelowExpectedMax);
 
-missingSolverReport = educationalFemBemCouplingManifest( ...
+missingSolverReport = femBemCouplingManifest( ...
     m, ...
     "RequireLinearSolverReport", true);
 verifyEqual(testCase, missingSolverReport.status, "needs_attention");
@@ -785,7 +768,7 @@ verifyFalse(testCase, missingSolverReport.checks.linearSolverReportDigestRecorde
 verifyFalse(testCase, missingSolverReport.checks.linearSolverResidualNormRecordedWhenRequired);
 verifyTrue(testCase, missingSolverReport.checks.traceRowsAreOneHot);
 
-badSolverResidual = educationalFemBemCouplingManifest( ...
+badSolverResidual = femBemCouplingManifest( ...
     m, ...
     "LinearSolverReportArtifactId", linearSolverReportArtifactId, ...
     "LinearSolverReportDigest", linearSolverReportDigest, ...
@@ -799,7 +782,7 @@ verifyEqual(testCase, badSolverResidual.status, "needs_attention");
 verifyFalse(testCase, badSolverResidual.checks.linearSolverResidualNormBelowExpectedMax);
 verifyTrue(testCase, badSolverResidual.checks.linearSolverReportDigestRecordedWhenRequired);
 
-wrongSolverName = educationalFemBemCouplingManifest( ...
+wrongSolverName = femBemCouplingManifest( ...
     m, ...
     "LinearSolverReportArtifactId", linearSolverReportArtifactId, ...
     "LinearSolverReportDigest", linearSolverReportDigest, ...
@@ -813,7 +796,7 @@ verifyEqual(testCase, wrongSolverName.status, "needs_attention");
 verifyFalse(testCase, wrongSolverName.checks.linearSolverNameMatchesExpected);
 verifyTrue(testCase, wrongSolverName.checks.linearSolverResidualNormFiniteNonnegativeWhenPresent);
 
-lowFrequencyKernel = educationalFemBemCouplingManifest( ...
+lowFrequencyKernel = femBemCouplingManifest( ...
     m, ...
     "FormulationId", "acoustic_low_frequency_single_layer_teaching", ...
     "BemKernelFamily", "helmholtz_single_layer", ...
@@ -832,7 +815,7 @@ verifyTrue(testCase, lowFrequencyKernel.checks.bemKernelManifestIdMatchesExpecte
 verifyTrue(testCase, lowFrequencyKernel.checks.bemKernelStrategyMatchesExpected);
 verifyTrue(testCase, lowFrequencyKernel.checks.kernelTimeConventionMatchesExpected);
 
-staleKernelManifest = educationalFemBemCouplingManifest( ...
+staleKernelManifest = femBemCouplingManifest( ...
     m, ...
     "BemKernelFamily", "helmholtz_single_layer", ...
     "BemKernelManifestId", "old_direct_helmholtz_manifest", ...
@@ -846,7 +829,7 @@ verifyEqual(testCase, staleKernelManifest.status, "needs_attention");
 verifyFalse(testCase, staleKernelManifest.checks.bemKernelManifestIdMatchesExpected);
 verifyTrue(testCase, staleKernelManifest.checks.bemKernelStrategyMatchesExpected);
 
-wrongKernelStrategy = educationalFemBemCouplingManifest( ...
+wrongKernelStrategy = femBemCouplingManifest( ...
     m, ...
     "BemKernelFamily", "helmholtz_single_layer", ...
     "BemKernelManifestId", "lf_helmholtz_k1e-9_expm1_taylor_v1", ...
@@ -859,115 +842,108 @@ verifyEqual(testCase, wrongKernelStrategy.status, "needs_attention");
 verifyTrue(testCase, wrongKernelStrategy.checks.bemKernelManifestIdMatchesExpected);
 verifyFalse(testCase, wrongKernelStrategy.checks.bemKernelStrategyMatchesExpected);
 
-badSource = assembleFirstOrderFemBemTrace(m);
+badSource = m.assemble();
 badSource.trace.sourceFileId = "sha256:stale_vol_source";
-badSourceReport = educationalFemBemCouplingManifest(badSource);
+badSourceReport = femBemCouplingManifest(badSource);
 verifyEqual(testCase, badSourceReport.status, "needs_attention");
 verifyFalse(testCase, badSourceReport.checks.traceSourceFileIdMatchesIdentity);
 verifyTrue(testCase, badSourceReport.checks.operatorTraceSourceFileIdMatchesIdentity);
 
-badBoundaryName = assembleFirstOrderFemBemTrace(m);
-badBoundaryName.trace.boundaryNames(2) = "coil";
-badBoundaryNameReport = educationalFemBemCouplingManifest( ...
+badBoundaryName = m.assemble();
+badBoundaryName.surface.names(2) = "coil";
+badBoundaryNameReport = femBemCouplingManifest( ...
     badBoundaryName, ...
     "ExpectedBoundaryNames", "outer");
 verifyEqual(testCase, badBoundaryNameReport.status, "needs_attention");
-verifyFalse(testCase, badBoundaryNameReport.checks.operatorTraceBoundaryNamesMatch);
 verifyFalse(testCase, badBoundaryNameReport.checks.boundaryNamesMatchExpected);
 
-badBoundaryNumber = assembleFirstOrderFemBemTrace(m);
-badBoundaryNumber.trace.boundaryNumbers(2) = 2;
-badBoundaryNumberReport = educationalFemBemCouplingManifest( ...
+badBoundaryNumber = m.assemble();
+badBoundaryNumber.surface.col(2) = 2;
+badBoundaryNumberReport = femBemCouplingManifest( ...
     badBoundaryNumber, ...
     "ExpectedBoundaryNumbers", 1);
 verifyEqual(testCase, badBoundaryNumberReport.status, "needs_attention");
-verifyFalse(testCase, badBoundaryNumberReport.checks.operatorTraceBoundaryNumbersMatch);
 verifyFalse(testCase, badBoundaryNumberReport.checks.boundaryRowIdentityNumbersMatch);
 verifyFalse(testCase, badBoundaryNumberReport.checks.boundaryNumbersMatchExpected);
 
-badBoundaryRowIdentity = assembleFirstOrderFemBemTrace(m);
-badBoundaryRowIdentity.operators.trace.boundaryRowIdentity(2).surface_triangle_nodes = [1 4 3];
-badBoundaryRowIdentityReport = educationalFemBemCouplingManifest(badBoundaryRowIdentity);
+% Boundary row identity is single-sourced on SurfaceMesh now, so the drift
+% probe mutates the surface row identity and the single-source check flags it.
+badBoundaryRowIdentity = m.assemble();
+badBoundaryRowIdentity.surface.rowIdentity(2).surface_triangle_nodes = [1 4 3];
+badBoundaryRowIdentityReport = femBemCouplingManifest(badBoundaryRowIdentity);
 verifyEqual(testCase, badBoundaryRowIdentityReport.status, "needs_attention");
-verifyFalse(testCase, badBoundaryRowIdentityReport.checks.operatorTraceBoundaryRowIdentityMatchesTrace);
-verifyFalse(testCase, badBoundaryRowIdentityReport.checks.operatorTraceBoundaryRowIdentityTrianglesMatch);
+verifyFalse(testCase, badBoundaryRowIdentityReport.checks.boundaryRowIdentityTrianglesMatch);
 
-badTraceOperator = assembleFirstOrderFemBemTrace(m);
-badTraceOperator.operators.trace.traceOperatorArtifactId = ...
+badTraceOperator = m.assemble();
+badTraceOperator.operators.trace.operatorArtifactId = ...
     "netgen_vol:stale:h1_to_scalar_bem_trace_operator_p1";
-badTraceOperatorReport = educationalFemBemCouplingManifest(badTraceOperator);
+badTraceOperatorReport = femBemCouplingManifest(badTraceOperator);
 verifyEqual(testCase, badTraceOperatorReport.status, "needs_attention");
 verifyFalse(testCase, badTraceOperatorReport.checks.operatorTraceOperatorArtifactIdMatchesTrace);
 
-badTraceOperatorPolicy = assembleFirstOrderFemBemTrace(m);
-badTraceOperatorPolicy.operators.trace.traceOperatorPolicy = "remote_field_observation_map";
-badTraceOperatorPolicyReport = educationalFemBemCouplingManifest(badTraceOperatorPolicy);
-verifyEqual(testCase, badTraceOperatorPolicyReport.status, "needs_attention");
-verifyFalse(testCase, badTraceOperatorPolicyReport.checks.operatorTraceOperatorPolicyMatchesTrace);
-
-badTracePolicy = assembleFirstOrderFemBemTrace(m);
-badTracePolicy.trace.traceOperatorPolicy = "remote_field_observation_map";
-badTracePolicy.operators.trace.traceOperatorPolicy = "remote_field_observation_map";
-badTracePolicyReport = educationalFemBemCouplingManifest(badTracePolicy);
+% operatorPolicy is a TraceOperator constant now; policy drift is simulated
+% by expecting a different policy id instead of mutating the model.
+badTracePolicyReport = femBemCouplingManifest( ...
+    m, ...
+    "ExpectedTraceOperatorPolicy", "remote_field_observation_map");
 verifyEqual(testCase, badTracePolicyReport.status, "needs_attention");
 verifyFalse(testCase, badTracePolicyReport.checks.traceOperatorPolicyMatchesExpected);
 
-badTraceOutput = assembleFirstOrderFemBemTrace(m);
-badTraceOutput.operators.trace.traceOutputArtifactId = ...
+badTraceOutput = m.assemble();
+badTraceOutput.operators.trace.outputArtifactId = ...
     "netgen_vol:stale:h1_to_scalar_bem_trace_output_p1";
-badTraceOutputReport = educationalFemBemCouplingManifest( ...
+badTraceOutputReport = femBemCouplingManifest( ...
     badTraceOutput, ...
-    "ExpectedTraceOutputArtifactId", m.trace.traceOutputArtifactId);
+    "ExpectedTraceOutputArtifactId", m.trace.outputArtifactId);
 verifyEqual(testCase, badTraceOutputReport.status, "needs_attention");
 verifyFalse(testCase, badTraceOutputReport.checks.operatorTraceOutputArtifactIdMatchesTrace);
 verifyTrue(testCase, badTraceOutputReport.checks.traceOutputArtifactIdMatchesExpected);
 
-badTraceOutputDigest = assembleFirstOrderFemBemTrace(m);
-badTraceOutputDigestReport = educationalFemBemCouplingManifest( ...
+badTraceOutputDigest = m.assemble();
+badTraceOutputDigestReport = femBemCouplingManifest( ...
     badTraceOutputDigest, ...
     "ExpectedTraceOutputDigest", "sha256:stale_trace_output_digest");
 verifyEqual(testCase, badTraceOutputDigestReport.status, "needs_attention");
 verifyFalse(testCase, badTraceOutputDigestReport.checks.traceOutputDigestMatchesExpected);
 
-missingTraceOutputPath = assembleFirstOrderFemBemTrace(m);
-missingTraceOutputPath.trace.traceOutputPath = "";
-missingTraceOutputPath.operators.trace.traceOutputPath = "";
-missingTraceOutputPathReport = educationalFemBemCouplingManifest( ...
+missingTraceOutputPath = m.assemble();
+missingTraceOutputPath.trace.outputPath = "";
+missingTraceOutputPath.operators.trace.outputPath = "";
+missingTraceOutputPathReport = femBemCouplingManifest( ...
     missingTraceOutputPath, ...
     "RequireTraceOutputArtifact", true);
 verifyEqual(testCase, missingTraceOutputPathReport.status, "needs_attention");
 verifyFalse(testCase, missingTraceOutputPathReport.checks.traceOutputPathRecordedWhenRequired);
 
-badTraceObservable = assembleFirstOrderFemBemTrace(m);
-badTraceObservable.operators.trace.traceObservableId = ...
+badTraceObservable = m.assemble();
+badTraceObservable.operators.trace.observableId = ...
     "stale_remote_field_map_observable";
-badTraceObservableReport = educationalFemBemCouplingManifest( ...
+badTraceObservableReport = femBemCouplingManifest( ...
     badTraceObservable, ...
-    "ExpectedTraceObservableId", m.trace.traceObservableId);
+    "ExpectedTraceObservableId", m.trace.observableId);
 verifyEqual(testCase, badTraceObservableReport.status, "needs_attention");
 verifyFalse(testCase, badTraceObservableReport.checks.operatorTraceObservableIdMatchesTrace);
 verifyTrue(testCase, badTraceObservableReport.checks.traceObservableIdMatchesExpected);
 
-badTraceObservableFamily = assembleFirstOrderFemBemTrace(m);
-badTraceObservableFamily.trace.traceObservableFamily = "remote_field_map";
-badTraceObservableFamily.operators.trace.traceObservableFamily = "remote_field_map";
-badTraceObservableFamilyReport = educationalFemBemCouplingManifest( ...
-    badTraceObservableFamily, ...
-    "ExpectedTraceObservableFamily", "fem_bem_boundary_trace");
+% observableFamily is a TraceOperator constant now; family drift is simulated
+% by expecting a different family instead of mutating the model.
+badTraceObservableFamilyReport = femBemCouplingManifest( ...
+    m, ...
+    "ExpectedTraceObservableFamily", "remote_field_map");
 verifyEqual(testCase, badTraceObservableFamilyReport.status, "needs_attention");
 verifyTrue(testCase, badTraceObservableFamilyReport.checks.operatorTraceObservableFamilyMatchesTrace);
 verifyFalse(testCase, badTraceObservableFamilyReport.checks.traceObservableFamilyMatchesExpected);
 
-badTrace = assembleFirstOrderFemBemTrace(m);
-badTrace.operators.trace.femNodeIds(3) = 4;
-badReport = educationalFemBemCouplingManifest(badTrace);
+badTrace = m.assemble();
+badTrace.trace.femNodeIds(3) = 4;
+badReport = femBemCouplingManifest(badTrace);
 verifyEqual(testCase, badReport.status, "needs_attention");
 verifyFalse(testCase, badReport.checks.traceRowIdentityUnique);
 verifyFalse(testCase, badReport.checks.traceRowIdentityMatchesTraceMatrix);
 
-badOperatorRowIdentity = assembleFirstOrderFemBemTrace(m);
-badOperatorRowIdentity.operators.trace.traceRowIdentity(3).fem_node_id = 4;
-badOperatorRowIdentityReport = educationalFemBemCouplingManifest(badOperatorRowIdentity);
+badOperatorRowIdentity = m.assemble();
+badOperatorRowIdentity.operators.trace.rowIdentity(3).fem_node_id = 4;
+badOperatorRowIdentityReport = femBemCouplingManifest(badOperatorRowIdentity);
 verifyEqual(testCase, badOperatorRowIdentityReport.status, "needs_attention");
 verifyFalse(testCase, badOperatorRowIdentityReport.checks.operatorTraceRowIdentityMatchesTrace);
 verifyFalse(testCase, badOperatorRowIdentityReport.checks.operatorTraceRowIdentityFemNodesMatch);

@@ -22,31 +22,43 @@ the mathematics readable:
 
 Gypsilab is the style reference: short notation, clear source, and enough
 operator structure that a reader can connect MATLAB code to the boundary
-integral equations. Lukas FEM is source-code reference material for clean-room
-assembly patterns, not the API model.
-
-When MATLAB classes are introduced, they should preserve the same feeling:
-opening the class file should show the mesh, space, operator, or block tree in
-plain mathematical terms. Hidden performance caches, clever vectorization, and
-large opaque helper layers are secondary to student understanding.
+integral equations. The classes follow `docs/READABLE_CLASS_STYLE.md`: one
+mathematical object per class, public properties that expose the mathematics,
+short methods, no hidden performance caches. The name map and layout of the
+2026-07 class refactor are recorded in `docs/CLASS_API_REFACTOR.md`.
 
 ## Basic API
 
 ```matlab
-addpath("S:\MATLAB\Gypsilab\matlab_api");
+addpath(genpath("S:\MATLAB\Gypsilab\matlab_api"));
 
-m = volFemBem("mesh.vol");
-uh = h1(m);       % H1 P1 tetrahedra
-ah = hcurl(m);    % HCurl Nedelec0 tetrahedra
-jh = rwg(m);      % boundary RWG0 dofs
+m = FemBemModel("mesh.vol");
+m.mesh          % VolMesh: vtx / tet / tri + labels + source identity
+m.surface       % SurfaceMesh: compact boundary + row identity
+m.h1            % H1Space (volume P1)
+m.hcurl         % Nedelec0Space (volume edge)
+m.scalarBem     % SurfaceP1Space (boundary P1)
+m.rwg           % RwgSpace (boundary triangle-pair dofs)
+m.trace         % TraceOperator: g = m.trace * u
+
+[K, femDetail] = m.h1.stiffness();        % int grad(u).grad(v) dx
+[M, bemDetail] = m.scalarBem.mass();      % int u v dS
+[Mn, Cn, edgeDetail] = m.hcurl.matrices();
+
+m = m.assemble();   % operators struct for the coupling manifest
 ```
+
+Each class file is meant to be read: opening `H1Space.m` shows the P1
+barycentric-gradient assembly loop, opening `TraceOperator.m` shows the
+one-hot injection and its artifact identity, opening `RwgSpace.m` shows the
+surface edge extraction and the RWG-to-HCurl oriented-edge map.
 
 ## H-matrix Teaching Path
 
 ```matlab
-H = educationalLaplaceHMatrix(m);
-y = educationalHMatrixMatvec(H, ones(H.size(2), 1));
-stats = educationalHMatrixStats(H);
+H = HMatrix(m);                    % points, SurfaceMesh, or FemBemModel input
+y = H * ones(H.shape(2), 1);       % or H.matvec(x)
+stats = H.stats();
 ```
 
 The implementation is intentionally explicit:
@@ -60,8 +72,8 @@ The implementation is intentionally explicit:
 ## Acoustic Teaching Path
 
 ```matlab
-op = educationalAcousticSingleLayer(m, [], "Wavenumber", 10.0);
-p = op.apply(ones(size(op.matrix, 2), 1));
+op = AcousticSingleLayer(m, [], "Wavenumber", 10.0);
+p = op.apply(ones(op.shape(2), 1));    % or op * q
 ```
 
 This starts with the dense Helmholtz single-layer operator
@@ -81,7 +93,7 @@ moved to NGSolve.BEM.
 For direct kernel inspection:
 
 ```matlab
-K = lowFrequencyStableHelmholtzKernel(x, y, "Wavenumber", 1e-6);
+K = HelmholtzKernel(x, y, "Wavenumber", 1e-6);
 K.singleLayerLaplace
 K.singleLayerCorrection
 K.singleLayer
@@ -92,7 +104,7 @@ K.singleLayer
 ```matlab
 A = [1 0; 0 1; 1 1];
 b = [1; 2; 3];
-gate = educationalQuadraticLeastSquares(A, b, "Initial", zeros(2, 1));
+gate = quadraticLeastSquares(A, b, "Initial", zeros(2, 1));
 gate.gradientCheck
 ```
 
@@ -105,8 +117,8 @@ teaching gate.
 FEM/BEM trace fitting uses the same readable optimization style:
 
 ```matlab
-m = volFemBem("mesh.vol");
-fit = educationalFemBemTraceLeastSquares(m, boundaryValues, "Tikhonov", 1e-6);
+m = FemBemModel("mesh.vol");
+fit = femBemTraceLeastSquares(m, boundaryValues, "Tikhonov", 1e-6);
 fit.gradientCheck
 ```
 
@@ -120,23 +132,24 @@ Before coupled values are compared, keep the trace and operator identity as one
 package:
 
 ```matlab
-m = volFemBemModel("mesh.vol");
-manifest = educationalFemBemCouplingManifest(m);
+m = FemBemModel("mesh.vol");
+manifest = femBemCouplingManifest(m);
 manifest.checks
 ```
 
-The manifest records the `.vol` mesh id, surface mesh id, trace artifact id,
-volume space, surface space, formulation id, BEM kernel family, and
-`traceRowIdentity`.  The trace operator also records the same row identity, so a
-notebook can read which FEM node and BEM node each boundary row represents
-without inferring it from sparse nonzeros.  A wrong expected kernel family is
-`needs_attention` even when the trace matrix itself is one-hot and dimensionally
-valid.
+`femBemCouplingManifest` RECORDS the package (mesh id, surface mesh id, trace
+artifact ids, volume space, surface space, formulation id, BEM kernel family,
+`traceRowIdentity`); `femBemManifestChecks` VALIDATES the recorded report and
+is readable as the list of contract lines the package must satisfy.  The trace
+operator carries its own row identity, so a notebook can read which FEM node
+and BEM node each boundary row represents without inferring it from sparse
+nonzeros.  A wrong expected kernel family is `needs_attention` even when the
+trace matrix itself is one-hot and dimensionally valid.
 
-The same manifest records `boundaryRowIdentity`: each boundary triangle row is
-bound to its triangle nodes, boundary number, boundary name, and adjacent
-tetrahedron.  This keeps boundary-condition labels attached to the exact
-surface triangle rows before BEM kernels, flux rows, or coupling notebooks reuse
+Boundary-condition identity is single-sourced on the `SurfaceMesh`: each
+boundary triangle row is bound to its triangle nodes, boundary number,
+boundary name, and adjacent tetrahedron (`m.surface.rowIdentity`), and the
+manifest records it before BEM kernels, flux rows, or coupling notebooks reuse
 the trace.
 
 Touchstone rows used as MATLAB optimization objectives or constraints should
@@ -144,7 +157,7 @@ first carry port/option-line metadata, then pass a design-frequency sweep check
 and the solver-ready row preflight:
 
 ```matlab
-meta = educationalTouchstonePortMetadata(["P1" "P2"], ...
+meta = touchstonePortMetadata(["P1" "P2"], ...
     "PortOrder", ["P1" "P2"], ...
     "NetworkParameter", "S", ...
     "DataFormat", "MA", ...
@@ -158,7 +171,7 @@ RI/MA/DB format, frequency unit, and `Z0` are explicit.  This keeps swapped
 ports and missing reference impedance out of later optimization examples.
 
 ```matlab
-grid = educationalTouchstoneDesignFrequencyGrid([0.95 0.99 1.01 1.05], 1.0, ...
+grid = touchstoneDesignFrequencyGrid([0.95 0.99 1.01 1.05], 1.0, ...
     "FrequencyUnit", "GHz", ...
     "MaxRelativeSpacing", 0.03);
 grid.lowerIndex
@@ -172,7 +185,7 @@ and `bracketGapRel = bracket_gap / design_frequency` visible before accepting
 the row-level evidence.
 
 ```matlab
-row = educationalTouchstoneSolverReadyPreflight(0.05, 0.8*exp(-1i*pi/18), ...
+row = touchstoneSolverReadyPreflight(0.05, 0.8*exp(-1i*pi/18), ...
     "S12", 0.8*exp(-1i*pi/18), ...
     "S22", 0.05, ...
     "Frequency", 1.0, ...
@@ -187,7 +200,7 @@ Far-field pattern rows used in antenna, EMC, or ngsolve.bem teaching notebooks
 follow the same metadata-first rule:
 
 ```matlab
-pat = educationalFarfieldPatternMetadata([0 90 180], [0 90], ...
+pat = farfieldPatternMetadata([0 90 180], [0 90], ...
     "FrequencyHz", 2.45e9, ...
     "AngleUnit", "deg", ...
     "CoordinateSystem", "spherical", ...
@@ -205,14 +218,10 @@ This keeps frequency, theta/phi cuts, polarization basis, quantity unit, row
 count, and power normalization visible before gain/directivity/RCS values are
 used in optimization or FEM/BEM comparison.
 
-This keeps frequency, RI/MA/DB format, reference impedance, passivity,
-reciprocity, and S11 match quality visible before the row enters an
-optimization notebook.
-
 For the regularization trade-off, keep the path visible:
 
 ```matlab
-path = educationalFemBemTikhonovPath(m, boundaryValues, [0; 1e-3; 1e-1; 1]);
+path = femBemTikhonovPath(m, boundaryValues, [0; 1e-3; 1e-1; 1]);
 path.checks
 ```
 
@@ -224,7 +233,7 @@ When a noise norm is known, the same path can be selected by Morozov's
 discrepancy principle:
 
 ```matlab
-choice = educationalFemBemMorozovDiscrepancy(m, boundaryValues, ...
+choice = femBemMorozovDiscrepancy(m, boundaryValues, ...
     [0; 1e-3; 1e-2; 1e-1; 1], noiseNorm);
 choice.selectedAlpha
 choice.checks
@@ -240,7 +249,7 @@ Bound-constrained design variables use the same inspectable style:
 ```matlab
 A = eye(2);
 b = [2; -1];
-box = educationalBoxConstrainedLeastSquares(A, b, [0; 0], [1; 3]);
+box = boxConstrainedLeastSquares(A, b, [0; 0], [1; 3]);
 box.activeLower
 box.activeUpper
 box.maxKktResidual
@@ -255,7 +264,7 @@ Touchstone / port-mode rows can also be inspected as readable linear algebra
 before moving them into a circuit or BEM notebook:
 
 ```matlab
-eq = educationalTouchstoneEquivalentCircuit(0, 0, ...
+eq = touchstoneEquivalentCircuit(0, 0, ...
     "S12", 0, "S22", 0, "Z0", 50, "ComparisonZ0", 75);
 eq.pi.yShunt1   % 1/Z0 for the matched isolated teaching row
 eq.t.zSeries1   % Z0 for the same row
@@ -265,6 +274,25 @@ This helper deliberately keeps `Z0` visible.  The same normalized S-parameter
 row gives different equivalent admittance/impedance values when the Touchstone
 reference impedance changes, so `data_format` and `Z0` must be recorded before
 pi/T extraction.
+
+## API Layout
+
+```
+matlab_api/
+  mesh/      readVolTriTet  VolMesh  SurfaceMesh  bemCollocationPoints
+  fem/       H1Space  Nedelec0Space
+  bem/       SurfaceP1Space  RwgSpace  TraceOperator
+  kernel/    HelmholtzKernel
+  hmatrix/   HMatrix
+  acoustic/  AcousticSingleLayer  lowFrequencyHelmholtzReport
+             helmholtzKernelManifest
+  model/     FemBemModel  femBemCouplingManifest  femBemManifestChecks
+  gates/     teaching report gates (touchstone*, farfield*, femBem*,
+             quadraticLeastSquares, boxConstrainedLeastSquares, ...)
+```
+
+Classes are the mathematical objects; gates are plain struct-returning report
+functions (they are lessons, not operators).
 
 ## Mesh Policy
 
@@ -277,7 +305,7 @@ pi/T extraction.
   intake with a readable manifest:
 
 ```matlab
-meshGate = educationalMeshImportQualityManifest(["tri" "tri"], ["tet"], ...
+meshGate = meshImportQualityManifest(["tri" "tri"], ["tet"], ...
     "Order", 1, ...
     "MinScaledJacobianBefore", 0.36, ...
     "MinScaledJacobianAfter", 0.75, ...
@@ -300,6 +328,9 @@ meshGate.checks
 ```matlab
 run("S:\MATLAB\Gypsilab\run_tests.m")
 ```
+
+Every test file also runs standalone (each carries a `setupOnce` that adds
+`matlab_api` recursively to the path).
 
 ## 100-Case Validation Campaign
 
@@ -329,6 +360,7 @@ Current progress:
 - validation log:
   `S:\MATLAB\_crossval\gypsilab_mesh_topology_10of100_20260624.md`
   `S:\MATLAB\_crossval\gypsilab_remaining_90of100_20260624.md`
+  `S:\MATLAB\_crossval\gypsilab_class_api_refactor_20260703.md`
 
 For acoustic FEM/BEM cases, COMSOL's acoustic FEM/BEM workflow is an important
 internal secondary reference. It is used to understand coupling conventions,

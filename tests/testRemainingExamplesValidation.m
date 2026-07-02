@@ -5,6 +5,14 @@ tests = functiontests(localfunctions);
 end
 
 
+function setupOnce(~)
+repoRoot = fileparts(fileparts(mfilename("fullpath")));
+addpath(genpath(fullfile(repoRoot, "matlab_api")));
+addpath(fullfile(repoRoot, "examples"));
+addpath(fullfile(repoRoot, "validation"));
+end
+
+
 function testRemainingBatchPasses(testCase)
 results = verifyRemainingExamplesBatch("WriteLog", false);
 

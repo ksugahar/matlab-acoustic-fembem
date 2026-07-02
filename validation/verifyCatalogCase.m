@@ -56,8 +56,8 @@ end
 
 function [failures, details] = verifyH1Scalar(item, caps, failures)
 model = unitModel();
-stiff = assembleLukasP1Stiffness(model);
-mass = assembleLukasP1Mass(model);
+[~, stiff] = model.h1.stiffness();
+[~, mass] = model.h1.mass();
 slot = caseSlot(item);
 tol = item.tolerance;
 
@@ -76,7 +76,7 @@ switch slot
         details.rowSum = rowSum;
         failures = requirePass(failures, rowSum < tol, "Constant field should have zero stiffness residual.");
     case 4
-        u = sum(model.lukas.geo.nodes, 2);
+        u = sum(model.mesh.vtx, 2);
         energy = u.' * stiff.stiffness * u;
         details.energy = full(energy);
         failures = requirePass(failures, abs(energy - 0.5) < tol, ...
@@ -88,21 +88,21 @@ switch slot
         failures = requirePass(failures, all(lambda > 0), "Dirichlet eliminated stiffness is not positive definite.");
     case 6
         face = [1, 2, 3];
-        faceArea = triangleArea(model.lukas.geo.nodes(face, :));
+        faceArea = triangleArea(model.mesh.vtx(face, :));
         load = zeros(4, 1);
         load(face) = faceArea / 3;
         details.faceLoadSum = sum(load);
         failures = requirePass(failures, abs(sum(load) - 0.5) < tol, "Neumann face load sum is wrong.");
     case 7
         patch = fourTetModel();
-        K = assembleLukasP1Stiffness(patch);
-        details.nodes = size(patch.lukas.geo.nodes, 1);
-        details.tets = size(patch.lukas.geo.conn_matrix, 1);
+        [~, K] = patch.h1.stiffness();
+        details.nodes = size(patch.mesh.vtx, 1);
+        details.tets = size(patch.mesh.tet, 1);
         failures = requirePass(failures, issymmetricWithin(K.stiffness, tol), "Two-tet patch stiffness is not symmetric.");
         failures = requirePass(failures, norm(full(K.stiffness) * ones(size(K.stiffness, 1), 1)) < tol, ...
             "Two-tet patch does not preserve constants.");
     case 8
-        scaled = assembleLukasP1Stiffness(model, 2.0);
+        [~, scaled] = model.h1.stiffness(2.0);
         err = norm(full(scaled.stiffness - 2.0 * stiff.stiffness), "fro");
         details.error = err;
         failures = requirePass(failures, err < tol, "Material coefficient scaling failed for H1 stiffness.");
@@ -123,8 +123,7 @@ end
 
 function [failures, details] = verifyHCurlEdge(item, caps, failures)
 model = unitModel();
-ned = assembleNedelec0TetMatrices(model);
-topology = model.topology;
+[~, ~, ned] = model.hcurl.matrices();
 slot = caseSlot(item);
 tol = item.tolerance;
 
@@ -135,16 +134,15 @@ switch slot
         failures = requirePass(failures, size(ned.edges, 1) == 6 && caps.hcurlDofs == 6, ...
             "Single tetrahedron should have six Nedelec0 edge dofs.");
     case 2
-        details.signs = topology.hcurl.tetEdgeSigns;
-        failures = requirePass(failures, all(abs(topology.hcurl.tetEdgeSigns(:)) == 1), ...
+        details.signs = model.hcurl.tetEdgeSigns;
+        failures = requirePass(failures, all(abs(model.hcurl.tetEdgeSigns(:)) == 1), ...
             "HCurl edge signs must be +/-1.");
     case 3
         patch = fourTetModel();
-        patchTopology = buildFirstOrderTopology(patch);
-        nTetEdges = 6 * size(patch.lukas.geo.conn_matrix, 1);
-        details.uniqueEdges = size(patchTopology.hcurl.edges, 1);
+        nTetEdges = 6 * size(patch.mesh.tet, 1);
+        details.uniqueEdges = size(patch.hcurl.edges, 1);
         details.rawTetEdges = nTetEdges;
-        failures = requirePass(failures, size(patchTopology.hcurl.edges, 1) < nTetEdges, ...
+        failures = requirePass(failures, size(patch.hcurl.edges, 1) < nTetEdges, ...
             "Shared-edge continuity did not reduce global HCurl dofs.");
     case 4
         curlNorms = sqrt(sum(ned.localCurls(:, :, 1).^2, 2));
@@ -159,16 +157,16 @@ switch slot
         details.symmetryError = err;
         failures = requirePass(failures, err < tol, "Nedelec0 curl-curl matrix is not symmetric.");
     case 7
-        G = edgeGradientMatrix(ned.edges, size(model.lukas.geo.nodes, 1));
+        G = edgeGradientMatrix(ned.edges, size(model.mesh.vtx, 1));
         err = norm(full(ned.curlCurl * G), "fro");
         details.gradientCurlError = err;
         failures = requirePass(failures, err < tol, "Gradient edge fields should be in the curl-curl nullspace.");
     case 8
-        details.boundaryEdges = numel(topology.rwg.dofEdgeIds);
-        failures = requirePass(failures, numel(topology.rwg.dofEdgeIds) == 6, ...
+        details.boundaryEdges = numel(model.rwg.dofEdgeIds);
+        failures = requirePass(failures, numel(model.rwg.dofEdgeIds) == 6, ...
             "Closed tetrahedron boundary should expose six RWG edge dofs.");
     case 9
-        scaled = assembleNedelec0TetMatrices(model, 3.0);
+        [~, ~, scaled] = model.hcurl.matrices(3.0);
         err = norm(full(scaled.mass - 3.0 * ned.mass), "fro") + ...
             norm(full(scaled.curlCurl - 3.0 * ned.curlCurl), "fro");
         details.error = err;
@@ -185,7 +183,7 @@ end
 
 function [failures, details] = verifyLaplaceDense(item, caps, failures)
 model = unitModel();
-[centers, weights] = triangleCentroidsAndAreas(model.gypsilab.vtx, model.gypsilab.elt);
+[centers, weights] = triangleCentroidsAndAreas(model.surface.vtx, model.surface.tri);
 slot = caseSlot(item);
 tol = item.tolerance;
 
@@ -194,48 +192,48 @@ switch slot
     case 1
         target = [0, 0, 0];
         source = [1, 0, 0];
-        K = lowFrequencyStableHelmholtzKernel(target, source);
+        K = HelmholtzKernel(target, source);
         details.value = K.singleLayer(1, 1);
         failures = requirePass(failures, abs(K.singleLayer(1, 1) - 1 / (4 * pi)) < tol, ...
             "Single-point Laplace kernel is wrong.");
     case 2
         source = centers + [2, 0, 0];
-        K = lowFrequencyStableHelmholtzKernel(centers, source, "SourceWeights", weights);
+        K = HelmholtzKernel(centers, source, "SourceWeights", weights);
         details.matrixSize = size(K.singleLayer);
         failures = requirePass(failures, all(K.singleLayer(:) > 0), "Separated Laplace kernel should be positive.");
     case 3
-        K = lowFrequencyStableHelmholtzKernel(centers, centers, "SourceWeights", weights);
+        K = HelmholtzKernel(centers, centers, "SourceWeights", weights);
         weighted = diag(weights) * K.singleLayer;
         err = norm(weighted - weighted.', "fro");
         details.weightedSymmetryError = err;
         failures = requirePass(failures, err < tol, "Weighted Laplace single-layer matrix is not symmetric.");
     case 4
-        K = lowFrequencyStableHelmholtzKernel(centers, centers, "DiagonalValue", 0.125);
+        K = HelmholtzKernel(centers, centers, "DiagonalValue", 0.125);
         details.diagonal = diag(K.singleLayer).';
         failures = requirePass(failures, max(abs(diag(K.singleLayer) - 0.125)) < tol, ...
             "Near-field diagonal policy was not applied.");
     case 5
         sphere = spherePoints(12);
-        K = lowFrequencyStableHelmholtzKernel(sphere, sphere + [0.25, 0, 0], "DiagonalValue", 0.0);
+        K = HelmholtzKernel(sphere, sphere + [0.25, 0, 0], "DiagonalValue", 0.0);
         details.meanPotential = mean(real(K.singleLayer * ones(size(sphere, 1), 1)));
         failures = requirePass(failures, details.meanPotential > 0, "Coarse sphere Laplace potential should be positive.");
     case 6
         cube = cubeSurfacePoints();
-        K = lowFrequencyStableHelmholtzKernel(cube, cube + [0.25, 0, 0], "DiagonalValue", 0.0);
+        K = HelmholtzKernel(cube, cube + [0.25, 0, 0], "DiagonalValue", 0.0);
         details.meanPotential = mean(real(K.singleLayer * ones(size(cube, 1), 1)));
         failures = requirePass(failures, details.meanPotential > 0, "Coarse cube Laplace potential should be positive.");
     case 7
-        K = lowFrequencyStableHelmholtzKernel(centers, centers, "SourceWeights", weights, "DiagonalValue", 0.0);
+        K = HelmholtzKernel(centers, centers, "SourceWeights", weights, "DiagonalValue", 0.0);
         potential = K.singleLayer * ones(size(centers, 1), 1);
         details.minPotential = min(potential);
         failures = requirePass(failures, all(potential >= 0), "Constant density Laplace potential should be nonnegative.");
     case 8
-        K = lowFrequencyStableHelmholtzKernel([0, 0, 1], [0, 0, 0], "SourceNormals", [0, 0, 1]);
+        K = HelmholtzKernel([0, 0, 1], [0, 0, 0], "SourceNormals", [0, 0, 1]);
         details.doubleLayerValue = K.doubleLayerSourceNormal(1, 1);
         failures = requirePass(failures, K.doubleLayerSourceNormal(1, 1) > 0, ...
             "Source-normal double-layer sign is unexpected.");
     case 9
-        K = lowFrequencyStableHelmholtzKernel(centers, centers + [2, 0, 0], "SourceWeights", weights);
+        K = HelmholtzKernel(centers, centers + [2, 0, 0], "SourceWeights", weights);
         x = (1:size(centers, 1)).';
         y1 = K.singleLayer * x;
         y2 = K.singleLayer * x;
@@ -243,7 +241,7 @@ switch slot
         failures = requirePass(failures, norm(y1 - y2) < tol, "Dense Laplace matvec is not reproducible.");
     case 10
         failures = requirePass(failures, caps.hasBem && caps.hasLaplaceSL, "NGSolve Laplace BEM is not available.");
-        K0 = lowFrequencyStableHelmholtzKernel(centers, centers + [2, 0, 0]);
+        K0 = HelmholtzKernel(centers, centers + [2, 0, 0]);
         details.referenceNorm = norm(K0.singleLayer, "fro");
         failures = requirePass(failures, isfinite(details.referenceNorm) && details.referenceNorm > 0, ...
             "Laplace BEM reference matrix norm is invalid.");
@@ -260,15 +258,15 @@ tol = item.tolerance;
 details = struct("gate", "laplace_hmatrix", "slot", slot);
 switch slot
     case 1
-        H = educationalLaplaceHMatrix(near, [], "LeafSize", 2, "Eta", 1.0, "RankTolerance", 1e-12);
-        stats = educationalHMatrixStats(H);
+        H = HMatrix(near, [], "LeafSize", 2, "Eta", 1.0, "RankTolerance", 1e-12);
+        stats = H.stats();
         details.splitBlocks = stats.splitBlocks;
         failures = requirePass(failures, stats.splitBlocks > 0, "Cluster tree did not split.");
     case 2
-        Hsmall = educationalLaplaceHMatrix(target, source, "LeafSize", 2, "Eta", 0.2);
-        Hlarge = educationalLaplaceHMatrix(target, source, "LeafSize", 2, "Eta", 2.0);
-        sSmall = educationalHMatrixStats(Hsmall);
-        sLarge = educationalHMatrixStats(Hlarge);
+        Hsmall = HMatrix(target, source, "LeafSize", 2, "Eta", 0.2);
+        Hlarge = HMatrix(target, source, "LeafSize", 2, "Eta", 2.0);
+        sSmall = Hsmall.stats();
+        sLarge = Hlarge.stats();
         details.blocksSmallEta = sSmall.blocks;
         details.blocksLargeEta = sLarge.blocks;
         details.lowRankSmallEta = sSmall.lowRankBlocks;
@@ -276,54 +274,54 @@ switch slot
         failures = requirePass(failures, sLarge.blocks <= sSmall.blocks && sLarge.lowRankBlocks > 0, ...
             "Larger admissibility eta should accept coarser far blocks.");
     case 3
-        H = educationalLaplaceHMatrix(target, source, "LeafSize", 8, "Eta", 2.0);
-        stats = educationalHMatrixStats(H);
+        H = HMatrix(target, source, "LeafSize", 8, "Eta", 2.0);
+        stats = H.stats();
         details.lowRankBlocks = stats.lowRankBlocks;
         failures = requirePass(failures, stats.lowRankBlocks > 0, "Separated far field was not compressed.");
     case 4
-        H = educationalLaplaceHMatrix(near, [], "LeafSize", 64, "Eta", 0.1);
-        stats = educationalHMatrixStats(H);
+        H = HMatrix(near, [], "LeafSize", 64, "Eta", 0.1);
+        stats = H.stats();
         details.denseBlocks = stats.denseBlocks;
         failures = requirePass(failures, stats.denseBlocks == 1, "Near block should stay dense.");
     case 5
-        H = educationalLaplaceHMatrix(target, source, "LeafSize", 2, "Eta", 2.0, "RankTolerance", 1e-14);
+        H = HMatrix(target, source, "LeafSize", 2, "Eta", 2.0, "RankTolerance", 1e-14);
         x = sin((1:size(source, 1)).');
-        yH = educationalHMatrixMatvec(H, x);
-        K = lowFrequencyStableHelmholtzKernel(target, source);
+        yH = H.matvec(x);
+        K = HelmholtzKernel(target, source);
         err = norm(yH - K.singleLayer * x);
         details.matvecError = err;
         failures = requirePass(failures, err < tol, "H-matrix matvec differs from dense Laplace matvec.");
     case 6
-        Hlo = educationalLaplaceHMatrix(target, source, "RankTolerance", 1e-12);
-        Hhi = educationalLaplaceHMatrix(target, source, "RankTolerance", 1e-2);
-        slo = educationalHMatrixStats(Hlo);
-        shi = educationalHMatrixStats(Hhi);
+        Hlo = HMatrix(target, source, "RankTolerance", 1e-12);
+        Hhi = HMatrix(target, source, "RankTolerance", 1e-2);
+        slo = Hlo.stats();
+        shi = Hhi.stats();
         details.maxRankLowTolerance = slo.maxRank;
         details.maxRankHighTolerance = shi.maxRank;
         failures = requirePass(failures, slo.maxRank >= shi.maxRank, "Rank tolerance sweep is not monotone.");
     case 7
-        Hsmall = educationalLaplaceHMatrix(near, [], "LeafSize", 2);
-        Hlarge = educationalLaplaceHMatrix(near, [], "LeafSize", 8);
-        sSmall = educationalHMatrixStats(Hsmall);
-        sLarge = educationalHMatrixStats(Hlarge);
+        Hsmall = HMatrix(near, [], "LeafSize", 2);
+        Hlarge = HMatrix(near, [], "LeafSize", 8);
+        sSmall = Hsmall.stats();
+        sLarge = Hlarge.stats();
         details.blocksSmallLeaf = sSmall.blocks;
         details.blocksLargeLeaf = sLarge.blocks;
         failures = requirePass(failures, sSmall.blocks >= sLarge.blocks, "Smaller leaf size should create more blocks.");
     case 8
-        H = educationalLaplaceHMatrix(target, source, "LeafSize", 2);
-        stats = educationalHMatrixStats(H);
+        H = HMatrix(target, source, "LeafSize", 2);
+        stats = H.stats();
         details.compressionRatio = stats.compressionRatio;
         failures = requirePass(failures, isfinite(stats.compressionRatio) && stats.compressionRatio > 0, ...
             "H-matrix storage ratio is invalid.");
     case 9
         sphere = spherePoints(16);
-        H = educationalLaplaceHMatrix(sphere, [], "LeafSize", 2, "DiagonalValue", 0.0);
-        y = educationalHMatrixMatvec(H, ones(size(sphere, 1), 1));
+        H = HMatrix(sphere, [], "LeafSize", 2, "DiagonalValue", 0.0);
+        y = H.matvec(ones(size(sphere, 1), 1));
         details.meanPotential = mean(y);
         failures = requirePass(failures, all(isfinite(y)) && mean(y) > 0, "Sphere H-matrix Laplace response is invalid.");
     case 10
-        H = educationalLaplaceHMatrix(target, source, "LeafSize", 2);
-        stats = educationalHMatrixStats(H);
+        H = HMatrix(target, source, "LeafSize", 2);
+        stats = H.stats();
         details.blocks = stats.blocks;
         failures = requirePass(failures, caps.hasBem && caps.hasLaplaceSL && stats.blocks > 0, ...
             "NGSolve BEM/H-matrix comparison gate is unavailable.");
@@ -339,26 +337,26 @@ tol = item.tolerance;
 details = struct("gate", "acoustic_low_frequency", "slot", slot);
 switch slot
     case 1
-        K0 = lowFrequencyStableHelmholtzKernel(target, source, "Wavenumber", 0);
-        L = lowFrequencyStableHelmholtzKernel(target, source);
+        K0 = HelmholtzKernel(target, source, "Wavenumber", 0);
+        L = HelmholtzKernel(target, source);
         err = norm(K0.singleLayer - L.singleLayer, "fro");
         details.error = err;
         failures = requirePass(failures, err < tol, "Helmholtz k=0 limit does not match Laplace.");
     case 2
         k = 1e-7;
-        K = lowFrequencyStableHelmholtzKernel([0, 0, 0], [1, 0, 0], "Wavenumber", k);
+        K = HelmholtzKernel([0, 0, 0], [1, 0, 0], "Wavenumber", k);
         expected = 1 / (4 * pi) + 1i * k / (4 * pi);
         details.error = abs(K.singleLayer(1, 1) - expected);
         failures = requirePass(failures, details.error < 1e-12, "expm1 single-layer correction is inaccurate.");
     case 3
         k = 1e-8;
-        K = lowFrequencyStableHelmholtzKernel(target, source, "Wavenumber", k, "TaylorCutoff", 1);
+        K = HelmholtzKernel(target, source, "Wavenumber", k, "TaylorCutoff", 1);
         direct = exp(1i * k * pairwiseDistance(target, source)) ./ (4 * pi * pairwiseDistance(target, source));
         err = norm(K.singleLayer - direct, "fro");
         details.error = err;
         failures = requirePass(failures, err < 1e-12, "Taylor single-layer correction is inaccurate.");
     case 4
-        K = lowFrequencyStableHelmholtzKernel([0, 0, 1], [0, 0, 0], ...
+        K = HelmholtzKernel([0, 0, 1], [0, 0, 0], ...
             "SourceNormals", [0, 0, 1], "Wavenumber", 1e-8, "TaylorCutoff", 1);
         details.correction = K.doubleLayerSourceNormalCorrection(1, 1);
         failures = requirePass(failures, abs(K.doubleLayerSourceNormalCorrection(1, 1)) < 1e-14, ...
@@ -367,7 +365,7 @@ switch slot
         ks = [0, 1e-8, 1e-6, 1e-4];
         norms = zeros(size(ks));
         for k = 1:numel(ks)
-            K = lowFrequencyStableHelmholtzKernel(target, source, "Wavenumber", ks(k));
+            K = HelmholtzKernel(target, source, "Wavenumber", ks(k));
             norms(k) = norm(K.singleLayer, "fro");
         end
         details.norms = norms;
@@ -375,30 +373,30 @@ switch slot
             "Small-kr sweep is not smooth.");
     case 6
         pts = target;
-        K = lowFrequencyStableHelmholtzKernel(pts, pts, "Wavenumber", 1e-5, "DiagonalValue", 0);
+        K = HelmholtzKernel(pts, pts, "Wavenumber", 1e-5, "DiagonalValue", 0);
         err = norm(K.singleLayer - K.singleLayer.', "fro");
         details.complexSymmetryError = err;
         failures = requirePass(failures, err < tol, "Low-frequency single-layer matrix is not complex symmetric.");
     case 7
-        K = lowFrequencyStableHelmholtzKernel(target, source, "Wavenumber", 1e-6);
+        K = HelmholtzKernel(target, source, "Wavenumber", 1e-6);
         x = cos((1:size(source, 1)).');
         y = K.singleLayer * x;
         details.responseNorm = norm(y);
         failures = requirePass(failures, all(isfinite(y)) && norm(y) > 0, "Low-frequency matvec is invalid.");
     case 8
         sphere = spherePoints(12);
-        K = lowFrequencyStableHelmholtzKernel(sphere, sphere + [2, 0, 0], "Wavenumber", 1e-6);
+        K = HelmholtzKernel(sphere, sphere + [2, 0, 0], "Wavenumber", 1e-6);
         details.monopoleMean = mean(real(K.singleLayer * ones(size(sphere, 1), 1)));
         failures = requirePass(failures, details.monopoleMean > 0, "Low-frequency sphere monopole response is invalid.");
     case 9
-        H = educationalLaplaceHMatrix(target, source, "RankTolerance", 1e-12);
-        K = lowFrequencyStableHelmholtzKernel(target, source, "Wavenumber", 1e-8);
+        H = HMatrix(target, source, "RankTolerance", 1e-12);
+        K = HelmholtzKernel(target, source, "Wavenumber", 1e-8);
         x = ones(size(source, 1), 1);
-        err = norm(educationalHMatrixMatvec(H, x) - real(K.singleLayer * x));
+        err = norm(H.matvec(x) - real(K.singleLayer * x));
         details.hmatrixCandidateError = err;
         failures = requirePass(failures, err < 1e-7, "Low-frequency H-matrix candidate differs from Laplace limit.");
     case 10
-        K = lowFrequencyStableHelmholtzKernel(target, source, "Wavenumber", 1e-8);
+        K = HelmholtzKernel(target, source, "Wavenumber", 1e-8);
         details.referenceNorm = norm(K.singleLayer, "fro");
         failures = requirePass(failures, caps.hasBem && caps.hasHelmholtzSL && isfinite(details.referenceNorm), ...
             "NGSolve low-frequency BEM comparison gate is unavailable.");
@@ -414,7 +412,7 @@ tol = item.tolerance;
 details = struct("gate", "acoustic_helmholtz", "slot", slot);
 switch slot
     case 1
-        K = lowFrequencyStableHelmholtzKernel([0, 0, 0], [2, 0, 0], "Wavenumber", 3);
+        K = HelmholtzKernel([0, 0, 0], [2, 0, 0], "Wavenumber", 3);
         expected = exp(1i * 6) / (8 * pi);
         details.error = abs(K.singleLayer(1, 1) - expected);
         failures = requirePass(failures, details.error < tol, "Two-point Helmholtz kernel is wrong.");
@@ -425,23 +423,23 @@ switch slot
         failures = requirePass(failures, details.maxAmplitudeError < tol, "Plane-wave boundary data lost unit amplitude.");
     case 3
         sphere = spherePoints(12);
-        op = educationalAcousticSingleLayer(sphere, sphere + [2, 0, 0], "Wavenumber", 0.1);
+        op = AcousticSingleLayer(sphere, sphere + [2, 0, 0], "Wavenumber", 0.1);
         details.responseNorm = norm(op.apply(ones(size(op.matrix, 2), 1)));
         failures = requirePass(failures, isfinite(details.responseNorm) && details.responseNorm > 0, ...
             "Low-ka pulsating sphere toy response is invalid.");
     case 4
         sphere = spherePoints(12);
-        op = educationalAcousticSingleLayer(sphere, sphere + [2, 0, 0], "Wavenumber", 2.0);
+        op = AcousticSingleLayer(sphere, sphere + [2, 0, 0], "Wavenumber", 2.0);
         details.responseNorm = norm(op.apply(ones(size(op.matrix, 2), 1)));
         failures = requirePass(failures, isfinite(details.responseNorm) && details.responseNorm > 0, ...
             "Mid-ka pulsating sphere toy response is invalid.");
     case 5
-        K = lowFrequencyStableHelmholtzKernel(target, source, "Wavenumber", 0.05, ...
+        K = HelmholtzKernel(target, source, "Wavenumber", 0.05, ...
             "SourceNormals", repmat([1, 0, 0], size(source, 1), 1));
         details.doubleLayerNorm = norm(K.doubleLayerSourceNormal, "fro");
         failures = requirePass(failures, isfinite(details.doubleLayerNorm), "Rigid-sphere small-ka toy derivative is invalid.");
     case 6
-        op = educationalAcousticSingleLayer(target, source, "Wavenumber", 1.5);
+        op = AcousticSingleLayer(target, source, "Wavenumber", 1.5);
         rhs = exp(1i * target(:, 1));
         density = op.matrix \ rhs;
         details.solutionNorm = norm(density);
@@ -450,23 +448,23 @@ switch slot
         ks = [0.5, 1.0, 1.5];
         phases = zeros(size(ks));
         for k = 1:numel(ks)
-            K = lowFrequencyStableHelmholtzKernel([0, 0, 0], [1, 0, 0], "Wavenumber", ks(k));
+            K = HelmholtzKernel([0, 0, 0], [1, 0, 0], "Wavenumber", ks(k));
             phases(k) = angle(K.singleLayer(1, 1));
         end
         details.phases = phases;
         failures = requirePass(failures, all(diff(phases) > 0), "Frequency sweep phase did not increase.");
     case 8
-        op = educationalAcousticSingleLayer(target, source, "Wavenumber", 2.5);
+        op = AcousticSingleLayer(target, source, "Wavenumber", 2.5);
         x = sin((1:size(source, 1)).');
         details.reproducibilityError = norm(op.apply(x) - op.matrix * x);
         failures = requirePass(failures, details.reproducibilityError < tol, "Complex acoustic matvec is not reproducible.");
     case 9
-        K = lowFrequencyStableHelmholtzKernel(target, source, "Wavenumber", 1.0);
+        K = HelmholtzKernel(target, source, "Wavenumber", 1.0);
         details.matrixNorm = norm(K.singleLayer, "fro");
         failures = requirePass(failures, isfinite(details.matrixNorm) && details.matrixNorm > 0, ...
             "Helmholtz H-matrix candidate matrix is invalid.");
     case 10
-        op = educationalAcousticSingleLayer(target, source, "Wavenumber", 1.0);
+        op = AcousticSingleLayer(target, source, "Wavenumber", 1.0);
         details.referenceNorm = norm(op.matrix, "fro");
         failures = requirePass(failures, caps.hasBem && caps.hasHelmholtzSL && details.referenceNorm > 0, ...
             "NGSolve Helmholtz BEM comparison gate is unavailable.");
@@ -475,7 +473,8 @@ end
 
 
 function [failures, details] = verifyScalarCoupling(item, caps, failures)
-model = assembleFirstOrderFemBemTrace(unitModel());
+model = unitModel();
+model = model.assemble();
 slot = caseSlot(item);
 tol = item.tolerance;
 
@@ -486,14 +485,15 @@ switch slot
         details.traceSize = size(T);
         failures = requirePass(failures, isequal(size(T), [4, 4]), "Unit tetra trace matrix size is wrong.");
     case 2
-        patch = assembleFirstOrderFemBemTrace(fourTetModel());
+        patch = fourTetModel();
+        patch = patch.assemble();
         traceNodes = patch.operators.trace.femNodeIds;
-        allNodes = (1:size(patch.lukas.geo.nodes, 1)).';
+        allNodes = (1:size(patch.mesh.vtx, 1)).';
         interior = setdiff(allNodes, traceNodes);
         details.interiorNodes = interior.';
         failures = requirePass(failures, ~isempty(interior), "Interior node was not separated from the trace.");
     case 3
-        u = sum(model.lukas.geo.nodes, 2);
+        u = sum(model.mesh.vtx, 2);
         residual = model.operators.fem.stiffness * u;
         traceResidual = model.operators.trace.matrix * residual;
         details.traceResidualNorm = norm(traceResidual);
@@ -503,29 +503,29 @@ switch slot
         details.surfaceMassTrace = trace(surfaceMass);
         failures = requirePass(failures, issymmetricWithin(surfaceMass, tol), "Boundary P1 surface mass is not symmetric.");
     case 5
-        balance = norm(full(model.operators.fem.stiffness) * ones(size(model.lukas.geo.nodes, 1), 1));
+        balance = norm(full(model.operators.fem.stiffness) * ones(size(model.mesh.vtx, 1), 1));
         details.balance = balance;
         failures = requirePass(failures, balance < tol, "FEM/BEM flux balance for constants failed.");
     case 6
-        scaled = assembleLukasP1Stiffness(model, 2);
+        [~, scaled] = model.h1.stiffness(2);
         err = norm(full(scaled.stiffness - 2 * model.operators.fem.stiffness), "fro");
         details.error = err;
         failures = requirePass(failures, err < tol, "Single-material coupling stiffness scaling failed.");
     case 7
         patch = fourTetModel();
-        coeff = 1:size(patch.lukas.geo.conn_matrix, 1);
-        K = assembleLukasP1Stiffness(patch, coeff);
+        coeff = 1:size(patch.mesh.tet, 1);
+        [~, K] = patch.h1.stiffness(coeff);
         details.nonzeros = nnz(K.stiffness);
         failures = requirePass(failures, issymmetricWithin(K.stiffness, tol), "Two-material coupling stiffness is not symmetric.");
     case 8
         sphere = spherePoints(12);
-        K = lowFrequencyStableHelmholtzKernel(sphere, sphere + [2, 0, 0]);
+        K = HelmholtzKernel(sphere, sphere + [2, 0, 0]);
         details.meanPotential = mean(K.singleLayer * ones(size(sphere, 1), 1));
         failures = requirePass(failures, details.meanPotential > 0, "Exterior scalar potential toy is invalid.");
     case 9
         [target, source] = separatedPointClouds();
-        H = educationalLaplaceHMatrix(target, source);
-        y = educationalHMatrixMatvec(H, ones(size(source, 1), 1));
+        H = HMatrix(target, source);
+        y = H.matvec(ones(size(source, 1), 1));
         details.responseNorm = norm(y);
         failures = requirePass(failures, details.responseNorm > 0, "Scalar FEM/BEM H-matrix response is invalid.");
     case 10
@@ -539,62 +539,60 @@ end
 
 function [failures, details] = verifyRwgHCurlTrace(item, caps, failures)
 model = unitModel();
-topology = model.topology;
 slot = caseSlot(item);
 tol = item.tolerance;
 
 details = struct("gate", "rwg_hcurl_trace", "slot", slot);
 switch slot
     case 1
-        details.rwgDofs = numel(topology.rwg.dofEdgeIds);
-        failures = requirePass(failures, numel(topology.rwg.dofEdgeIds) == 6, ...
+        details.rwgDofs = numel(model.rwg.dofEdgeIds);
+        failures = requirePass(failures, numel(model.rwg.dofEdgeIds) == 6, ...
             "Closed tetrahedron should have six RWG dofs.");
     case 2
-        openModel = model;
-        openModel.gypsilab.elt = openModel.gypsilab.elt(1, :);
-        openTopology = buildFirstOrderTopology(openModel);
-        details.openRwgDofs = numel(openTopology.rwg.dofEdgeIds);
-        failures = requirePass(failures, isempty(openTopology.rwg.dofEdgeIds), ...
+        openSurface = model.surface;
+        openSurface.tri = openSurface.tri(1, :);
+        openRwg = RwgSpace(openSurface);
+        details.openRwgDofs = numel(openRwg.dofEdgeIds);
+        failures = requirePass(failures, isempty(openRwg.dofEdgeIds), ...
             "Open triangle should not create interior RWG edge dofs.");
     case 3
-        details.oppositeVertices = topology.rwg.oppositeVerticesLocal;
-        failures = requirePass(failures, all(topology.rwg.oppositeVerticesLocal(:) > 0), ...
+        details.oppositeVertices = model.rwg.oppositeVerticesLocal;
+        failures = requirePass(failures, all(model.rwg.oppositeVerticesLocal(:) > 0), ...
             "RWG opposite-vertex map is incomplete.");
     case 4
-        ids = topology.trace.rwgToHcurlEdgeIds;
+        ids = model.rwgToHcurlEdgeIds;
         details.hcurlEdgeIds = ids.';
-        failures = requirePass(failures, all(ids >= 1 & ids <= size(topology.hcurl.edges, 1)), ...
+        failures = requirePass(failures, all(ids >= 1 & ids <= size(model.hcurl.edges, 1)), ...
             "RWG to HCurl edge ids are out of range.");
     case 5
-        signs = topology.rwg.triEdgeSigns;
+        signs = model.rwg.triEdgeSigns;
         details.signs = signs;
         failures = requirePass(failures, all(abs(signs(:)) == 1), "Boundary edge orientation signs must be +/-1.");
     case 6
         patch = fourTetModel();
-        patchTopology = buildFirstOrderTopology(patch);
-        details.boundaryDofs = numel(patchTopology.rwg.dofEdgeIds);
-        failures = requirePass(failures, numel(patchTopology.rwg.dofEdgeIds) > 0, ...
+        details.boundaryDofs = numel(patch.rwg.dofEdgeIds);
+        failures = requirePass(failures, numel(patch.rwg.dofEdgeIds) > 0, ...
             "Two-tet boundary should expose RWG dofs.");
     case 7
-        current = ones(numel(topology.rwg.dofEdgeIds), 1);
-        lifted = zeros(size(topology.hcurl.edges, 1), 1);
-        lifted(topology.trace.rwgToHcurlEdgeIds) = current;
+        current = ones(numel(model.rwg.dofEdgeIds), 1);
+        lifted = zeros(size(model.hcurl.edges, 1), 1);
+        lifted(model.rwgToHcurlEdgeIds) = current;
         details.currentNorm = norm(lifted);
         failures = requirePass(failures, norm(lifted) > 0, "Surface current toy did not lift to HCurl edges.");
     case 8
-        ned = assembleNedelec0TetMatrices(model);
-        traceIds = topology.trace.rwgToHcurlEdgeIds;
+        [~, ~, ned] = model.hcurl.matrices();
+        traceIds = model.rwgToHcurlEdgeIds;
         traceMass = ned.mass(traceIds, traceIds);
         details.traceMassNorm = norm(full(traceMass), "fro");
         failures = requirePass(failures, details.traceMassNorm > 0, "Magnetic vector trace toy is invalid.");
     case 9
-        edgeTrace = sparse(1:numel(topology.trace.rwgToHcurlEdgeIds), topology.trace.rwgToHcurlEdgeIds, ...
-            1, numel(topology.trace.rwgToHcurlEdgeIds), size(topology.hcurl.edges, 1));
+        edgeTrace = sparse(1:numel(model.rwgToHcurlEdgeIds), model.rwgToHcurlEdgeIds, ...
+            1, numel(model.rwgToHcurlEdgeIds), size(model.hcurl.edges, 1));
         details.edgeTraceSize = size(edgeTrace);
-        failures = requirePass(failures, nnz(edgeTrace) == numel(topology.trace.rwgToHcurlEdgeIds), ...
+        failures = requirePass(failures, nnz(edgeTrace) == numel(model.rwgToHcurlEdgeIds), ...
             "Edge trace sparse map has wrong nonzero count.");
     case 10
-        ned = assembleNedelec0TetMatrices(model);
+        [~, ~, ned] = model.hcurl.matrices();
         err = norm(full(ned.mass) - caps.hcurlMass, "fro");
         details.hcurlMassError = err;
         failures = requirePass(failures, caps.hcurlDofs == 6 && err < tol, ...
@@ -616,12 +614,12 @@ switch slot
         failures = requirePass(failures, caps.meshVertices == 4 && caps.meshElements == 1 && caps.meshEdges == 6, ...
             "NGSolve mesh import smoke failed.");
     case 2
-        K = assembleLukasP1Stiffness(model);
+        [~, K] = model.h1.stiffness();
         err = norm(full(K.stiffness) - caps.h1Stiffness, "fro");
         details.error = err;
         failures = requirePass(failures, caps.h1Dofs == 4 && err < tol, "NGSolve P1 scalar smoke failed.");
     case 3
-        N = assembleNedelec0TetMatrices(model);
+        [~, ~, N] = model.hcurl.matrices();
         err = norm(full(N.curlCurl) - caps.hcurlCurlCurl, "fro");
         details.error = err;
         failures = requirePass(failures, caps.hcurlDofs == 6 && err < tol, "NGSolve HCurl smoke failed.");
@@ -632,31 +630,31 @@ switch slot
         details.hasHelmholtzSL = caps.hasHelmholtzSL;
         failures = requirePass(failures, caps.hasBem && caps.hasHelmholtzSL, "NGSolve Helmholtz BEM smoke failed.");
     case 6
-        K = lowFrequencyStableHelmholtzKernel([0, 0, 0], [1, 0, 0], "Wavenumber", 1e-8);
+        K = HelmholtzKernel([0, 0, 0], [1, 0, 0], "Wavenumber", 1e-8);
         details.lowFrequencyValue = K.singleLayer(1, 1);
         failures = requirePass(failures, caps.hasHelmholtzSL && isfinite(K.singleLayer(1, 1)), ...
             "NGSolve low-frequency smoke gate failed.");
     case 7
         sphere = spherePoints(16);
-        K = lowFrequencyStableHelmholtzKernel(sphere, sphere + [2, 0, 0]);
+        K = HelmholtzKernel(sphere, sphere + [2, 0, 0]);
         details.meanPotential = mean(K.singleLayer * ones(size(sphere, 1), 1));
         failures = requirePass(failures, details.meanPotential > 0 && caps.hasLaplaceSL, ...
             "Sphere analytic Laplace gate failed.");
     case 8
         sphere = spherePoints(16);
-        K = lowFrequencyStableHelmholtzKernel(sphere, sphere + [2, 0, 0], "Wavenumber", 1.0);
+        K = HelmholtzKernel(sphere, sphere + [2, 0, 0], "Wavenumber", 1.0);
         details.meanAmplitude = mean(abs(K.singleLayer * ones(size(sphere, 1), 1)));
         failures = requirePass(failures, details.meanAmplitude > 0 && caps.hasHelmholtzSL, ...
             "Sphere analytic acoustic gate failed.");
     case 9
-        coupled = assembleFirstOrderFemBemTrace(model);
+        coupled = model.assemble();
         details.traceRows = size(coupled.operators.trace.matrix, 1);
         failures = requirePass(failures, size(coupled.operators.trace.matrix, 1) == 4 && caps.hasLaplaceSL, ...
             "NGSolve FEM/BEM coupling smoke gate failed.");
     case 10
-        K = assembleLukasP1Stiffness(model);
-        M = assembleLukasP1Mass(model);
-        N = assembleNedelec0TetMatrices(model);
+        [~, K] = model.h1.stiffness();
+        [~, M] = model.h1.mass();
+        [~, ~, N] = model.hcurl.matrices();
         details.h1Error = norm(full(K.stiffness) - caps.h1Stiffness, "fro") + ...
             norm(full(M.mass) - caps.h1Mass, "fro");
         details.hcurlError = norm(full(N.mass) - caps.hcurlMass, "fro") + ...
@@ -686,12 +684,12 @@ end
 
 
 function model = unitModel()
-model = volFemBem(fullfile(gypsilabRepoRoot(), "fixtures", "mesh_topology", "unit_tetra.vol"));
+model = FemBemModel(fullfile(gypsilabRepoRoot(), "fixtures", "mesh_topology", "unit_tetra.vol"));
 end
 
 
 function model = fourTetModel()
-model = volFemBem(fullfile(gypsilabRepoRoot(), "fixtures", "mesh_topology", "four_tet_interior_node.vol"));
+model = FemBemModel(fullfile(gypsilabRepoRoot(), "fixtures", "mesh_topology", "four_tet_interior_node.vol"));
 end
 
 

@@ -1,14 +1,20 @@
-function tests = testEducationalGeometricIntegration
-%TESTEDUCATIONALGEOMETRICINTEGRATION Tests for geometric integration teaching.
+function tests = testGeometricIntegration
+%testGeometricIntegration Tests for geometric integration teaching.
 
 tests = functiontests(localfunctions);
 end
 
 
-function testHarmonicOscillatorEnergyReport(testCase)
-report = educationalGeometricIntegratorEnergyReport(0.02, 1000, 1.0);
+function setupOnce(~)
+repoRoot = fileparts(fileparts(mfilename("fullpath")));
+addpath(genpath(fullfile(repoRoot, "matlab_api")));
+end
 
-verifyEqual(testCase, report.kind, "educational_geometric_integrator_energy_report");
+
+function testHarmonicOscillatorEnergyReport(testCase)
+report = geometricIntegratorEnergyReport(0.02, 1000, 1.0);
+
+verifyEqual(testCase, report.kind, "geometric_integrator_energy_report");
 verifyEqual(testCase, report.policy, "readable_geometric_time_integration_energy_gate");
 verifyTrue(testCase, report.pass);
 verifyEqual(testCase, numel(report.method_rows), 3);
@@ -27,10 +33,10 @@ end
 
 
 function testRejectsBadInputs(testCase)
-verifyError(testCase, @() educationalGeometricIntegratorEnergyReport(0, 100, 1), ...
-    "educationalGeometricIntegratorEnergyReport:stepSize");
-verifyError(testCase, @() educationalGeometricIntegratorEnergyReport(0.02, 10.5, 1), ...
-    "educationalGeometricIntegratorEnergyReport:steps");
-verifyError(testCase, @() educationalGeometricIntegratorEnergyReport(0.02, 100, 0), ...
-    "educationalGeometricIntegratorEnergyReport:omega");
+verifyError(testCase, @() geometricIntegratorEnergyReport(0, 100, 1), ...
+    "geometricIntegratorEnergyReport:stepSize");
+verifyError(testCase, @() geometricIntegratorEnergyReport(0.02, 10.5, 1), ...
+    "geometricIntegratorEnergyReport:steps");
+verifyError(testCase, @() geometricIntegratorEnergyReport(0.02, 100, 0), ...
+    "geometricIntegratorEnergyReport:omega");
 end

@@ -42,7 +42,7 @@ lines = [
     ""
     "Date: 2026-06-24"
     ""
-    "Gate: MATLAB `readVolTriTet` / `volFemBem` vs NGSolve `Mesh(.vol)`."
+    "Gate: MATLAB `readVolTriTet` / `FemBemModel` vs NGSolve `Mesh(.vol)`."
     ""
     "| ID | Title | Expected | MATLAB | NGSolve | Result |"
     "| --- | --- | --- | --- | --- | --- |"

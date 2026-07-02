@@ -5,6 +5,12 @@ tests = functiontests(localfunctions);
 end
 
 
+function setupOnce(~)
+repoRoot = fileparts(fileparts(mfilename("fullpath")));
+addpath(genpath(fullfile(repoRoot, "matlab_api")));
+end
+
+
 function testReadTetVol(testCase)
 path = writeFixture(testCase, tetVolText());
 
@@ -49,22 +55,22 @@ verifyEqual(testCase, mesh.summary.tets, 1);
 end
 
 
-function testVolFemBemModelUsesSharedOneBasedNodes(testCase)
+function testFemBemModelUsesSharedOneBasedNodes(testCase)
 path = writeFixture(testCase, tetVolText());
 
-model = volFemBemModel(path);
+model = FemBemModel(path);
 
-verifyEqual(testCase, model.lukas.geo.conn_matrix, [1 2 3 4]);
-verifyEqual(testCase, model.gypsilab.elt(1, :), [1 2 3]);
-verifyEqual(testCase, model.gypsilab.col, ones(4, 1));
-verifyEqual(testCase, model.trace.nodeIds, (1:4).');
-verifyEqual(testCase, model.trace.boundaryOrientation, "inward");
-verifyEqual(testCase, model.trace.triangleOrientationSignsToOutward, -ones(4, 1));
-verifyEqual(testCase, model.trace.adjacentTetIndices, ones(4, 1));
-verifyEqual(testCase, [model.trace.traceRowIdentity.trace_row_index].', (1:4).');
-verifyEqual(testCase, [model.trace.traceRowIdentity.fem_node_id].', (1:4).');
-verifyEqual(testCase, [model.trace.traceRowIdentity.bem_node_id].', (1:4).');
-verifyEqual(testCase, model.status, "mesh_ready");
+verifyEqual(testCase, model.mesh.tet, [1 2 3 4]);
+verifyEqual(testCase, model.surface.tri(1, :), [1 2 3]);
+verifyEqual(testCase, model.surface.col, ones(4, 1));
+verifyEqual(testCase, model.mesh.traceNodeIds, (1:4).');
+verifyEqual(testCase, model.surface.orientation.boundaryOrientation, "inward");
+verifyEqual(testCase, model.surface.orientation.triangleOrientationSignsToOutward, -ones(4, 1));
+verifyEqual(testCase, model.surface.orientation.adjacentTetIndices, ones(4, 1));
+verifyEqual(testCase, [model.trace.rowIdentity.trace_row_index].', (1:4).');
+verifyEqual(testCase, [model.trace.rowIdentity.fem_node_id].', (1:4).');
+verifyEqual(testCase, [model.trace.rowIdentity.bem_node_id].', (1:4).');
+verifyEqual(testCase, model.status, "vol_ready_first_order_h1_hcurl_rwg");
 end
 
 

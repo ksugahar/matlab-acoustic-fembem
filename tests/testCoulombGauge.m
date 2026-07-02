@@ -1,5 +1,5 @@
-function tests = testEducationalCoulombGauge
-%TESTEDUCATIONALCOULOMBGAUGE Tests for MQS Coulomb-gauge postprocess gates.
+function tests = testCoulombGauge
+%testCoulombGauge Tests for MQS Coulomb-gauge postprocess gates.
 
 tests = functiontests(localfunctions);
 end
@@ -14,12 +14,12 @@ end
 function testMqCoulombGaugePackagePasses(testCase)
 artifacts = baseArtifacts();
 
-result = educationalMqCoulombGaugePostprocessPackage(artifacts, ...
+result = mqCoulombGaugePostprocessPackage(artifacts, ...
     "ExpectedCaseId", "coil_mqs_001", ...
     "ExpectedMeshId", "unit_tet_mesh", ...
     "ExpectedFrequencyHz", 1.0e6);
 
-verifyEqual(testCase, result.kind, "educational_mqs_coulomb_gauge_efield_postprocess_package");
+verifyEqual(testCase, result.kind, "mqs_coulomb_gauge_efield_postprocess_package");
 verifyEqual(testCase, result.policy, "readable_mqs_coulomb_gauge_efield_postprocess_gate");
 verifyEqual(testCase, result.status, "ok");
 verifyTrue(testCase, result.checks.requiredKindsPresent);
@@ -38,7 +38,7 @@ function testRejectsStaleFrequency(testCase)
 artifacts = baseArtifacts();
 artifacts(4).frequencyHz = 1.2e6;
 
-result = educationalMqCoulombGaugePostprocessPackage(artifacts);
+result = mqCoulombGaugePostprocessPackage(artifacts);
 
 verifyEqual(testCase, result.status, "needs_attention");
 verifyFalse(testCase, result.checks.frequenciesMatch);
@@ -49,7 +49,7 @@ function testRejectsMissingBoundaryConditionSource(testCase)
 artifacts = baseArtifacts();
 artifacts(3).boundaryConditionSource = "";
 
-result = educationalMqCoulombGaugePostprocessPackage(artifacts);
+result = mqCoulombGaugePostprocessPackage(artifacts);
 
 verifyEqual(testCase, result.status, "needs_attention");
 verifyFalse(testCase, result.checks.spatialPotentialBcRecorded);
@@ -60,7 +60,7 @@ function testRejectsInvalidValidityEnvelope(testCase)
 artifacts = baseArtifacts();
 artifacts(5).frequencyRatioToFullwaveLimit = 0.5;
 
-result = educationalMqCoulombGaugePostprocessPackage(artifacts, ...
+result = mqCoulombGaugePostprocessPackage(artifacts, ...
     "MaxFrequencyRatioToFullwave", 0.1);
 
 verifyEqual(testCase, result.status, "needs_attention");
