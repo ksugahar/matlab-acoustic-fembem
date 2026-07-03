@@ -234,6 +234,37 @@ See `READABLE_CLASS_STYLE.md`.
        rigid scattering and the interior Helmholtz FEM + coupled
        transmission problem.
 
+8. Sonic-crystal chain: multi-body scattering, 4-leg validated:
+   - landed 2026-07: five sound-soft spheres (R = 0.3, d = 1.5,
+     `soft_sphere_chain_5.vol` + committed generator). No new BEM
+     machinery - the all-pairs assembly takes any number of closed
+     surfaces; the fixed adjacentTetIndices/orientation path is what
+     multi-body correctness rides on.
+   - four legs at k = 1.0 and 2.0944 (= pi/d):
+     exact interior point source inside the MIDDLE sphere (1.8-2.0e-2,
+     gss 3); Foldy monopole multiple scattering (new
+     `foldyPointScattering`; 2.7e-2 at k = 1.0, honest degradation to
+     ~15% at kd = pi measured against the exact series); ngsolve.bem
+     (operator 7.7-9.2e-3 at gss 3, probe cross-code 4e-4..1.1e-3,
+     conjugate 0.59-0.87 => convention re-pinned); NGSolve volume FEM
+     (order 2, 69k tets, Dirichlet spheres, first-order Sommerfeld ABC
+     at R_out = 6: agrees 4.4-7.5e-2 - the methods-diverse leg).
+   - PHYSICS FINDING (negative result, locked as a test): the sparse
+     free-space chain has NO Bragg stop band at k d = pi. Insertion loss
+     is a flat broadband sub-wavelength-attenuation plateau
+     (3.47..3.94 dB over k = 0.6..3.0, spread < 0.5 dB; BEM and Foldy
+     agree, FEM confirms at the two locked k). Soft spheres scatter with
+     scattering length ~ R down to k -> 0, so the chain attenuates
+     broadband instead of developing a lattice gap; free-space leakage
+     suppresses the Bragg mechanism a duct would confine.
+
+9. Sonic-crystal band gap (declared, not started): Bloch unit cell
+   eigenvalue FEM (NGSolve Periodic; empty-lattice analytic gate) + duct
+   transmission through N cells vs the band diagram - the confined
+   configuration where the COMSOL "Sonic Crystal" class stop band
+   actually exists. MATLAB side optionally mirrors the unit cell with
+   H1Space + periodic trace constraints.
+
 ## Gypsilab hmx performance expectation
 
 Gypsilab has useful H-matrix pieces:

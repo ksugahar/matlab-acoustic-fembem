@@ -187,6 +187,36 @@ both sides. The first-kind V_k equation is taught WITH its
 irregular-frequency caveat (unit sphere: first interior Dirichlet
 eigenvalue at kR = pi); CHIEF / Burton-Miller is the next acoustic rung.
 
+### Sonic-Crystal Chain (multi-body, 4-leg validated)
+
+Multiple scatterers need no new machinery - the all-pairs Galerkin
+assembly handles any number of closed surfaces in one `.vol`. The
+teaching fixture is a five-sphere sound-soft chain (R = 0.3, lattice
+constant d = 1.5; `validation/makeSoftSphereChainFixture.py`):
+
+```matlab
+surface = VolMesh("fixtures/mesh_topology/soft_sphere_chain_5.vol").boundary();
+sol = singleLayerDirichletSolve(surface, -exp(1i*k*surface.vtx(:,3)), ...
+    "Wavenumber", k, "QuadratureOrder", 3);
+```
+
+Validated FOUR ways (`validation/verifySonicCrystalChain.m`,
+`tests/testSonicCrystalChain.m`): the exact interior-point-source gate
+(source inside the MIDDLE sphere, 1.8-2.0e-2), Foldy monopole multiple
+scattering (`foldyPointScattering`, the low-k analytic-class reference:
+2.7e-2 at k = 1.0, honestly degrading to ~15% at kd = pi as the neglected
+l >= 1 terms turn on), the ngsolve.bem reference (probe cross-code
+4e-4..1.1e-3), and an NGSolve VOLUME-FEM leg (order 2, Dirichlet spheres,
+first-order Sommerfeld ABC - a fully different discretization, agreeing
+to 4.4-7.5e-2 at the probes).
+
+PHYSICS FINDING (locked as a negative-result test): the sparse free-space
+chain shows broadband sub-wavelength attenuation (~3.5-3.9 dB insertion
+loss, flat over k = 0.6..3.0) and NO Bragg stop band at k d = pi - all
+four legs agree. The band gap of the COMSOL "Sonic Crystal" class model
+requires duct confinement / transverse periodicity; the Bloch unit cell +
+duct transmission FEM is the declared next rung.
+
 ## H-matrix Teaching Path
 
 ```matlab
