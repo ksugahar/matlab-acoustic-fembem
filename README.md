@@ -153,6 +153,40 @@ A = (1/3) z_hat x x inside and the dipole field outside (coarse 3.1%,
 fine 1.3%). The full vector transmission solve (eddy-current FEM/BEM with
 the vector Calderon operators) is intentionally left to NGSolve.BEM.
 
+## Acoustic Helmholtz Rung (3-way validated)
+
+The exterior single-layer solve extends to acoustics through the same
+low-frequency-stable kernel split (analytic Laplace panels + smooth
+`(exp(1i*k*r) - 1)/(4*pi*r)` correction; `e^{+ikr}` convention carries the
+radiation condition):
+
+```matlab
+surface = VolMesh("fixtures/mesh_topology/unit_sphere_fine.vol").boundary();
+g = -exp(1i * k * surface.vtx(:, 3));        % sound-soft: p_scat = -p_inc
+sol = singleLayerDirichletSolve(surface, g, "Wavenumber", k);
+p = sol.potentialAt(points);                 % scattered field outside
+```
+
+Validated THREE ways on the same meshes
+(`validation/verifyHelmholtzAgainstNgsolve.m`,
+`tests/testHelmholtzScattering.m`):
+
+- analytic: an interior point source (EXACT gate - no truncation, pure
+  discretization error; `acousticPointSource`) and the sound-soft sphere
+  partial-wave series (`softSphereScattering`; truncation tail reported);
+- NGSolve's `ngsolve.bem` Helmholtz references: committed .mat with the
+  complex V, its intorder self-convergence, and NGSolve's own solved
+  GetPotential probe values (`validation/exportNgsolveBemHelmholtzReference.py`).
+
+The reading that matters: the two CODES agree 10-30x tighter with each
+other (probe cross-code 3e-4..6e-3) than either agrees with the true
+sphere (1-10%, faceting-dominated, improving coarse -> fine), proving the
+analytic deviation is geometry, not implementation. The constant-mode
+eigenvalue `lambda_0 = sin(k) e^{+ik} / k` pins the time convention on
+both sides. The first-kind V_k equation is taught WITH its
+irregular-frequency caveat (unit sphere: first interior Dirichlet
+eigenvalue at kR = pi); CHIEF / Burton-Miller is the next acoustic rung.
+
 ## H-matrix Teaching Path
 
 ```matlab

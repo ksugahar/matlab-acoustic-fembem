@@ -2,12 +2,15 @@
 
 Status: the cross-validation ladder below is climbed through stage 6
 (2026-07): interior Dirichlet FEM solve, exterior Galerkin single-layer BEM
-(sphere capacitance, cross-checked against the real Gypsilab), the
-Johnson-Nedelec coupled FEM/BEM scalar open-boundary solve (unit-ball
-source against the analytic radial solution), and the H(curl)/RWG vector
-coupling layer (trace identity, RWG operators, magnetostatic sphere gate).
-A full vector transmission SOLVE (eddy-current FEM/BEM with the vector
-Calderon operators) is intentionally beyond this teaching lane.
+(sphere capacitance, cross-checked against the real Gypsilab AND
+ngsolve.bem), the Johnson-Nedelec coupled FEM/BEM scalar open-boundary
+solve (unit-ball source against the analytic radial solution), and the
+H(curl)/RWG vector coupling layer (trace identity, RWG operators,
+magnetostatic sphere gate). The acoustic lane opened 2026-07 with stage 7
+(Helmholtz single-layer exterior solve, 3-way validated: analytic /
+this repo / ngsolve.bem). A full vector transmission SOLVE (eddy-current
+FEM/BEM with the vector Calderon operators) is intentionally beyond this
+teaching lane.
 
 ## Scope
 
@@ -200,6 +203,36 @@ See `READABLE_CLASS_STYLE.md`.
      (eddy-current FEM/BEM needs the vector double layer and
      hypersingular Calderon operators - production work for
      NGSolve.BEM, not this readable teaching lane)
+
+7. Acoustic Helmholtz exterior solve (the acoustic-simulator lane opener):
+   - landed 2026-07, THREE-way validated (analytic / this repo /
+     ngsolve.bem) on the sphere fixtures:
+     - `singleLayerDirichletSolve` gained the `Wavenumber` option: V_k by
+       the existing GalerkinSingleLayer Helmholtz path, and a k-aware
+       `potentialAt` with the SAME split (analytic Laplace panels + smooth
+       expm1 correction), so the k -> 0 limit is exact (measured: density
+       7e-10, probe potential 5e-11 against the Laplace solve)
+     - analytic references in `matlab_api/acoustic`: `acousticPointSource`
+       (interior source -> exterior reproduction, the EXACT gate) and
+       `softSphereScattering` (partial-wave series; soft-BC residual on
+       the true sphere 2.4e-12, truncation tail reported)
+     - ngsolve.bem reference artifacts (committed .mat, k = 0.5 and 2.0,
+       intorder 16 self-converged to ~3e-9, NODAL boundary data, plus
+       NGSolve's own GetPotential probe values via auxiliary probe meshes):
+       `exportNgsolveBemHelmholtzReference.py` /
+       `verifyHelmholtzAgainstNgsolve.m` / `testHelmholtzScattering.m`
+     - measured: operator V reldiff 1.2e-3..8.7e-3 (vs conjugate 0.68..1.3
+       => e^{+ikr} pinned both sides); probe cross-code 2.7e-4..6.2e-3
+       while both codes sit 1-10% from the true sphere (faceting,
+       improving ~x2.5 coarse -> fine) - the two codes agree 10-30x
+       tighter than either matches the analytic sphere, so the analytic
+       deviation is geometry, not implementation
+     - taught caveat: the first-kind V_k equation is singular at interior
+       Dirichlet eigenvalues (unit sphere: kR = pi); k = 0.5 / 2.0 sit
+       safely away. CHIEF / Burton-Miller (and the Helmholtz double layer
+       K_k = K_0 + smooth correction) are the next acoustic rungs, then
+       rigid scattering and the interior Helmholtz FEM + coupled
+       transmission problem.
 
 ## Gypsilab hmx performance expectation
 
