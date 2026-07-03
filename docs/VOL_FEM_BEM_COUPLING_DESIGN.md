@@ -1,7 +1,11 @@
 # Netgen .vol FEM/BEM coupling design for Lukas FEM + Gypsilab
 
-Status: design plus first-order mesh/topology prototype, not a validated
-coupled solver yet.
+Status: the cross-validation ladder below is climbed through stage 5
+(2026-07): interior Dirichlet FEM solve, exterior Galerkin single-layer BEM
+(sphere capacitance, cross-checked against the real Gypsilab), and the
+Johnson-Nedelec coupled FEM/BEM scalar open-boundary solve (unit-ball
+source against the analytic radial solution). Stage 6 (H(curl)/RWG vector
+coupling) remains design only.
 
 ## Scope
 
@@ -141,6 +145,16 @@ See `READABLE_CLASS_STYLE.md`.
 5. FEM/BEM coupled scalar open-boundary solve:
    - interior finite domain with exterior BEM boundary
    - compare boundary trace and integrated flux with radia-ngsolve reference
+   - landed 2026-07: `femBemCoupledSolve` (Johnson-Nedelec pair
+     `A u - T' M lambda = F`, `(1/2 M - K) T u + V lambda = 0`) over
+     `GalerkinDoubleLayer` (outward-normal principal value; sphere
+     spectral gates K[1] = -1/2 exact to 6 digits, K[Y_1] = -1/6 to
+     0.3%). Unit-ball source f = 1 against the analytic radial solution
+     u = 1/2 - r^2/6: trace mean -2.3%, flux conservation
+     int lambda dS = -int f dV to 1e-3, exterior potential 3.5%
+     (all geometry-faceting dominated, improving coarse -> fine mesh).
+     The kernel-sign conventions were locked numerically (Gauss check
+     -4*pi inside, two spherical-harmonic BIE modes), not on paper
 
 6. H(curl)/RWG Maxwell or magnetostatic vector coupling:
    - only after edge-orientation coupling and scalar signs are tested

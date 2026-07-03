@@ -89,8 +89,28 @@ to machine precision against subdivision and polar references), and the
 smooth low-frequency-stable Helmholtz correction goes through plain
 quadrature. Cross-checked against the real Gypsilab on the same sphere mesh:
 operator relative difference 1.1e-4, capacitance relative difference 1.4e-5
-(`validation/verifyGalerkinAgainstGypsilab.m`). The remaining ladder rung is
-the coupled FEM/BEM scalar open-boundary solve (stage 5).
+(`validation/verifyGalerkinAgainstGypsilab.m`).
+
+The final rung (stage 5) is the Johnson-Nedelec coupled FEM/BEM
+open-boundary solve: P1 FEM inside the meshed volume, Galerkin BEM for the
+unbounded exterior, continuous trace and flux on the boundary:
+
+```matlab
+m = FemBemModel("fixtures/mesh_topology/unit_sphere_fine.vol");
+sol = femBemCoupledSolve(m);        % -div(c grad u) = f inside, Laplace outside
+sol.u                               % interior nodal solution
+sol.lambda                          % exterior normal flux on the boundary
+u = sol.exteriorPotentialAt([3 0 0]);
+```
+
+The coupled system is the classic pair `A u - T' M lambda = F` and
+`(1/2 M - K) T u + V lambda = 0`, with `GalerkinDoubleLayer` supplying the
+outward-normal principal-value K (sphere gates: K[1] = -1/2 exact to six
+digits, K[Y_1] = -1/6 to 0.3%). The unit-ball source f = 1 reproduces the
+analytic radial solution u = 1/2 - r^2/6 (trace mean -2.3% on the fine
+fixture, flux conservation to 1e-3, exterior potential 3.5%; all
+geometry-faceting dominated). Stage 6 of the ladder - H(curl)/RWG vector
+coupling - remains design only.
 
 ## H-matrix Teaching Path
 
