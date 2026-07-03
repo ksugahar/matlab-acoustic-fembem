@@ -203,7 +203,7 @@ for k = 1:nTri
     areaVec = 0.5 * cross(p2 - p1, p3 - p1);
     rows(k).storedAreaVector = areaVec;
 
-    tetHits = find(all(ismember(triNodes, mesh.tet), 2));
+    tetHits = find(sum(ismember(mesh.tet, triNodes), 2) == 3);
     if numel(tetHits) ~= 1 || norm(areaVec) == 0
         rows(k).normalOrientation = "unknown";
         continue

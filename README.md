@@ -109,8 +109,36 @@ outward-normal principal-value K (sphere gates: K[1] = -1/2 exact to six
 digits, K[Y_1] = -1/6 to 0.3%). The unit-ball source f = 1 reproduces the
 analytic radial solution u = 1/2 - r^2/6 (trace mean -2.3% on the fine
 fixture, flux conservation to 1e-3, exterior potential 3.5%; all
-geometry-faceting dominated). Stage 6 of the ladder - H(curl)/RWG vector
-coupling - remains design only.
+geometry-faceting dominated).
+
+## Vector Coupling Teaching Path (H(curl)/RWG, ladder stage 6)
+
+The Maxwell-precursor layer makes the vector trace coupling concrete and
+locks it to machine precision:
+
+```matlab
+m = FemBemModel("mesh.vol");
+C = m.rwg.rotatedTraceMap(m.hcurl);   % n x u|_Gamma in RWG coords: c = C*alpha
+[G, d] = m.rwg.gram();                % RWG mass, exact with the 3-point rule
+L = RwgSingleLayer(m.rwg);            % static EFIE / partial-inductance kernel
+A = L.vectorPotentialAt(c, points);   % analytic vector potential of sum c f
+```
+
+The FEEC identity behind `rotatedTraceMap` is tested pointwise on every
+boundary edge: the rotated tangential trace of the volume Nedelec0 edge
+function IS the RWG function of the same edge,
+
+```
+n x (gamma_t N_E) = -signOut * triEdgeSigns * sigma_pm * f_e / l_e
+```
+
+so a volume H(curl) field crosses to the boundary RWG space exactly, with
+no interpolation. `RwgSingleLayer` reuses the verified P1 panel integrals
+(RWG components are affine per triangle - no new singular math) and is
+validated by the uniformly magnetized sphere: K = z_hat x n reproduces
+A = (1/3) z_hat x x inside and the dipole field outside (coarse 3.1%,
+fine 1.3%). The full vector transmission solve (eddy-current FEM/BEM with
+the vector Calderon operators) is intentionally left to NGSolve.BEM.
 
 ## H-matrix Teaching Path
 

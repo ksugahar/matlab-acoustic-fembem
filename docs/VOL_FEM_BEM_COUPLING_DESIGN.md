@@ -1,11 +1,13 @@
 # Netgen .vol FEM/BEM coupling design for Lukas FEM + Gypsilab
 
-Status: the cross-validation ladder below is climbed through stage 5
+Status: the cross-validation ladder below is climbed through stage 6
 (2026-07): interior Dirichlet FEM solve, exterior Galerkin single-layer BEM
-(sphere capacitance, cross-checked against the real Gypsilab), and the
+(sphere capacitance, cross-checked against the real Gypsilab), the
 Johnson-Nedelec coupled FEM/BEM scalar open-boundary solve (unit-ball
-source against the analytic radial solution). Stage 6 (H(curl)/RWG vector
-coupling) remains design only.
+source against the analytic radial solution), and the H(curl)/RWG vector
+coupling layer (trace identity, RWG operators, magnetostatic sphere gate).
+A full vector transmission SOLVE (eddy-current FEM/BEM with the vector
+Calderon operators) is intentionally beyond this teaching lane.
 
 ## Scope
 
@@ -158,6 +160,28 @@ See `READABLE_CLASS_STYLE.md`.
 
 6. H(curl)/RWG Maxwell or magnetostatic vector coupling:
    - only after edge-orientation coupling and scalar signs are tested
+   - landed 2026-07 (the Maxwell-precursor layer):
+     - the FEEC trace identity, pointwise to machine precision on every
+       boundary edge: n x (tangential trace of the volume Nedelec0 edge
+       function) = -signOut * triEdgeSigns * sigma_pm * f_RWG / l_e, and
+       its dof-level form `RwgSpace.rotatedTraceMap` (RWG coefficients of
+       n x u|_Gamma are C * alpha, exactly)
+     - RWG basis machinery (`basisAtQuadrature`, exact 3-point `gram`)
+     - `RwgSingleLayer`: the Galerkin vector single layer (static EFIE /
+       partial-inductance kernel), assembled from the SAME analytic P1
+       panel integrals (RWG components are affine per triangle - no new
+       singular math), with `vectorPotentialAt`
+     - magnetostatic gate: K = z_hat x n on the unit sphere (uniformly
+       magnetized sphere) reproduces A = (1/3) z_hat x x inside and the
+       dipole field outside (coarse 3.1%, fine 1.3%, faceting dominated)
+     - found and fixed en route: readVolTriTet adjacentTetIndices had an
+       ismember argument-order bug that silently returned tet 1 for every
+       boundary triangle (orientation signs stayed correct for convex
+       meshes; the adjacency values were wrong on multi-tet meshes)
+   - intentionally NOT here: the full vector transmission solve
+     (eddy-current FEM/BEM needs the vector double layer and
+     hypersingular Calderon operators - production work for
+     NGSolve.BEM, not this readable teaching lane)
 
 ## Gypsilab hmx performance expectation
 
