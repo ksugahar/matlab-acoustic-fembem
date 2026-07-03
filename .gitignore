@@ -7,3 +7,4 @@
 .pytest_cache/
 slprj/
 codegen/
+!validation/data/ngbem_reference_*.mat

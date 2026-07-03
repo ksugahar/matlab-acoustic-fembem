@@ -87,9 +87,22 @@ points), the singular Laplace kernel is integrated analytically over every
 source triangle (`laplacePanelIntegrals`, Wilton-style closed forms verified
 to machine precision against subdivision and polar references), and the
 smooth low-frequency-stable Helmholtz correction goes through plain
-quadrature. Cross-checked against the real Gypsilab on the same sphere mesh:
-operator relative difference 1.1e-4, capacitance relative difference 1.4e-5
-(`validation/verifyGalerkinAgainstGypsilab.m`).
+quadrature. Cross-checked against TWO independent codes on the same sphere
+meshes:
+
+- the real Gypsilab (`validation/verifyGalerkinAgainstGypsilab.m`): operator
+  1.1e-4, capacitance 1.4e-5 at gss 3 - tight because both codes use the
+  same 3-point test quadrature, so that error cancels;
+- NGSolve's `ngsolve.bem` (`validation/verifyGalerkinAgainstNgsolve.m`,
+  reading committed reference matrices from
+  `validation/exportNgsolveBemReference.py`): V 3.8e-4 / K 3.4e-3 at gss 7,
+  capacitance 1.6e-4, mass identical to 1e-16. The reference is
+  Sauter-Schwab at intorder 16 (self-converged to 1e-8), so this one
+  measures the TRUE assembly error - the gss 1/3/7 sweep converges
+  7e-2 / 7e-3 / 4e-4 against it. Conventions match exactly (same
+  outward-normal principal-value K: K[1] = -1/2 to 1e-9). This check runs
+  in the test suite (`testNgsolveBemCrossCheck`) from the committed .mat
+  artifacts alone.
 
 The final rung (stage 5) is the Johnson-Nedelec coupled FEM/BEM
 open-boundary solve: P1 FEM inside the meshed volume, Galerkin BEM for the

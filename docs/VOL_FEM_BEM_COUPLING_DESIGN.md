@@ -143,6 +143,19 @@ See `READABLE_CLASS_STYLE.md`.
      4*pi (geometry-faceting-dominated, -2.9%); same-mesh cross-check vs
      real Gypsilab integral+regularize: operator 1.1e-4, capacitance
      1.4e-5 (`validation/verifyGalerkinAgainstGypsilab.m`)
+   - radia-ngsolve leg landed 2026-07: same-mesh, same-continuous-P1-space
+     dense reference from NGSolve's `ngsolve.bem` (Sauter-Schwab,
+     intorder 16, self-converged to 1e-8; exported by
+     `validation/exportNgsolveBemReference.py`, checked by
+     `validation/verifyGalerkinAgainstNgsolve.m` +
+     `tests/testNgsolveBemCrossCheck.m` from the committed .mat).
+     Measured: mass 1e-16, V 3.8e-4 / K 3.4e-3 at gss 7, capacitance
+     1.6e-4 (coarse) / 4.3e-5 (fine). Conventions match exactly
+     (outward-normal principal-value K: K[1] = -1/2 to 1e-9; interior
+     H1 rows exactly zero). Honest finding: the gss-3 agreement with
+     Gypsilab (1.1e-4) was same-test-quadrature error cancellation; the
+     true assembly error vs the converged reference is 7e-3 at gss 3,
+     4e-4 at gss 7 (V), matching the internal refinement study
 
 5. FEM/BEM coupled scalar open-boundary solve:
    - interior finite domain with exterior BEM boundary
@@ -157,6 +170,11 @@ See `READABLE_CLASS_STYLE.md`.
      (all geometry-faceting dominated, improving coarse -> fine mesh).
      The kernel-sign conventions were locked numerically (Gauss check
      -4*pi inside, two spherical-harmonic BIE modes), not on paper
+   - radia-ngsolve leg 2026-07: the coupled system's BEM ingredients
+     (V and the principal-value K) are pinned operator-level against
+     ngsolve.bem on the same meshes (see stage 4); the coupled solve
+     itself keeps the analytic ball solution as its reference, which
+     is stronger than a second numerical code on that geometry
 
 6. H(curl)/RWG Maxwell or magnetostatic vector coupling:
    - only after edge-orientation coupling and scalar signs are tested
