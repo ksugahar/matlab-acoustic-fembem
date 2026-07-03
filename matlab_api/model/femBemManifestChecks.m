@@ -13,6 +13,8 @@ end
 
 T = report.trace.trace_matrix;
 traceNodeIds = report.boundaryNodeIds(:);
+bemNodeIds = report.trace.bem_node_ids(:);
+expectedBemNodeIds = (1:numel(traceNodeIds)).';
 surfaceTriangles = report.trace.surface_triangles;
 boundaryNumbers = report.boundaryNumbers(:);
 boundaryNames = report.boundaryNames(:);
@@ -276,16 +278,17 @@ checks.traceRowsAreOneHot = all(rowNonzeroCount == 1) && all(abs(rowMax - 1) < 1
 checks.traceRowIdentityRecorded = numel(report.traceRowIdentity) == numel(traceNodeIds);
 checks.traceRowIdentityRowIndicesMatch = isequal(traceRowIndex, (1:numel(traceNodeIds)).');
 checks.traceRowIdentityFemNodesMatch = isequal(traceRowFemNodeIds, traceNodeIds);
-checks.traceRowIdentityBemNodesMatch = isequal(traceRowBemNodeIds, traceNodeIds);
+checks.traceRowIdentityBemNodesMatch = isequal(traceRowBemNodeIds, expectedBemNodeIds);
 checks.traceRowIdentityUnique = ...
     numel(unique(traceRowFemNodeIds)) == numel(traceRowFemNodeIds) && ...
     numel(unique(traceRowBemNodeIds)) == numel(traceRowBemNodeIds);
 checks.traceRowIdentityMatchesTraceMatrix = isequal(traceRowFemNodeIds, traceMatrixNodeIds);
+checks.traceBemNodeIdsCompact = isequal(bemNodeIds, expectedBemNodeIds);
 checks.operatorTraceRowIdentityRecorded = numel(report.operatorTraceRowIdentity) == numel(traceNodeIds);
 checks.operatorTraceRowIdentityMatchesTrace = isequal(report.operatorTraceRowIdentity, report.traceRowIdentity);
 checks.operatorTraceRowIdentityRowIndicesMatch = isequal(operatorTraceRowIndex, (1:numel(traceNodeIds)).');
 checks.operatorTraceRowIdentityFemNodesMatch = isequal(operatorTraceRowFemNodeIds, traceNodeIds);
-checks.operatorTraceRowIdentityBemNodesMatch = isequal(operatorTraceRowBemNodeIds, traceNodeIds);
+checks.operatorTraceRowIdentityBemNodesMatch = isequal(operatorTraceRowBemNodeIds, expectedBemNodeIds);
 checks.operatorTraceRowIdentityMatchesTraceMatrix = isequal(operatorTraceRowFemNodeIds, traceMatrixNodeIds);
 end
 

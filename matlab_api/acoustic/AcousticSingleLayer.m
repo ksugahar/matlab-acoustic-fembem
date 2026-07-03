@@ -22,9 +22,9 @@ end
 
 properties
     wavenumber      % k in the Helmholtz kernel
-    targetPoints    % collocation points of the rows (nT x 3)
-    sourcePoints    % collocation points of the columns (nS x 3)
-    targetWeights   % row weights (areas for SurfaceMesh input)
+    targetPoints    % P1 nodal points of the rows (nT x 3)
+    sourcePoints    % P1 nodal points of the columns (nS x 3)
+    targetWeights   % row lumped P1 weights
     sourceWeights   % column quadrature weights
     matrix          % dense single-layer operator (nT x nS)
     kernelParts     % HelmholtzKernel: Laplace part + smooth correction

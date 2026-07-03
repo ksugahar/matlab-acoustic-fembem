@@ -15,18 +15,18 @@ classdef HMatrix
 %   - dense near-field blocks
 %   - a recursive block-tree matvec
 %
-% The kernel is the collocation single layer weights / (4*pi*r) with an
-% explicit DiagonalValue for the r = 0 self entry.
+% The kernel is the P1 nodal single layer with lumped source weights
+% divided by (4*pi*r) and an explicit DiagonalValue for the r = 0 self entry.
 
 properties (Constant)
-    kernel = "single_layer_collocation_1_over_4pi_r"
+    kernel = "single_layer_p1_nodal_lumped_1_over_4pi_r"
     policy = "education_only_readable_hmatrix_not_production_solver"
 end
 
 properties
-    targetPoints    % collocation points of the rows (nT x 3)
-    sourcePoints    % collocation points of the columns (nS x 3)
-    targetWeights   % row weights (areas for SurfaceMesh input)
+    targetPoints    % P1 nodal points of the rows (nT x 3)
+    sourcePoints    % P1 nodal points of the columns (nS x 3)
+    targetWeights   % row lumped P1 weights
     sourceWeights   % column quadrature weights
     targetTree      % row cluster tree
     sourceTree      % column cluster tree
@@ -220,7 +220,7 @@ end
 
 
 function A = laplaceBlock(targetPoints, sourcePoints, sourceWeights, diagonalValue)
-%LAPLACEBLOCK Dense collocation block weights / (4*pi*r).
+%LAPLACEBLOCK Dense P1 nodal block weights / (4*pi*r).
 
 nRows = size(targetPoints, 1);
 nCols = size(sourcePoints, 1);

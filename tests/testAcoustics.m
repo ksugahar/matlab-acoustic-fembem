@@ -121,16 +121,17 @@ verifyEqual(testCase, op.matrix, expected, "AbsTol", 1e-14);
 end
 
 
-function testSurfaceTrianglesUseAreaWeights(testCase)
+function testSurfaceP1NodesUseLumpedAreaWeights(testCase)
 path = writeFixture(testCase, tetVolText());
 mesh = VolMesh(path);
 surface = mesh.boundary();
+expectedWeights = [0.5; repmat((1 + sqrt(3) / 2) / 3, 3, 1)];
 
 op = AcousticSingleLayer(surface, surface, ...
     "Wavenumber", 0.0, "DiagonalValue", 0.25);
 
 verifyEqual(testCase, op.shape(), [4 4]);
-verifyEqual(testCase, op.sourceWeights, [0.5; 0.5; sqrt(3)/2; 0.5], "AbsTol", 1e-14);
+verifyEqual(testCase, op.sourceWeights, expectedWeights, "AbsTol", 1e-14);
 verifyEqual(testCase, diag(op.matrix), 0.25 * ones(4, 1), "AbsTol", 1e-14);
 end
 

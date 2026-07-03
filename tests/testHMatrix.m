@@ -33,10 +33,11 @@ verifyEqual(testCase, H.policy, "education_only_readable_hmatrix_not_production_
 end
 
 
-function testSurfaceTrianglesBecomeWeightedBemPoints(testCase)
+function testSurfaceP1NodesBecomeWeightedBemPoints(testCase)
 path = writeFixture(testCase, tetVolText());
 mesh = VolMesh(path);
 surface = mesh.boundary();
+expectedWeights = [0.5; repmat((1 + sqrt(3) / 2) / 3, 3, 1)];
 
 H = HMatrix(surface, [], ...
     "LeafSize", 2, "Eta", 1.5, "RankTolerance", 1e-12);
@@ -50,7 +51,8 @@ verifyEqual(testCase, H.eta, 1.5);
 verifyEqual(testCase, H.rankTolerance, 1e-12);
 verifySize(testCase, H.targetPoints, [4 3]);
 verifySize(testCase, H.sourceWeights, [4 1]);
-verifyEqual(testCase, H.sourceWeights(1:2), [0.5; 0.5], "AbsTol", 1e-14);
+verifyEqual(testCase, H.sourceWeights, expectedWeights, "AbsTol", 1e-14);
+verifyEqual(testCase, H.kernel, "single_layer_p1_nodal_lumped_1_over_4pi_r");
 verifySize(testCase, y, [4 1]);
 verifyGreaterThan(testCase, stats.blocks, 0);
 verifyLessThanOrEqual(testCase, stats.compressionRatio, 1.0);

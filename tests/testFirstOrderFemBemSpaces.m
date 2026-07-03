@@ -59,6 +59,33 @@ verifyEqual(testCase, m.trace * u, u(1:4));
 end
 
 
+function testTraceIdentityKeepsCompactBemIdsSeparateFromVolumeIds(testCase)
+path = writeFixture(testCase, boundaryNodesAfterInteriorFirstVolText());
+
+m = FemBemModel(path);
+
+verifyEqual(testCase, size(m.trace.matrix), [4 5]);
+verifyEqual(testCase, m.mesh.traceNodeIds, (2:5).');
+verifyEqual(testCase, m.surface.volNodeIds, (2:5).');
+verifyEqual(testCase, m.trace.femNodeIds, (2:5).');
+verifyEqual(testCase, m.trace.bemNodeIds, (1:4).');
+verifyEqual(testCase, [m.trace.rowIdentity.trace_row_index].', (1:4).');
+verifyEqual(testCase, [m.trace.rowIdentity.fem_node_id].', (2:5).');
+verifyEqual(testCase, [m.trace.rowIdentity.bem_node_id].', (1:4).');
+
+u = (10:10:50).';
+verifyEqual(testCase, m.trace * u, u(2:5));
+
+report = femBemCouplingManifest(m);
+verifyEqual(testCase, report.status, "ok");
+verifyEqual(testCase, report.trace.bem_node_ids, (1:4).');
+verifyEqual(testCase, [report.traceRowIdentity.fem_node_id].', (2:5).');
+verifyEqual(testCase, [report.traceRowIdentity.bem_node_id].', (1:4).');
+verifyTrue(testCase, report.checks.traceRowIdentityBemNodesMatch);
+verifyTrue(testCase, report.checks.traceBemNodeIdsCompact);
+end
+
+
 function testAssembledTraceScaffoldContainsHcurlRwgMap(testCase)
 path = writeFixture(testCase, tetVolText());
 m = FemBemModel(path);
@@ -1028,6 +1055,48 @@ text = join([
     "0 1 0"
     "0 0 1"
     "0.25 0.25 0.25"
+    "pointelements"
+    "0"
+    "materials"
+    "1"
+    "1 air"
+    "bcnames"
+    "1"
+    "1 outer"
+    "endmesh"
+    ], newline);
+end
+
+
+function text = boundaryNodesAfterInteriorFirstVolText()
+text = join([
+    "mesh3d"
+    "dimension"
+    "3"
+    "geomtype"
+    "0"
+    "facedescriptors"
+    "1"
+    "1 1 0 1 1"
+    "surfaceelements"
+    "4"
+    "1 1 1 0 3 2 3 4"
+    "1 1 1 0 3 2 5 3"
+    "1 1 1 0 3 3 5 4"
+    "1 1 1 0 3 4 5 2"
+    "volumeelements"
+    "4"
+    "1 4 1 2 3 4"
+    "1 4 1 2 5 3"
+    "1 4 1 3 5 4"
+    "1 4 1 4 5 2"
+    "points"
+    "5"
+    "0.25 0.25 0.25"
+    "0 0 0"
+    "1 0 0"
+    "0 1 0"
+    "0 0 1"
     "pointelements"
     "0"
     "materials"
