@@ -43,7 +43,6 @@ amp = options.IncidentAmplitude;
 K = GalerkinDoubleLayer(surface, "Wavenumber", k, ...
     "QuadratureOrder", options.QuadratureOrder);
 [M, ~] = SurfaceP1Space(surface).mass();
-quad = K.quadrature;
 nNodes = size(surface.vtx, 1);
 
 gInc = amp * exp(1i * k * surface.vtx(:, 3));
@@ -60,7 +59,7 @@ if options.Method == "chief"
         chiefPoints = c + 0.15 * span .* ...
             [0 0 0; 0.9 0.3 -0.5; -0.6 0.8 0.4; 0.2 -0.7 0.9];
     end
-    C = doubleLayerPotentialRows(surface, chiefPoints, k, quad);
+    C = doubleLayerPotentialMatrix(surface, chiefPoints, k, options.QuadratureOrder);
     cRhs = -amp * exp(1i * k * chiefPoints(:, 3));
     % match the row magnitude of the Galerkin block (M entries ~ area/12)
     w = mean(abs(diag(M)));
@@ -89,7 +88,7 @@ sol.chiefPoints = chiefPoints;
 sol.operator = K;
 sol.surfaceMass = M;
 sol.scatteredAt = @(points) ...
-    doubleLayerPotentialRows(surface, points, k, quad) * t;
+    doubleLayerPotentialMatrix(surface, points, k, options.QuadratureOrder) * t;
 sol.checks = struct( ...
     "solveResidualSmall", ...
         norm(residual) <= 1e-8 * max(1, norm(b)), ...
@@ -98,29 +97,5 @@ if all(structfun(@(v) logical(v), sol.checks))
     sol.status = "ok";
 else
     sol.status = "needs_attention";
-end
-end
-
-
-function rows = doubleLayerPotentialRows(surface, points, k, quad)
-%DOUBLELAYERPOTENTIALROWS D_k[.] evaluated at points, as a (nPts x nNodes)
-% matrix acting on P1 nodal traces. Same split as the operators: analytic
-% Laplace panels + smooth correction by quadrature.
-
-signs = surface.orientation.triangleOrientationSignsToOutward(:);
-tri = surface.tri;
-vtx = surface.vtx;
-nNodes = size(vtx, 1);
-rows = zeros(size(points, 1), nNodes);
-for t = 1:size(tri, 1)
-    [~, J1] = laplaceDoubleLayerPanelIntegrals(vtx(tri(t, :), :), points);
-    rows(:, tri(t, :)) = rows(:, tri(t, :)) + signs(t) * J1 / (4 * pi);
-end
-if k > 0
-    parts = HelmholtzKernel(points, quad.points, ...
-        "Wavenumber", k, ...
-        "SourceWeights", quad.weights, ...
-        "SourceNormals", quad.outwardNormals());
-    rows = rows + parts.doubleLayerSourceNormalCorrection * quad.basis;
 end
 end

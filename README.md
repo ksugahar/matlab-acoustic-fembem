@@ -296,6 +296,41 @@ Three gated cases (`tests/testFemBemHelmholtzCoupling.m`):
    probes 22% -> 7.3% under refinement - the P1 (k1 h)^2 resolution class
    measured, not hidden.
 
+## Adjoint Automatic Differentiation (wavefront synthesis)
+
+Reverse-mode AD *through* the BEM solve, the readable way: differentiate
+the equation, not the LU. `acousticFocusAdjoint` designs a phased array's
+complex amplitudes (phases) to focus acoustic energy at a target point
+behind a rigid scatterer - the gradient of the focused intensity
+`J = |u(target)|^2` comes from ONE adjoint (transpose) solve, independent
+of the number of sources:
+
+```matlab
+surface = VolMesh("fixtures/mesh_topology/unit_sphere_fine.vol").boundary();
+sources = ...;                 % phased array, one complex amplitude each
+res = acousticFocusAdjoint(surface, sources, [0 0 2.5], 2.0, amplitudes, ...
+    "GradientCheck", true);
+res.gradientReal / res.gradientImag   % dJ/dRe(p), dJ/dIm(p) - one solve
+res.ascentDirection                    % steepest ascent = 2 u conj(w)
+res.gradientCheckRelError              % vs central finite differences
+```
+
+Because the field is affine in the amplitudes, `u = w * p` with the
+sensitivity row `w = S0 + lambda' M S` assembled from the adjoint solve
+`A' lambda = d0'`. Measured (`tests/testAcousticFocusAdjoint.m`): forward
+affine residual 4e-18 (w is exact), adjoint gradient vs central finite
+differences 1.7e-10, and a gradient ascent monotonically focuses the
+energy (the wavefront-synthesis proof). The objective is non-holomorphic
+(`|.|^2`), so the ascent direction is the Wirtinger derivative
+`dJ/dconj(p) = 2 u conj(w)` - NOT `2 conj(u) w` (a sign trap that a
+near-zero starting field hides and a nonzero start exposes).
+
+This is the seed of acoustic radiation-force / thrust design: swap the
+intensity objective for the net radiation force (the Brillouin
+radiation-stress surface integral, with King's analytic radiation
+pressure as the gate) and the same adjoint gives dF/d(phases) for
+wavefront-synthesised propulsion - the declared next increment.
+
 ## H-matrix Teaching Path
 
 ```matlab

@@ -280,6 +280,27 @@ See `READABLE_CLASS_STYLE.md`.
      classify geometrically (face center on a wall plane), and the
      empty-lattice gate is what caught it.
 
+12. Adjoint automatic differentiation (wavefront synthesis), landed
+   2026-07: reverse-mode AD through the rigid-scattering BEM solve.
+   `acousticFocusAdjoint` designs phased-array complex amplitudes to focus
+   `J = |u(target)|^2` behind a rigid scatterer; the field is affine in the
+   amplitudes (`u = w p`, `w = S0 + lambda' M S` from one transpose solve
+   `A' lambda = d0'`), so the whole gradient is ONE adjoint solve
+   independent of the source count. Measured
+   (`tests/testAcousticFocusAdjoint.m`): forward affine residual 4e-18,
+   adjoint vs central FD 1.7e-10, gradient ascent focuses monotonically.
+   The reusable `doubleLayerPotentialMatrix` (the trace -> field row) was
+   extracted from rigidScatteringSolve so the solve, CHIEF, and the adjoint
+   share one implementation. Sign trap recorded: the steepest-ascent
+   direction of the real objective is the Wirtinger derivative
+   `dJ/dconj(p) = 2 u conj(w)`, not `2 conj(u) w`; a near-zero start hides
+   the flip (any step raises |u|^2), a nonzero start exposes it, and the
+   adjoint-vs-FD gate on the real/imag gradients catches it regardless.
+   NEXT INCREMENT (declared): swap the intensity objective for the net
+   acoustic radiation force (Brillouin radiation-stress surface integral,
+   gated by King's analytic radiation pressure) so the same adjoint yields
+   dF/d(phases) for wavefront-synthesised thrust.
+
 11. Rigid scattering + irregular frequencies + CHIEF, landed 2026-07:
    - total-field equation (1/2 M - K_k) t = M g_inc
      (rigidScatteringSolve; mode-verified against the locked
