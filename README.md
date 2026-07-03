@@ -217,6 +217,45 @@ four legs agree. The band gap of the COMSOL "Sonic Crystal" class model
 requires duct confinement / transverse periodicity; the Bloch unit cell +
 duct transmission FEM is the declared next rung.
 
+## Coupled Acoustic FEM/BEM (pure MATLAB, 3 gated cases)
+
+The Johnson-Nedelec solve extends to the acoustic TRANSMISSION problem:
+interior P1 Helmholtz FEM (medium 1: `k1`, `rho1`) coupled to the exterior
+P1 Galerkin BEM (medium 0) - with NO absorbing boundary anywhere, because
+the BEM row IS the exact radiation condition (contrast the stage-8 volume
+FEM leg, whose first-order ABC costs 4-7% at the probes):
+
+```matlab
+m = FemBemModel("fixtures/mesh_topology/unit_ball_maxh018.vol");
+sol = femBemCoupledSolve(m, "Wavenumber", 2.0, ...
+    "InteriorWavenumber", 2/0.7, "DensityRatio", 1.2, ...
+    "VolumeSource", 0, "IncidentAmplitude", 1);
+sol.u                               % interior total pressure (complex)
+u_s = sol.exteriorPotentialAt(x);   % scattered field, -S_k + D_k
+```
+
+The one missing operator was the Helmholtz double layer:
+`K_k = K_0` (the verified analytic panels) `+` smooth correction
+`base*(exp(z)(1-z)-1)` through `HelmholtzKernel` SourceNormals - no new
+singular math. Sphere spectral gates:
+`K_k[Y_l] = 1/2 + 1i k^2 j_l(k) h_l'(k)` to 3-5e-3 at k = 0.5 and
+2-3e-2 at k = 2 (faceting class); the k -> 0 limit is the Laplace K to
+5e-28.
+
+Three gated cases (`tests/testFemBemHelmholtzCoupling.m`):
+
+1. **k -> 0 regression** - matches the verified Laplace coupled solve to
+   1e-9 (density 1e-12).
+2. **Acoustic invisibility** (k1 = k0, rho1 = rho0): the exact null gate -
+   interior == incident plane wave, scattered == 0, up to discretization:
+   4.1e-2 / 2.6e-2 (unit_sphere_fine) -> 1.3e-2 / 7.8e-3 (unit_ball_maxh018),
+   locked as a CONVERGENCE assertion, not a loose band.
+3. **Anderson (1950) fluid sphere** (c1/c0 = 0.7, rho1/rho0 = 1.2) against
+   the partial-wave transmission series (`fluidSphereScattering`,
+   log-derivative-stable mode solve): interior 13% -> 4.4%, exterior
+   probes 22% -> 7.3% under refinement - the P1 (k1 h)^2 resolution class
+   measured, not hidden.
+
 ## H-matrix Teaching Path
 
 ```matlab

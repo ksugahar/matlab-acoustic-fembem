@@ -71,6 +71,31 @@ methods
         %WEIGHTEDBASIS sparse (nPoints x nNodes) with w_g * phi_i(g) entries.
         B = spdiags(quad.weights, 0, quad.nPoints(), quad.nPoints()) * quad.basis;
     end
+
+    function N = outwardNormals(quad)
+        %OUTWARDNORMALS Unit OUTWARD normal at each Gauss point (nPoints x 3).
+        %
+        % Per-triangle stored-winding normals corrected to outward with the
+        % mesh orientation signs (fails loudly on unknown orientation), then
+        % replicated to the Gauss points via triangleIndex. Used by the
+        % Helmholtz double-layer correction and incident normal-velocity
+        % loads.
+        signs = quad.surface.orientation.triangleOrientationSignsToOutward(:);
+        if any(signs == 0)
+            error("SurfaceQuadrature:orientation", ...
+                "Surface orientation is unknown for %d triangle(s).", ...
+                sum(signs == 0));
+        end
+        tri = quad.surface.tri;
+        vtx = quad.surface.vtx;
+        triNormals = zeros(size(tri, 1), 3);
+        for t = 1:size(tri, 1)
+            X = vtx(tri(t, :), :);
+            c = cross(X(2, :) - X(1, :), X(3, :) - X(1, :));
+            triNormals(t, :) = signs(t) * c / norm(c);
+        end
+        N = triNormals(quad.triangleIndex, :);
+    end
 end
 end
 

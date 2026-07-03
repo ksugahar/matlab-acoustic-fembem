@@ -6,11 +6,14 @@ Status: the cross-validation ladder below is climbed through stage 6
 ngsolve.bem), the Johnson-Nedelec coupled FEM/BEM scalar open-boundary
 solve (unit-ball source against the analytic radial solution), and the
 H(curl)/RWG vector coupling layer (trace identity, RWG operators,
-magnetostatic sphere gate). The acoustic lane opened 2026-07 with stage 7
+magnetostatic sphere gate). The acoustic lane opened 2026-07: stage 7
 (Helmholtz single-layer exterior solve, 3-way validated: analytic /
-this repo / ngsolve.bem). A full vector transmission SOLVE (eddy-current
-FEM/BEM with the vector Calderon operators) is intentionally beyond this
-teaching lane.
+this repo / ngsolve.bem), stage 8 (sonic-crystal chain, 4-leg incl. an
+NGSolve volume-FEM ABC leg; free-space chain shows NO Bragg gap), and
+stage 10 (the coupled acoustic FEM/BEM transmission solve, pure MATLAB,
+3 gated cases). A full vector transmission SOLVE (eddy-current FEM/BEM
+with the vector Calderon operators) is intentionally beyond this teaching
+lane.
 
 ## Scope
 
@@ -264,6 +267,33 @@ See `READABLE_CLASS_STYLE.md`.
    configuration where the COMSOL "Sonic Crystal" class stop band
    actually exists. MATLAB side optionally mirrors the unit cell with
    H1Space + periodic trace constraints.
+
+10. Coupled acoustic FEM/BEM transmission (pure MATLAB), landed 2026-07:
+    - the Helmholtz double layer closed the operator set:
+      K_k = K_0 (analytic panels) + smooth base*(exp(z)(1-z)-1)
+      correction via HelmholtzKernel SourceNormals (which already carried
+      the split); sphere gates K_k[Y_l] = 1/2 + 1i k^2 j_l(k) h_l'(k) to
+      3-5e-3 (k=0.5) / 2-3e-2 (k=2), k->0 = Laplace K to 5e-28
+    - femBemCoupledSolve gained Wavenumber / InteriorWavenumber /
+      DensityRatio / IncidentAmplitude: FEM row
+      (1/rho1)(A - k1^2 Mv) u - T'M sigma = F + T'G_inc, BIE row
+      (1/2 M - K_k)Tu + V_k sigma = (1/2 M - K_k) g_inc, exterior
+      representation -S_k + D_k. NO absorbing boundary anywhere - the BEM
+      row is the exact radiation condition (the stage-8 FEM leg's ABC
+      cost 4-7%; here the same physics needs none)
+    - three gated cases (fine sphere -> finer unit_ball_maxh018, so the
+      P1 (k h)^2 resolution limit is a locked CONVERGENCE assertion):
+      (1) k->0 regression vs the verified Laplace coupled solve (1e-9);
+      (2) acoustic invisibility k1=k0, rho1=rho0 - the exact null gate
+      (interior == p_inc, u_s == 0): 4.1e-2/2.6e-2 -> 1.3e-2/7.8e-3;
+      (3) Anderson fluid sphere c1/c0=0.7, rho1/rho0=1.2 vs the
+      partial-wave series: interior 13% -> 4.4%, probes 22% -> 7.3%
+    - fluidSphereScattering lesson: the naive per-mode 2x2 transmission
+      match is catastrophically ill-conditioned at high l (RCOND 1e-23,
+      h_l huge vs j_l tiny) - eliminate through the interior
+      log-derivative so the invisible case gives A_l = 0 EXACTLY; and the
+      series term count must key on the FARTHEST evaluation point
+      (k0 * r_max), not the sphere radius
 
 ## Gypsilab hmx performance expectation
 
