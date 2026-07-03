@@ -17,6 +17,7 @@ testFiles = [
     fullfile(repoRoot, "tests", "testSonicCrystalChain.m")
     fullfile(repoRoot, "tests", "testDuctBandGap.m")
     fullfile(repoRoot, "tests", "testAcousticFocusAdjoint.m")
+    fullfile(repoRoot, "tests", "testAcousticRadiationForce.m")
     fullfile(repoRoot, "tests", "testRwgVectorCoupling.m")
     fullfile(repoRoot, "tests", "testHMatrix.m")
     fullfile(repoRoot, "tests", "testAcoustics.m")

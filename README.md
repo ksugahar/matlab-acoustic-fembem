@@ -325,11 +325,46 @@ energy (the wavefront-synthesis proof). The objective is non-holomorphic
 `dJ/dconj(p) = 2 u conj(w)` - NOT `2 conj(u) w` (a sign trap that a
 near-zero starting field hides and a nonzero start exposes).
 
-This is the seed of acoustic radiation-force / thrust design: swap the
-intensity objective for the net radiation force (the Brillouin
-radiation-stress surface integral, with King's analytic radiation
-pressure as the gate) and the same adjoint gives dF/d(phases) for
-wavefront-synthesised propulsion - the declared next increment.
+This is the seed of acoustic radiation-force / thrust design: the
+intensity objective becomes the net radiation force (below), and the same
+adjoint gives dF/d(phases) for wavefront-synthesised propulsion.
+
+## Acoustic Radiation Force (ultrasonic thrust / manipulation)
+
+`acousticRadiationForce` computes the net time-averaged force on a
+scatterer - the SECOND-order functional of the linear field, as the
+closed-surface integral of the Brillouin radiation-stress tensor over a
+control sphere:
+
+```matlab
+sol = rigidScatteringSolve(surface, "Wavenumber", 2.0, "QuadratureOrder", 7);
+pField = @(X) exp(1i*2*X(:,3)) + doubleLayerPotentialMatrix(surface, X, 2, 7) * sol.trace;
+res = acousticRadiationForce(pField, 2.0);
+res.force            % 1x3 net force; res.forceFunction = Y_p
+```
+
+The same post-processor takes the analytic partial-wave series OR the BEM
+total field (geometry-general). Gated the formula-free way
+(`tests/testAcousticRadiationForce.m`): the force is INDEPENDENT of the
+control radius to ~1e-10 (the tensor is divergence-free in the source-free
+fluid - the primary correctness gate, no external formula needed), pushes
+downstream (F_z > 0), is axisymmetric, and gives `Y_p(kR=2) = 0.752`
+(King 1934); the BEM force matches the series to ~5% (faceting).
+
+Physical, air @ 40 kHz (c = 343 m/s, rho = 1.2, lambda = 8.58 mm): the
+dimensionless kR = 2 is a 2.73 mm sphere, and
+`F_z = Y_p * pi * Rs^2 * <E>` with `<E> = p_rms^2/(rho c^2)`:
+
+| SPL | p (Pa) | force on Rs = 2.73 mm |
+|-----|--------|-----------------------|
+| 120 dB | 28 | 0.05 uN |
+| 140 dB | 283 | 5 uN |
+| 160 dB | 2828 | 0.5 mN |
+
+That is the acoustic-levitation / micro-manipulation regime (a mm bead's
+weight is ~10 uN, reached near 150 dB - consistent with real 40 kHz
+levitator arrays). Next: feed this force as the objective to the adjoint
+above for dF/d(phases) - wavefront-synthesised thrust design.
 
 ## H-matrix Teaching Path
 

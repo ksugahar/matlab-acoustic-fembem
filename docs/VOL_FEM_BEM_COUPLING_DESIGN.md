@@ -296,10 +296,34 @@ See `READABLE_CLASS_STYLE.md`.
    `dJ/dconj(p) = 2 u conj(w)`, not `2 conj(u) w`; a near-zero start hides
    the flip (any step raises |u|^2), a nonzero start exposes it, and the
    adjoint-vs-FD gate on the real/imag gradients catches it regardless.
-   NEXT INCREMENT (declared): swap the intensity objective for the net
-   acoustic radiation force (Brillouin radiation-stress surface integral,
-   gated by King's analytic radiation pressure) so the same adjoint yields
-   dF/d(phases) for wavefront-synthesised thrust.
+   The intensity objective becomes the net radiation force (stage 13); the
+   same adjoint then yields dF/d(phases) for wavefront-synthesised thrust.
+
+13. Acoustic radiation force (ultrasonic thrust / manipulation), landed
+   2026-07: acousticRadiationForce computes the net time-averaged force -
+   the SECOND-order functional of the linear field - as the control-sphere
+   integral of the Brillouin radiation-stress tensor
+   T_ij = [|p|^2/(4 rho c^2) - rho|v|^2/4] delta_ij + (rho/2) Re[v_i v_j*],
+   v = grad p/(i omega rho), F = -oint T.n dS. The same post-processor
+   takes the analytic series OR the BEM total field.
+   - GATED formula-free: F is INDEPENDENT of the control radius to ~1e-10
+     (T is divergence-free in the source-free fluid - the primary gate, no
+     external formula), F_z > 0 (downstream), axisymmetric, Y_p(kR=2) =
+     0.752 (King 1934); BEM force matches the series to ~5% (faceting).
+   - Reynolds-stress SIGN was the bug the radius-independence gate caught:
+     the divergence-free tensor has +(rho/2)Re[v_i v_j*], not minus (a
+     minus gave control-radius spread of 400% incl. a sign flip; the
+     axisymmetry gate passed either way, only radius-independence exposed
+     it - lock the tensor by a formula-free consistency gate, not by a
+     remembered sign).
+   - PHYSICAL air @ 40 kHz (lambda 8.58 mm; kR = 2 <-> Rs = 2.73 mm):
+     F_z = Y_p pi Rs^2 <E>, <E> = p_rms^2/(rho c^2): 120 dB -> 0.05 uN,
+     140 dB -> 5 uN, 160 dB -> 0.5 mN - the acoustic-levitation /
+     micro-manipulation regime (mm-bead weight ~10 uN near 150 dB).
+   NEXT INCREMENT (declared): the adjoint dF/d(phases) - feed this force as
+   the objective to the acousticFocusAdjoint machinery (the force is a
+   quadratic form in the surface trace t, so the same one-adjoint-solve
+   reverse mode applies) for wavefront-synthesised thrust optimization.
 
 11. Rigid scattering + irregular frequencies + CHIEF, landed 2026-07:
    - total-field equation (1/2 M - K_k) t = M g_inc
