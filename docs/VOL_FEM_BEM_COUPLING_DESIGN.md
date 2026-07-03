@@ -130,6 +130,13 @@ See `READABLE_CLASS_STYLE.md`.
 4. Exterior Laplace sphere:
    - capacitance or Dirichlet-to-Neumann map
    - compare Gypsilab dense BEM, Gypsilab hmx BEM, and radia-ngsolve
+   - landed 2026-07: Galerkin first-kind solve `singleLayerDirichletSolve`
+     over `GalerkinSingleLayer` (test-side Gauss quadrature + all-pairs
+     analytic Laplace panels `laplacePanelIntegrals` + quadrature for the
+     smooth Helmholtz correction). Coarse unit sphere: C = 12.205 vs
+     4*pi (geometry-faceting-dominated, -2.9%); same-mesh cross-check vs
+     real Gypsilab integral+regularize: operator 1.1e-4, capacitance
+     1.4e-5 (`validation/verifyGalerkinAgainstGypsilab.m`)
 
 5. FEM/BEM coupled scalar open-boundary solve:
    - interior finite domain with exterior BEM boundary

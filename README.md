@@ -69,9 +69,28 @@ sol.checks
 
 The test suite locks the P1 patch test: for constant coefficient and linear
 boundary data the discrete solution reproduces the linear potential exactly
-(1e-12). The exterior-BEM and coupled FEM/BEM rungs of the ladder
-(`docs/VOL_FEM_BEM_COUPLING_DESIGN.md`, stages 4-5) are still ahead and need
-the singular-quadrature decision before they can be honest.
+(1e-12).
+
+The exterior-BEM rung (ladder stage 4) is the Galerkin single-layer solve:
+
+```matlab
+mesh = VolMesh("fixtures/mesh_topology/unit_sphere_coarse.vol");
+surface = mesh.boundary();
+sol = singleLayerDirichletSolve(surface, ones(size(surface.vtx, 1), 1));
+sol.totalCharge          % capacitance for g = 1: 12.205 vs 4*pi = 12.566
+u = sol.potentialAt([3 0 0]);
+```
+
+`GalerkinSingleLayer` follows the real Gypsilab `integral + regularize`
+split: the test integral uses Gauss quadrature (`SurfaceQuadrature`, 1/3/7
+points), the singular Laplace kernel is integrated analytically over every
+source triangle (`laplacePanelIntegrals`, Wilton-style closed forms verified
+to machine precision against subdivision and polar references), and the
+smooth low-frequency-stable Helmholtz correction goes through plain
+quadrature. Cross-checked against the real Gypsilab on the same sphere mesh:
+operator relative difference 1.1e-4, capacitance relative difference 1.4e-5
+(`validation/verifyGalerkinAgainstGypsilab.m`). The remaining ladder rung is
+the coupled FEM/BEM scalar open-boundary solve (stage 5).
 
 ## H-matrix Teaching Path
 
