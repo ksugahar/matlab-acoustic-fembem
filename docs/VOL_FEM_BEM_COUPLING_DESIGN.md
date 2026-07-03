@@ -320,10 +320,38 @@ See `READABLE_CLASS_STYLE.md`.
      F_z = Y_p pi Rs^2 <E>, <E> = p_rms^2/(rho c^2): 120 dB -> 0.05 uN,
      140 dB -> 5 uN, 160 dB -> 0.5 mN - the acoustic-levitation /
      micro-manipulation regime (mm-bead weight ~10 uN near 150 dB).
-   NEXT INCREMENT (declared): the adjoint dF/d(phases) - feed this force as
-   the objective to the acousticFocusAdjoint machinery (the force is a
-   quadratic form in the surface trace t, so the same one-adjoint-solve
-   reverse mode applies) for wavefront-synthesised thrust optimization.
+   Adjoint dF/d(phases) - feed this force as the objective to the
+   acousticFocusAdjoint machinery (the force is a quadratic form in the
+   surface trace t, so the same one-adjoint-solve reverse mode applies)
+   for wavefront-synthesised thrust optimization.
+
+14a. Elastic sphere scattering - the FSI (fluid-structure) analytic
+   reference, landed 2026-07: elasticSphereScattering is the Faran (1951)
+   solid elastic sphere (interior compressional + shear potentials; 3x3
+   boundary system - radial displacement continuity, radial stress =
+   -pressure, zero shear stress). This is the reference for the acoustic
+   fluid-structure INTERACTION case, where FEM/BEM coupling truly earns
+   its keep: an elastic scatterer has INTERNAL resonances (compressional +
+   shear) that rigid/soft spheres cannot show.
+   - VALIDATED against two INDEPENDENT references: ShearSpeed -> 0
+     reproduces the Anderson fluid sphere to 1.3e-10 (exact fluid limit),
+     a stiff/heavy solid reproduces the rigid sphere (3.7e-3), and the 3x3
+     with shear converges to the 2x2 fluid limit (1.3e-3).
+   - SIGN BUG found + fixed: the radial-stress boundary term is
+     -lambda kL^2 A j_l(kL R), NOT + (sigma_rr = -p). The flipped sign
+     PASSED the stiff->rigid limit but failed mu->0 by 20-70% - a
+     self-consistent limit (vs my own rigid reimpl) is NOT enough; only
+     the INDEPENDENT Anderson reference exposed it. Gate on both.
+   - Elastic radiation force (acousticRadiationForce on the elastic field):
+     a lucite-like sphere (rho 1.15, cL 1.6, cT 0.9 vs fluid) has Y_p(kR)
+     rising to 2.83 at kR = 3 (an internal resonance well above the rigid
+     ~0.75 plateau) then falling, control-radius independent to 1e-10.
+   NEXT INCREMENT (declared): the FSI COUPLED SOLVE - a VectorH1 elasticity
+   FEM interior coupled to the acoustic BEM exterior through the interface
+   conditions (fluid pressure <-> solid normal traction, fluid normal
+   velocity <-> solid normal displacement), gated against this analytic.
+   That is the genuine FEM/BEM coupling for acoustics; the scalar
+   femBemCoupledSolve is its scalar precursor.
 
 11. Rigid scattering + irregular frequencies + CHIEF, landed 2026-07:
    - total-field equation (1/2 M - K_k) t = M g_inc

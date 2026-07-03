@@ -363,8 +363,32 @@ dimensionless kR = 2 is a 2.73 mm sphere, and
 
 That is the acoustic-levitation / micro-manipulation regime (a mm bead's
 weight is ~10 uN, reached near 150 dB - consistent with real 40 kHz
-levitator arrays). Next: feed this force as the objective to the adjoint
-above for dF/d(phases) - wavefront-synthesised thrust design.
+levitator arrays). Feed this force as the objective to the adjoint above
+for dF/d(phases) - wavefront-synthesised thrust design.
+
+## Elastic Sphere / Fluid-Structure Reference (FSI)
+
+`elasticSphereScattering` is the Faran (1951) solid ELASTIC sphere - the
+analytic reference for the acoustic fluid-structure INTERACTION case,
+where FEM/BEM coupling truly earns its keep (an elastic scatterer has
+internal compressional + shear resonances that rigid/soft spheres miss):
+
+```matlab
+ref = elasticSphereScattering(k, 1.0, points, ...
+    "LongitudinalSpeed", 1.6, "ShearSpeed", 0.9, "DensityRatio", 1.15);
+Y = acousticRadiationForce(@(X) elasticSphereScattering(k,1,X,...).total, k);
+```
+
+Validated (`tests/testElasticSphereScattering.m`) against TWO independent
+references: ShearSpeed -> 0 reproduces the Anderson fluid sphere to
+1.3e-10, a stiff/heavy solid reproduces the rigid sphere. A sign bug in
+the radial-stress boundary term passed the stiff->rigid limit but failed
+the fluid limit by 20-70% - only the independent Anderson reference
+exposed it (gate on both). The elastic radiation force shows the
+resonance: a lucite-like sphere has Y_p(kR) peaking at 2.83 near kR = 3
+(well above the rigid ~0.75), the internal resonance rigid/soft cannot
+produce. The genuine FEM/BEM FSI coupled solve (VectorH1 elasticity FEM +
+acoustic BEM) is the declared next increment, gated against this analytic.
 
 ## H-matrix Teaching Path
 
