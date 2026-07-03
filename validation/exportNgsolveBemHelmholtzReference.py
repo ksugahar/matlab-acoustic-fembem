@@ -97,8 +97,17 @@ def export(vol_file, out_mat, wavenumbers=(0.5, 2.0), intorder=16, check_intorde
             case["V"] = Vd
             case["intorderConvergenceV"] = (
                 np.linalg.norm(Vc - Vd) / np.linalg.norm(Vd))
+            Kc = np.array(bem.HelmholtzDoubleLayerPotentialOperator(
+                fes, fes, kappa=k, intorder=check_intorder).mat.ToDense(), copy=True)
+            Kop = bem.HelmholtzDoubleLayerPotentialOperator(
+                fes, fes, kappa=k, intorder=intorder)
+            Kd = np.array(Kop.mat.ToDense(), copy=True)
+            case["K"] = Kd
+            case["intorderConvergenceK"] = (
+                np.linalg.norm(Kc - Kd) / np.linalg.norm(Kd))
             print(f"  k={k}: assembled in {time.perf_counter() - t0:.1f}s, "
-                  f"12-vs-16 {case['intorderConvergenceV']:.3e}")
+                  f"12-vs-16 V {case['intorderConvergenceV']:.3e} "
+                  f"K {case['intorderConvergenceK']:.3e}")
 
             Vb = Vd[np.ix_(bndmask, bndmask)]
             Mb = M[np.ix_(bndmask, bndmask)]
@@ -114,6 +123,20 @@ def export(vol_file, out_mat, wavenumbers=(0.5, 2.0), intorder=16, check_intorde
                 case[f"g{tag}"] = g
                 case[f"q{tag}"] = q
                 case[f"probe{tag}"] = probe_potential(pot, PROBE_POINTS)
+
+            # ngbem-side RIGID solve, total-field K equation:
+            # (1/2 M - K) t = M g_inc, scattered probes via the
+            # double-layer potential of t (independent of the MATLAB path)
+            Kb = Kd[np.ix_(bndmask, bndmask)]
+            g_inc = np.where(bndmask, np.exp(1j * k * vtx[:, 2]), 0.0)
+            t_rig = np.zeros(fes.ndof, dtype=complex)
+            t_rig[bndmask] = np.linalg.solve(
+                0.5 * Mb - Kb, Mb @ g_inc[bndmask])
+            gf = GridFunction(fes)
+            gf.vec.FV().NumPy()[:] = t_rig
+            case["tRigid"] = t_rig
+            case["probeRigidScattered"] = probe_potential(
+                Kop.GetPotential(gf), PROBE_POINTS)
             data["case_k" + str(k).replace(".", "p")] = case
 
     savemat(out_mat, data, do_compression=True)

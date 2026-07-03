@@ -261,12 +261,39 @@ See `READABLE_CLASS_STYLE.md`.
      broadband instead of developing a lattice gap; free-space leakage
      suppresses the Bragg mechanism a duct would confine.
 
-9. Sonic-crystal band gap (declared, not started): Bloch unit cell
-   eigenvalue FEM (NGSolve Periodic; empty-lattice analytic gate) + duct
-   transmission through N cells vs the band diagram - the confined
-   configuration where the COMSOL "Sonic Crystal" class stop band
-   actually exists. MATLAB side optionally mirrors the unit cell with
-   H1Space + periodic trace constraints.
+9. Sonic-crystal band gap, landed 2026-07 (NGSolve FEM reference,
+   committed .mat, locked by tests/testDuctBandGap.m):
+   - duct unit cell a = 1.0, d = 1.5, sound-soft sphere R = 0.3 (the
+     stage-8 chain family), OCC z-periodic identification + Floquet
+     phase exp(-i q d), order-2 complex H1, ArnoldiSolver
+   - GATES: empty-lattice bands match the analytic duct dispersion
+     (incl. transverse families) to 2.0e-4; the empty duct with one-way
+     port Robin conditions is transparent to ~1e-4
+   - RESULT: band 1 [2.31, 2.52], Bragg gap [2.52, 3.65]; finite 5-cell
+     transmission shows stop (T ~ 1e-4 below band 1 - soft inclusions
+     cut off the long-wavelength plane mode) / pass (T up to 0.27) /
+     stop (T ~ 1e-3 in the gap), aligned with the Bloch bands
+     (contrast > 100). Confinement creates what stage 8 proved free
+     space cannot.
+   - bug class caught en route (recorded): OCC face classification by
+     AREA thresholds silently turned the duct into a Dirichlet cavity -
+     classify geometrically (face center on a wall plane), and the
+     empty-lattice gate is what caught it.
+
+11. Rigid scattering + irregular frequencies + CHIEF, landed 2026-07:
+   - total-field equation (1/2 M - K_k) t = M g_inc
+     (rigidScatteringSolve; mode-verified against the locked
+     conventions: (1/2 - K_l) t_l = a_l j_l with t_l = a_l (i/x^2)/h_l')
+   - ngsolve.bem K_k added to the sphere reference artifacts:
+     operator 1.8-3.1e-3 (conjugate 0.12-1.4), ngbem-side rigid solve
+     cross-code trace 4e-6..1e-4 (second-kind conditioning visible);
+     both codes 3.8-13% from the rigid-sphere series (shared faceting)
+   - irregular-frequency lesson LOCKED: at kR = pi the solution is 96%
+     wrong while cond(A) ~ 29 stays benign (the faceted eigenvalue
+     shifts) - only the analytic gate sees it; CHIEF interior
+     null-field rows restore 8.0e-2. Burton-Miller (hypersingular)
+     remains the declared production alternative, out of the teaching
+     lane.
 
 10. Coupled acoustic FEM/BEM transmission (pure MATLAB), landed 2026-07:
     - the Helmholtz double layer closed the operator set:

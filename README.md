@@ -217,6 +217,46 @@ four legs agree. The band gap of the COMSOL "Sonic Crystal" class model
 requires duct confinement / transverse periodicity; the Bloch unit cell +
 duct transmission FEM is the declared next rung.
 
+### Rigid Scattering, Irregular Frequencies, CHIEF
+
+Sound-hard scattering uses the total-field double-layer equation
+`(1/2 M - K_k) t = M g_inc` (`rigidScatteringSolve`; the representation
+loses its single-layer term because dp/dn = 0, so the exterior field is
+just `u_inc + D_k[t]`). Cross-checked at the operator level (our K_k vs
+ngsolve.bem: 1.8-3.1e-3, conjugate 0.12-1.4) and at the solve level -
+the second-kind cross-code agreement (trace 4e-6..1e-4) is 1-2 orders
+TIGHTER than the first-kind V solves, the conditioning lesson made
+visible. Both codes sit 3.8-13% from the rigid-sphere series (shared
+faceting).
+
+The taught trap, locked as a test: at kR = pi (first interior Dirichlet
+eigenvalue) the equation is singular - the DISCRETE condition number
+stays benign (~29, the faceted eigenvalue shifts) while the answer is
+~100% wrong; only the analytic gate sees it. CHIEF (Schenck 1968:
+interior null-field rows at jittered interior points, least squares)
+restores regular-class accuracy (0.96 -> 0.080); Burton-Miller is the
+production alternative (hypersingular operator - intentionally beyond
+this lane, see NGSolve.BEM).
+
+### Duct Band Gap (stage 9: the confinement experiment)
+
+The stage-8 finding said free space cannot make the gap; the duct does.
+`validation/exportNgsolveDuctBandReference.py` (NGSolve FEM, committed
+.mat, locked by `tests/testDuctBandGap.m`) puts the SAME sound-soft
+sphere family (R = 0.3, d = 1.5) in a rigid duct (a = 1.0, single-mode
+below pi):
+
+- Bloch bands of the unit cell (Floquet phase, order 2; empty-lattice
+  analytic gate 2.0e-4): band 1 [2.31, 2.52], gap [2.52, 3.65];
+- transmission through the finite 5-cell crystal (one-way ports; empty
+  duct transparent to 1e-4): stop (T ~ 1e-4 below band 1, soft
+  inclusions cut off long wavelengths) / pass (T up to 0.27 inside
+  band 1) / stop (T ~ 1e-3 in the Bragg gap) - aligned with the bands,
+  contrast ratio > 100.
+
+Free space (stage 8, 4-leg): no gap. Duct (stage 9): full band
+structure. That contrast is the sonic-crystal teaching story.
+
 ## Coupled Acoustic FEM/BEM (pure MATLAB, 3 gated cases)
 
 The Johnson-Nedelec solve extends to the acoustic TRANSMISSION problem:

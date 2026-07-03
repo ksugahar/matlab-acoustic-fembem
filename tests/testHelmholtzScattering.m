@@ -114,6 +114,44 @@ verifyLessThan(testCase, ...
 end
 
 
+function testRigidScatteringAndIrregularFrequencies(testCase)
+% sound-hard scattering via the total-field K equation
+% (1/2 M - K_k) t = M g_inc, and the classic irregular-frequency lesson:
+% at kR = pi (first interior Dirichlet eigenvalue) the equation is
+% singular; the DISCRETE condition number stays benign (~29, the faceted
+% eigenvalue shifts) while the solution is ~100% wrong - only the
+% analytic gate sees it. CHIEF (interior null-field rows, least squares)
+% restores regular-class accuracy. measured (fine, gss 7):
+% k=2 direct 5.65e-2; k=pi direct 9.57e-1 -> chief 8.04e-2.
+surface = fixtureSurface("unit_sphere_fine.vol");
+probes = [2 0 0; 0 0 3; -1.2 1.6 0];
+
+refReg = rigidSphereScattering(2.0, 1.0, probes);
+verifyLessThan(testCase, refReg.truncationTail, 1e-12);
+solReg = rigidScatteringSolve(surface, "Wavenumber", 2.0, ...
+    "QuadratureOrder", 7);
+verifyEqual(testCase, solReg.status, "ok");
+verifyEqual(testCase, solReg.kind, ...
+    "rigid_scattering_total_field_double_layer_solve");
+eReg = max(abs(solReg.scatteredAt(probes) - refReg.scattered) ...
+    ./ abs(refReg.scattered));
+verifyLessThan(testCase, eReg, 0.08);
+
+refIrr = rigidSphereScattering(pi, 1.0, probes);
+solDir = rigidScatteringSolve(surface, "Wavenumber", pi, ...
+    "QuadratureOrder", 7);
+eDir = max(abs(solDir.scatteredAt(probes) - refIrr.scattered) ...
+    ./ abs(refIrr.scattered));
+verifyGreaterThan(testCase, eDir, 0.5);           % breakdown LOCKED
+verifyLessThan(testCase, solDir.conditionNumber, 100);   % ...while cond benign
+solChf = rigidScatteringSolve(surface, "Wavenumber", pi, ...
+    "QuadratureOrder", 7, "Method", "chief");
+eChf = max(abs(solChf.scatteredAt(probes) - refIrr.scattered) ...
+    ./ abs(refIrr.scattered));
+verifyLessThan(testCase, eChf, 0.12);             % CHIEF rescues
+end
+
+
 function testThreeWayNgsolveCrossCheck(testCase)
 % standing regression from the committed ngbem Helmholtz .mat artifacts:
 % operator, density, and probe-point agreement between the two codes must
@@ -125,9 +163,13 @@ for name = ["unit_sphere_coarse", "unit_sphere_fine"]
     for c = 1:numel(report.cases)
         r = report.cases(c);
         verifyTrue(testCase, r.checks.conventionPinned);
+        verifyTrue(testCase, r.checks.doubleLayerConventionPinned);
         verifyLessThan(testCase, r.operatorRelDiff, 2e-2);
+        verifyLessThan(testCase, r.doubleLayerRelDiff, 1e-2);
         verifyLessThan(testCase, r.pointSourceProbeCrossCode, 2e-2);
         verifyLessThan(testCase, r.planeWaveProbeCrossCode, 2e-2);
+        verifyLessThan(testCase, r.rigidTraceCrossCode, 1e-3);
+        verifyLessThan(testCase, r.rigidProbeCrossCode, 1e-3);
         verifyLessThan(testCase, r.referenceIntorderConvergenceV, 1e-6);
     end
 end

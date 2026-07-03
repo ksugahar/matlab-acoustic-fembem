@@ -15,6 +15,7 @@ testFiles = [
     fullfile(repoRoot, "tests", "testNgsolveBemCrossCheck.m")
     fullfile(repoRoot, "tests", "testHelmholtzScattering.m")
     fullfile(repoRoot, "tests", "testSonicCrystalChain.m")
+    fullfile(repoRoot, "tests", "testDuctBandGap.m")
     fullfile(repoRoot, "tests", "testRwgVectorCoupling.m")
     fullfile(repoRoot, "tests", "testHMatrix.m")
     fullfile(repoRoot, "tests", "testAcoustics.m")
