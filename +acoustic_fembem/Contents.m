@@ -10,6 +10,8 @@
 %   fembem_knowledge_tool     MCP custom-tool entry point: print one topic.
 %   repository_health         Lightweight repository and MCP extension health.
 %   check_repository_health   MCP custom-tool entry point: print JSON verdict.
+%   vol_mesh_summary          Summarize .vol mesh metadata and viewer guidance.
+%   check_vol_mesh_summary    MCP custom-tool entry point: print JSON summary.
 %   fembem_acoustic_gate      Run a Gypsilab acoustic solve vs the analytic
 %                             series; return a struct verdict.
 %   check_fembem_acoustic_gate  MCP custom-tool entry point: print JSON verdict.

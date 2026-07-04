@@ -109,7 +109,7 @@
     {
       "name": "acoustic_fembem_knowledge",
       "title": "Acoustic FEM/BEM Knowledge",
-      "description": "Returns one topic of the integrated acoustic FEM/BEM knowledge (the Gypsilab readable lane): overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics (the interface-is-the-battlefield coupling-difficulty synthesis, incl. non-conforming mesh coupling / mortar / supermesh), acoustic, sonic_crystal, adjoint_ad, pde_vol_bridge, radia_ngsolve_crossval, validation_discipline, optimization_link, all.",
+      "description": "Returns one topic of the integrated acoustic FEM/BEM knowledge (the Gypsilab readable lane): overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics (the interface-is-the-battlefield coupling-difficulty synthesis, incl. non-conforming mesh coupling / mortar / supermesh), acoustic, sonic_crystal, adjoint_ad, vol_visualization, pde_vol_bridge, radia_ngsolve_crossval, validation_discipline, optimization_link, all.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -119,6 +119,27 @@
           }
         },
         "required": ["topic"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "acoustic_fembem_vol_mesh_summary",
+      "title": "Acoustic FEM/BEM .vol Mesh Summary",
+      "description": "Summarizes a first-order Netgen .vol mesh for MCP/LLM preflight: point/triangle/tet counts, boundary orientation, bounding box, source digest, and viewer guidance. The path may be absolute, repo-relative, or a fixture file name under fixtures/mesh_topology.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "vol_path": {
+            "type": "string",
+            "description": "Absolute path, repository-relative path, or fixture file name such as unit_sphere_coarse.vol."
+          }
+        },
+        "required": ["vol_path"]
       },
       "annotations": {
         "readOnlyHint": true,
@@ -183,6 +204,14 @@
       "input": {
         "order": [
           "topic"
+        ]
+      }
+    },
+    "acoustic_fembem_vol_mesh_summary": {
+      "function": "acoustic_fembem.check_vol_mesh_summary",
+      "input": {
+        "order": [
+          "vol_path"
         ]
       }
     },

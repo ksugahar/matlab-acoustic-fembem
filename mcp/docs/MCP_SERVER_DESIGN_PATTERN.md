@@ -19,6 +19,7 @@ functions plus extension JSON.
 - `acoustic_fembem_acoustic_gate`
 - `acoustic_fembem_crossval_gate`
 - `acoustic_fembem_knowledge`
+- `acoustic_fembem_vol_mesh_summary`
 - `acoustic_fembem_repository_health`
 
 ## Add A Tool

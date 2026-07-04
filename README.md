@@ -91,11 +91,26 @@ The mesh handoff is Netgen `.vol`.
 This strict policy keeps the MATLAB teaching layer simple and makes trace
 maps between volume and boundary spaces easy to inspect.
 
+## Mesh Visualization
+
+Netgen is the preferred interactive viewer for native `.vol` files.  MATLAB
+keeps the lightweight notebook and MCP preflight path:
+
+```matlab
+plotVolMesh(fullfile(repoRoot, "fixtures", "mesh_topology", "unit_sphere_coarse.vol"));
+summary = acoustic_fembem.vol_mesh_summary("unit_sphere_coarse.vol");
+```
+
+Use Netgen when you need to inspect the native mesh GUI, boundary labels, and
+volume cells interactively.  Use `plotVolMesh` when a notebook only needs a
+quick boundary preview, and use the MCP tool `acoustic_fembem_vol_mesh_summary`
+for headless counts, bounding boxes, orientation, and viewer guidance.
+
 ## Repository Layout
 
 ```text
 matlab_api/
-  mesh/      .vol parser, PDE Toolbox exporter, VolMesh, SurfaceMesh
+  mesh/      .vol parser, PDE Toolbox exporter, preview plotter, VolMesh
   fem/       H1Space, Nedelec0Space
   bem/       SurfaceP1Space, RwgSpace, TraceOperator
   kernel/    HelmholtzKernel

@@ -38,6 +38,27 @@ verifySubstring(testCase, body, ".vol");
 end
 
 
+function testKnowledgeIncludesVolVisualizationTopic(testCase)
+body = acoustic_fembem.fembem_knowledge("vol_visualization");
+verifyGreaterThan(testCase, strlength(body), 300);
+verifySubstring(testCase, body, "Netgen");
+verifySubstring(testCase, body, "plotVolMesh");
+verifySubstring(testCase, body, "acoustic_fembem_vol_mesh_summary");
+end
+
+
+function testVolMeshSummaryWrapper(testCase)
+out = evalc("acoustic_fembem.check_vol_mesh_summary(""unit_sphere_coarse.vol"")");
+decoded = jsondecode(out);
+verifyTrue(testCase, decoded.ok);
+verifyEqual(testCase, string(decoded.tool), "acoustic_fembem_vol_mesh_summary");
+verifyEqual(testCase, string(decoded.recommended_gui_viewer), "Netgen/native .vol viewer");
+verifyGreaterThan(testCase, decoded.points, 0);
+verifyGreaterThan(testCase, decoded.triangles, 0);
+verifyGreaterThan(testCase, decoded.tets, 0);
+end
+
+
 function testRepositoryHealthWrapper(testCase)
 out = evalc("acoustic_fembem.check_repository_health()");
 decoded = jsondecode(out);

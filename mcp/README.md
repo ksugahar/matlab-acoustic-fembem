@@ -18,6 +18,7 @@ repository:
 | `acoustic_fembem_acoustic_gate` | `acoustic_fembem.check_fembem_acoustic_gate` | Run acoustic FEM/BEM gates against analytic references |
 | `acoustic_fembem_crossval_gate` | `acoustic_fembem.check_fembem_crossval_gate` | Run `.vol`-backed cross-validation against radia-ngsolve/NGSolve references |
 | `acoustic_fembem_knowledge` | `acoustic_fembem.fembem_knowledge_tool` | Serve compact acoustic FEM/BEM teaching knowledge |
+| `acoustic_fembem_vol_mesh_summary` | `acoustic_fembem.check_vol_mesh_summary` | Summarize `.vol` meshes and viewer guidance |
 | `acoustic_fembem_repository_health` | `acoustic_fembem.check_repository_health` | Pre-push health check for the integrated repo and MCP extension |
 
 The acoustic gate includes adjoint optimization cases:
@@ -26,8 +27,10 @@ The acoustic gate includes adjoint optimization cases:
 - `radiation_force`: acoustic radiation-force postprocess from the BEM field.
 - `thrust_adjoint`: elastic-bead force quadratic form and Wirtinger gradient.
 
-The knowledge tool includes `pde_vol_bridge`, which records the MATLAB PDE
-Toolbox `generateMesh` -> first-order Netgen `.vol` path for simple geometries.
+The knowledge tool includes `vol_visualization` and `pde_vol_bridge`.  The
+viewer policy is Netgen for native interactive `.vol` inspection, MATLAB
+`plotVolMesh` for notebook previews, and `acoustic_fembem_vol_mesh_summary` for
+LLM/headless preflight.
 
 ## Official Server
 

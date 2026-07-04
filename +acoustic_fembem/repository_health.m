@@ -33,6 +33,7 @@ requiredTools = [
     "acoustic_fembem_crossval_gate"
     "acoustic_fembem_knowledge"
     "acoustic_fembem_repository_health"
+    "acoustic_fembem_vol_mesh_summary"
 ];
 
 catalogCount = NaN;
@@ -66,6 +67,7 @@ checks.catalog_has_100_cases = catalogCount == 100;
 checks.catalog_verified = verifiedCount == 100;
 checks.vol_fixture_count_sufficient = numel(volFixtures) >= 10;
 checks.pde_vol_bridge_present = isfile(fullfile(root, "matlab_api", "mesh", "writePdeMeshVol.m"));
+checks.vol_plot_preview_present = isfile(fullfile(root, "matlab_api", "mesh", "plotVolMesh.m"));
 checks.old_repository_names_absent = isempty(oldNameHits);
 
 failed = failedCheckNames(checks);

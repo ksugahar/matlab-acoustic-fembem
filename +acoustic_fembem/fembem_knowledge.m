@@ -11,7 +11,8 @@ function text = fembem_knowledge(topic)
 % (acoustic_fembem.repository_root), exercised by the runnable acoustic_fembem.fembem_acoustic_gate.
 %
 % Topics: overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics,
-%         acoustic, sonic_crystal, adjoint_ad, pde_vol_bridge,
+%         acoustic, sonic_crystal, adjoint_ad, vol_visualization,
+%         pde_vol_bridge,
 %         radia_ngsolve_crossval, validation_discipline, optimization_link,
 %         all.
 
@@ -43,6 +44,8 @@ switch t
         text = RADIA_NGSOLVE_CROSSVAL;
     case {"pde_vol_bridge", "pde_toolbox", "generate_mesh", "matlab_mesh"}
         text = PDE_VOL_BRIDGE;
+    case {"vol_visualization", "visualization", "netgen_viewer", "vol_viewer"}
+        text = VOL_VISUALIZATION;
     case {"optimization_link", "optimization", "inverse", "design"}
         text = OPTIMIZATION_LINK;
     case {"multiphysics", "interface", "coupling_difficulty", ...
@@ -51,12 +54,12 @@ switch t
     case "all"
         text = strjoin([OVERVIEW, SPACES, GALERKIN_BEM, COUPLED_FEM_BEM, ...
             MULTIPHYSICS, ACOUSTIC, SONIC_CRYSTAL, ADJOINT_AD, ...
-            PDE_VOL_BRIDGE, RADIA_NGSOLVE_CROSSVAL, VALIDATION_DISCIPLINE, ...
-            OPTIMIZATION_LINK], [newline newline]);
+            VOL_VISUALIZATION, PDE_VOL_BRIDGE, RADIA_NGSOLVE_CROSSVAL, ...
+            VALIDATION_DISCIPLINE, OPTIMIZATION_LINK], [newline newline]);
     otherwise
         text = "Unknown topic '" + topic + "'. Available: overview, " + ...
             "spaces, galerkin_bem, coupled_fem_bem, multiphysics, acoustic, " + ...
-            "sonic_crystal, adjoint_ad, pde_vol_bridge, " + ...
+            "sonic_crystal, adjoint_ad, vol_visualization, pde_vol_bridge, " + ...
             "radia_ngsolve_crossval, validation_discipline, optimization_link, all.";
 end
 end
@@ -88,7 +91,7 @@ s = strjoin([
     " 11  rigid scattering + irregular frequencies + CHIEF"
     ""
     "Topics: spaces, galerkin_bem, coupled_fem_bem, multiphysics,"
-    "acoustic, sonic_crystal, pde_vol_bridge, radia_ngsolve_crossval,"
+    "acoustic, sonic_crystal, vol_visualization, pde_vol_bridge, radia_ngsolve_crossval,"
     "validation_discipline, optimization_link."
     ], newline);
 end
@@ -350,6 +353,31 @@ s = strjoin([
     "readVolTriTet. For very complex CAD, Cubit/Netgen remain better,"
     "but for teaching cubes, boxes, balls, and parameter sweeps, MATLAB"
     "alone can now create the solver-facing .vol input."
+    ], newline);
+end
+
+
+function s = VOL_VISUALIZATION()
+s = strjoin([
+    "# .vol visualization policy"
+    ""
+    "Best native GUI viewer: Netgen. The .vol file is Netgen's own mesh"
+    "handoff format, so Netgen is the most faithful place to inspect"
+    "surface triangles, volume tetrahedra, material labels, and boundary"
+    "names interactively."
+    ""
+    "MATLAB role: quick notebook preview and solver preflight."
+    "  plotVolMesh(""mesh.vol"")                 -> boundary triangle preview"
+    "  acoustic_fembem.vol_mesh_summary(""mesh.vol"") -> counts, bbox, labels"
+    ""
+    "Practical split:"
+    "  - GUI/user inspection: Netgen native .vol viewer."
+    "  - Notebook/documentation: plotVolMesh plus the summary JSON."
+    "  - LLM/headless preflight: acoustic_fembem_vol_mesh_summary."
+    ""
+    "Do not turn visualization into a hidden mesh conversion step. The"
+    "solver-facing contract remains first-order tri/tet .vol, and the"
+    "reader rejects quad/hex/wedge/pyramid/curved records fail-loud."
     ], newline);
 end
 
