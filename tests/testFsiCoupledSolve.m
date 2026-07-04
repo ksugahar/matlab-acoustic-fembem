@@ -66,3 +66,43 @@ verifyLessThan(testCase, errF, errC);          % refinement improves it
 verifyLessThan(testCase, errF, 0.20);          % P1-interior band (meas 0.17)
 verifyLessThan(testCase, errC / errF, 10);     % sane convergence factor
 end
+
+
+function testDtnStiffLimitReproducesRigidSphere(testCase)
+% the FAST spherical-DtN exterior (the Kelvin operator on the sphere) reproduces
+% the rigid sphere in the stiff limit, same as the dense-BEM exterior but with
+% NO dense Galerkin assembly. measured DtN 3.8e-3 (BEM leg 4.2e-3); the two
+% exterior legs agree to 7e-4 - the DtN is an exact, faster drop-in.
+k = 2.0;
+probes = [2 0 0; 0 0 3; -1.2 1.6 0];
+sol = fsiCoupledSolve(fixtureModel("unit_ball_maxh018.vol"), "Wavenumber", k, ...
+    "LongitudinalSpeed", 50, "ShearSpeed", 30, "DensityRatio", 100, ...
+    "ExteriorMethod", "dtn");
+verifyEqual(testCase, sol.status, "ok");
+verifyEqual(testCase, sol.exteriorMethod, "dtn");
+verifyTrue(testCase, sol.dtn.used);
+rigid = rigidSphereScattering(k, 1.0, probes);
+err = max(abs(sol.totalAt(probes) - rigid.total) ./ abs(rigid.total));
+verifyLessThan(testCase, err, 1e-2);
+end
+
+
+function testDtnElasticConvergesToAnalytic(testCase)
+% the spherical-DtN exterior converges to the analytic elastic sphere under
+% refinement, into the same P1-interior band as the dense-BEM leg (the DtN and
+% BEM legs agree ~1.3e-2). FAST - no dense Galerkin assembly. measured coarse
+% 0.51 -> fine 0.16 (BEM fine 0.167).
+k = 2.0;
+probes = [2 0 0; 0 0 3; -1.2 1.6 0];
+mat = {"LongitudinalSpeed", 1.6, "ShearSpeed", 0.9, "DensityRatio", 1.15};
+ref = elasticSphereScattering(k, 1.0, probes, mat{:}).total;
+solC = fsiCoupledSolve(fixtureModel("unit_sphere_fine.vol"), ...
+    "Wavenumber", k, mat{:}, "ExteriorMethod", "dtn");
+solF = fsiCoupledSolve(fixtureModel("unit_ball_maxh018.vol"), ...
+    "Wavenumber", k, mat{:}, "ExteriorMethod", "dtn");
+errC = max(abs(solC.totalAt(probes) - ref) ./ abs(ref));
+errF = max(abs(solF.totalAt(probes) - ref) ./ abs(ref));
+verifyEqual(testCase, solF.status, "ok");
+verifyLessThan(testCase, errF, errC);          % refinement improves it
+verifyLessThan(testCase, errF, 0.20);          % P1-interior band (meas 0.16)
+end

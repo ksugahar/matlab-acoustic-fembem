@@ -428,6 +428,38 @@ This is the acoustic analogue of the lab's core EM coupling problems
 boundary), where FEM handles the complex bounded interior and BEM (or the
 Kelvin transform / Radia integral method) handles the exact open boundary.
 
+### Spherical DtN Fast Path (the Kelvin operator on the sphere)
+
+When the acoustic truncation surface is a SPHERE, the exterior needs no dense
+Galerkin BEM at all: the exact spherical Helmholtz Dirichlet-to-Neumann map
+(`sphericalDtnOperator`) - the operator the Kelvin transformation, and its
+radiating extension (transformation-optics medium + matched HOIBC), represents
+on the sphere - imposes the radiation condition as a low-rank surface operator.
+
+```matlab
+sol = fsiCoupledSolve(model, "Wavenumber", 2.0, ..., "ExteriorMethod", "dtn");
+```
+
+The scattered field is a spherical-harmonic expansion `p_s = Phi c`
+(`Lambda_n = k h_n'(kR)/h_n(kR)`), so the exterior reduces to its `(N+1)^2`
+coefficients, the coupled system stays FULL RANK (a nodal low-rank DtN would
+leave `p_s` under-determined in the mesh null space), and the singular `N^2`
+Galerkin assembly is skipped entirely. Measured on the unit ball (kR = 2):
+
+- the DtN operator is EXACT per multipole - an INDEPENDENT point-source
+  Dirichlet->Neumann check gives 2.6e-5 at degree 10, converging
+  7e-3 / 1e-3 / 2e-4 / 3e-5 at degree 4 / 6 / 8 / 10 to the ~1e-5 mesh floor;
+- the coupled FSI field matches the rigid sphere in the stiff limit to
+  3.8e-3 (dense-BEM leg 4.2e-3; the DtN and BEM legs agree to 7e-4), and
+  converges to the elastic sphere in the same P1-interior band;
+- the dense order-7 Galerkin assembly (~85 s on the unit ball) is gone - the
+  DtN solve is sub-second (two orders of magnitude faster).
+
+This is the "Kelvin where Kelvin applies" rule: a sphere (or Kelvin-
+transformable) truncation gets the fast exact operator; a general radiator
+stays on the dense BEM. The path is FAIL-LOUD - `sphericalDtnOperator` raises
+on a non-spherical surface rather than silently falling back to the sphere.
+
 ## H-matrix Teaching Path
 
 ```matlab
