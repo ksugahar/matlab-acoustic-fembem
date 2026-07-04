@@ -1,7 +1,7 @@
 % ACOUSTIC_FEMBEM  MCP-facing helpers for MATLAB acoustic FEM/BEM.
 %
 %   check_result_manifest_file  MCP custom-tool entry point for result manifests.
-%   result_manifest_gate  Check notebook-ready result JSON/struct metadata,
+%   result_manifest_gate  Check script/MCP-ready result JSON/struct metadata,
 %                         timing, versions, parameter sets, and objectives.
 %
 %   Integrated acoustic FEM/BEM (Gypsilab-readable lane):

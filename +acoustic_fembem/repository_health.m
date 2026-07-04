@@ -50,6 +50,7 @@ oldNameHits = struct("file", {}, "pattern", {});
 if options.ScanOldNames
     oldNameHits = scanOldNames(root);
 end
+mcpUiPolicyHits = scanMcpUiPolicy(root);
 
 requiredPaths = struct( ...
     "matlab_api", isfolder(fullfile(root, "matlab_api")), ...
@@ -69,6 +70,7 @@ checks.vol_fixture_count_sufficient = numel(volFixtures) >= 10;
 checks.pde_vol_bridge_present = isfile(fullfile(root, "matlab_api", "mesh", "writePdeMeshVol.m"));
 checks.vol_plot_preview_present = isfile(fullfile(root, "matlab_api", "mesh", "plotVolMesh.m"));
 checks.old_repository_names_absent = isempty(oldNameHits);
+checks.mcp_surface_avoids_live_document_policy = isempty(mcpUiPolicyHits);
 
 failed = failedCheckNames(checks);
 
@@ -89,10 +91,30 @@ report.num_validation_cases = catalogCount;
 report.num_verified_cases = verifiedCount;
 report.num_vol_fixtures = numel(volFixtures);
 report.old_name_hits = oldNameHits;
+report.mcp_ui_policy_hits = mcpUiPolicyHits;
 
 if report.pass
     report.status = "ok";
 end
+end
+
+
+function hits = scanMcpUiPolicy(root)
+patterns = [
+    "note" + "book"
+    "ip" + "ynb"
+    "m" + "lx"
+    "Live" + " Script"
+];
+
+files = [
+    string(fullfile(root, "README.md"))
+    textFilesUnder(fullfile(root, "+acoustic_fembem"))
+    textFilesUnder(fullfile(root, "mcp"))
+];
+
+hits = scanTextPatterns(root, files, patterns, ...
+    [string(fullfile(root, "+acoustic_fembem", "repository_health.m"))]);
 end
 
 
@@ -113,13 +135,20 @@ files = [
     textFilesUnder(fullfile(root, "mcp"))
 ];
 
+hits = scanTextPatterns(root, files, patterns, ...
+    [string(fullfile(root, "+acoustic_fembem", "repository_health.m"))]);
+end
+
+
+function hits = scanTextPatterns(root, files, patterns, excludedFiles)
 hits = struct("file", {}, "pattern", {});
+excludedFiles = string(excludedFiles);
 for k = 1:numel(files)
     file = files(k);
     if ~isfile(file)
         continue
     end
-    if endsWith(file, fullfile("+acoustic_fembem", "repository_health.m"))
+    if any(strcmpi(file, excludedFiles))
         continue
     end
     try

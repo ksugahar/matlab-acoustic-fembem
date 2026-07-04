@@ -1,5 +1,5 @@
 function report = vol_mesh_summary(volPath)
-%VOL_MESH_SUMMARY Summarize a .vol mesh for MCP and notebook preflight.
+%VOL_MESH_SUMMARY Summarize a .vol mesh for MCP and script preflight.
 %
 %   report = acoustic_fembem.vol_mesh_summary("unit_sphere_coarse.vol")
 %
@@ -38,7 +38,7 @@ report.boundary_orientation = mesh.boundaryOrientation.boundaryOrientation;
 report.trace_nodes = numel(mesh.traceNodeIds);
 report.bounding_box = bounds;
 report.recommended_gui_viewer = "Netgen/native .vol viewer";
-report.recommended_notebook_preview = "plotVolMesh";
+report.recommended_matlab_preview = "plotVolMesh";
 report.recommended_llm_preflight = "acoustic_fembem_vol_mesh_summary";
 end
 

@@ -1,12 +1,13 @@
 function h = plotVolMesh(volOrMesh, options)
-%PLOTVOLMESH Quick notebook preview for a first-order .vol mesh.
+%PLOTVOLMESH Quick MATLAB figure preview for a first-order .vol mesh.
 %
 %   plotVolMesh("unit_sphere_coarse.vol")
 %   plotVolMesh(mesh, FaceAlpha=0.2)
 %
 % Netgen remains the preferred interactive viewer for native .vol files.
 % This helper is intentionally small: it plots the boundary triangles so a
-% MATLAB notebook can confirm scale, orientation, and labels before a solve.
+% MATLAB script or interactive session can confirm scale, orientation, and
+% labels before a solve.
 
 arguments
     volOrMesh

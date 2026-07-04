@@ -14,7 +14,7 @@ repository:
 
 | Tool | MATLAB function | Purpose |
 |------|-----------------|---------|
-| `acoustic_fembem_check_result_manifest_file` | `acoustic_fembem.check_result_manifest_file` | Validate notebook-ready result manifests |
+| `acoustic_fembem_check_result_manifest_file` | `acoustic_fembem.check_result_manifest_file` | Validate script/MCP-ready result manifests |
 | `acoustic_fembem_acoustic_gate` | `acoustic_fembem.check_fembem_acoustic_gate` | Run acoustic FEM/BEM gates against analytic references |
 | `acoustic_fembem_crossval_gate` | `acoustic_fembem.check_fembem_crossval_gate` | Run `.vol`-backed cross-validation against radia-ngsolve/NGSolve references |
 | `acoustic_fembem_knowledge` | `acoustic_fembem.fembem_knowledge_tool` | Serve compact acoustic FEM/BEM teaching knowledge |
@@ -27,10 +27,11 @@ The acoustic gate includes adjoint optimization cases:
 - `radiation_force`: acoustic radiation-force postprocess from the BEM field.
 - `thrust_adjoint`: elastic-bead force quadratic form and Wirtinger gradient.
 
-The knowledge tool includes `vol_visualization` and `pde_vol_bridge`.  The
-viewer policy is Netgen for native interactive `.vol` inspection, MATLAB
-`plotVolMesh` for notebook previews, and `acoustic_fembem_vol_mesh_summary` for
-LLM/headless preflight.
+The knowledge tool includes `matlab_execution_policy`, `vol_visualization`, and
+`pde_vol_bridge`.  The policy is normal `.m` functions/scripts plus MCP JSON,
+Netgen for native interactive `.vol` inspection, MATLAB `plotVolMesh` for
+figure previews, and `acoustic_fembem_vol_mesh_summary` for LLM/headless
+preflight.
 
 ## Official Server
 

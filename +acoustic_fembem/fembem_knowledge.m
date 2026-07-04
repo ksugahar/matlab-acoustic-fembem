@@ -11,8 +11,8 @@ function text = fembem_knowledge(topic)
 % (acoustic_fembem.repository_root), exercised by the runnable acoustic_fembem.fembem_acoustic_gate.
 %
 % Topics: overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics,
-%         acoustic, sonic_crystal, adjoint_ad, vol_visualization,
-%         pde_vol_bridge,
+%         acoustic, sonic_crystal, adjoint_ad, matlab_execution_policy,
+%         vol_visualization, pde_vol_bridge,
 %         radia_ngsolve_crossval, validation_discipline, optimization_link,
 %         all.
 
@@ -46,6 +46,9 @@ switch t
         text = PDE_VOL_BRIDGE;
     case {"vol_visualization", "visualization", "netgen_viewer", "vol_viewer"}
         text = VOL_VISUALIZATION;
+    case {"matlab_execution_policy", "execution_policy", "no_live_documents", ...
+            "scripts", "mcp_json"}
+        text = MATLAB_EXECUTION_POLICY;
     case {"optimization_link", "optimization", "inverse", "design"}
         text = OPTIMIZATION_LINK;
     case {"multiphysics", "interface", "coupling_difficulty", ...
@@ -54,12 +57,14 @@ switch t
     case "all"
         text = strjoin([OVERVIEW, SPACES, GALERKIN_BEM, COUPLED_FEM_BEM, ...
             MULTIPHYSICS, ACOUSTIC, SONIC_CRYSTAL, ADJOINT_AD, ...
-            VOL_VISUALIZATION, PDE_VOL_BRIDGE, RADIA_NGSOLVE_CROSSVAL, ...
-            VALIDATION_DISCIPLINE, OPTIMIZATION_LINK], [newline newline]);
+            MATLAB_EXECUTION_POLICY, VOL_VISUALIZATION, PDE_VOL_BRIDGE, ...
+            RADIA_NGSOLVE_CROSSVAL, VALIDATION_DISCIPLINE, ...
+            OPTIMIZATION_LINK], [newline newline]);
     otherwise
         text = "Unknown topic '" + topic + "'. Available: overview, " + ...
             "spaces, galerkin_bem, coupled_fem_bem, multiphysics, acoustic, " + ...
-            "sonic_crystal, adjoint_ad, vol_visualization, pde_vol_bridge, " + ...
+            "sonic_crystal, adjoint_ad, matlab_execution_policy, " + ...
+            "vol_visualization, pde_vol_bridge, " + ...
             "radia_ngsolve_crossval, validation_discipline, optimization_link, all.";
 end
 end
@@ -91,7 +96,8 @@ s = strjoin([
     " 11  rigid scattering + irregular frequencies + CHIEF"
     ""
     "Topics: spaces, galerkin_bem, coupled_fem_bem, multiphysics,"
-    "acoustic, sonic_crystal, vol_visualization, pde_vol_bridge, radia_ngsolve_crossval,"
+    "acoustic, sonic_crystal, matlab_execution_policy, vol_visualization,"
+    "pde_vol_bridge, radia_ngsolve_crossval,"
     "validation_discipline, optimization_link."
     ], newline);
 end
@@ -366,18 +372,40 @@ s = strjoin([
     "surface triangles, volume tetrahedra, material labels, and boundary"
     "names interactively."
     ""
-    "MATLAB role: quick notebook preview and solver preflight."
+    "MATLAB role: quick figure preview and solver preflight."
     "  plotVolMesh(""mesh.vol"")                 -> boundary triangle preview"
     "  acoustic_fembem.vol_mesh_summary(""mesh.vol"") -> counts, bbox, labels"
     ""
     "Practical split:"
     "  - GUI/user inspection: Netgen native .vol viewer."
-    "  - Notebook/documentation: plotVolMesh plus the summary JSON."
+    "  - MATLAB script/report: plotVolMesh plus the summary JSON."
     "  - LLM/headless preflight: acoustic_fembem_vol_mesh_summary."
     ""
     "Do not turn visualization into a hidden mesh conversion step. The"
     "solver-facing contract remains first-order tri/tet .vol, and the"
     "reader rejects quad/hex/wedge/pyramid/curved records fail-loud."
+    ], newline);
+end
+
+
+function s = MATLAB_EXECUTION_POLICY()
+s = strjoin([
+    "# MATLAB execution policy"
+    ""
+    "Do not make MATLAB Live Editor documents the default product surface"
+    "for this repository.  The durable interfaces are normal MATLAB functions,"
+    "small .m scripts, JSON result manifests, and MCP custom tools."
+    ""
+    "Preferred split:"
+    "  - human mesh inspection: Netgen native .vol viewer"
+    "  - MATLAB local work: .m functions/scripts plus figures from plotVolMesh"
+    "  - LLM/headless work: MCP tools that print compact JSON"
+    "  - reproducible artifacts: JSON manifests with versions, run dates,"
+    "    timing breakdowns, schema ids, and convention ids"
+    ""
+    "This keeps the solver readable for students while avoiding another UI"
+    "format to maintain.  If a report is needed, generate it from scripts or"
+    "ordinary documentation after the manifest and gates have passed."
     ], newline);
 end
 
@@ -466,7 +494,8 @@ s = strjoin([
     "  least-squares / L-curve / Morozov loop - the same homogenization"
     "  cell-problem mathematics as effective-medium metamaterial design."
     "- result manifests from either side pass acoustic_fembem.result_manifest_gate"
-    "  so a notebook can ingest FEM/BEM and optimization runs uniformly."
+    "  so scripts, MCP tools, and reports can ingest FEM/BEM and optimization"
+    "  runs uniformly."
     ""
     "That is the point of integrating Gypsilab here: a FEM/BEM lab's"
     "MATLAB MCP should know the solver AND the design loop that drives it."

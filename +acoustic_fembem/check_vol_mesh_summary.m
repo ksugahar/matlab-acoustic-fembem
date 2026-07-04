@@ -20,7 +20,7 @@ summary.trace_nodes = report.trace_nodes;
 summary.boundary_orientation = report.boundary_orientation;
 summary.bounding_box = report.bounding_box;
 summary.recommended_gui_viewer = report.recommended_gui_viewer;
-summary.recommended_notebook_preview = report.recommended_notebook_preview;
+summary.recommended_matlab_preview = report.recommended_matlab_preview;
 
 disp(jsonencode(summary));
 end

@@ -21,7 +21,7 @@ verifyEqual(testCase, report.points, 4);
 verifyEqual(testCase, report.triangles, 4);
 verifyEqual(testCase, report.tets, 1);
 verifyEqual(testCase, report.recommended_gui_viewer, "Netgen/native .vol viewer");
-verifyEqual(testCase, report.recommended_notebook_preview, "plotVolMesh");
+verifyEqual(testCase, report.recommended_matlab_preview, "plotVolMesh");
 end
 
 

@@ -47,6 +47,15 @@ verifySubstring(testCase, body, "acoustic_fembem_vol_mesh_summary");
 end
 
 
+function testKnowledgeIncludesMatlabExecutionPolicy(testCase)
+body = acoustic_fembem.fembem_knowledge("matlab_execution_policy");
+verifyGreaterThan(testCase, strlength(body), 300);
+verifySubstring(testCase, body, ".m functions/scripts");
+verifySubstring(testCase, body, "MCP tools");
+verifySubstring(testCase, body, "JSON manifests");
+end
+
+
 function testVolMeshSummaryWrapper(testCase)
 out = evalc("acoustic_fembem.check_vol_mesh_summary(""unit_sphere_coarse.vol"")");
 decoded = jsondecode(out);

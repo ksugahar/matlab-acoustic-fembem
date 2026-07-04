@@ -3,7 +3,7 @@
     {
       "name": "acoustic_fembem_check_result_manifest_file",
       "title": "Acoustic FEM/BEM Check Result Manifest File",
-      "description": "Checks a notebook-ready acoustic FEM/BEM result manifest JSON file using acoustic_fembem.result_manifest_gate and prints a compact JSON verdict. Pass larger manifest data by file path, not as nested tool arguments.",
+      "description": "Checks a script/MCP-ready acoustic FEM/BEM result manifest JSON file using acoustic_fembem.result_manifest_gate and prints a compact JSON verdict. Pass larger manifest data by file path, not as nested tool arguments.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -109,7 +109,7 @@
     {
       "name": "acoustic_fembem_knowledge",
       "title": "Acoustic FEM/BEM Knowledge",
-      "description": "Returns one topic of the integrated acoustic FEM/BEM knowledge (the Gypsilab readable lane): overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics (the interface-is-the-battlefield coupling-difficulty synthesis, incl. non-conforming mesh coupling / mortar / supermesh), acoustic, sonic_crystal, adjoint_ad, vol_visualization, pde_vol_bridge, radia_ngsolve_crossval, validation_discipline, optimization_link, all.",
+      "description": "Returns one topic of the integrated acoustic FEM/BEM knowledge (the Gypsilab readable lane): overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics (the interface-is-the-battlefield coupling-difficulty synthesis, incl. non-conforming mesh coupling / mortar / supermesh), acoustic, sonic_crystal, adjoint_ad, matlab_execution_policy, vol_visualization, pde_vol_bridge, radia_ngsolve_crossval, validation_discipline, optimization_link, all.",
       "inputSchema": {
         "type": "object",
         "properties": {

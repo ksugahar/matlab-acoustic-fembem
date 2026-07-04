@@ -94,7 +94,7 @@ maps between volume and boundary spaces easy to inspect.
 ## Mesh Visualization
 
 Netgen is the preferred interactive viewer for native `.vol` files.  MATLAB
-keeps the lightweight notebook and MCP preflight path:
+keeps the lightweight figure/script and MCP preflight path:
 
 ```matlab
 plotVolMesh(fullfile(repoRoot, "fixtures", "mesh_topology", "unit_sphere_coarse.vol"));
@@ -102,9 +102,17 @@ summary = acoustic_fembem.vol_mesh_summary("unit_sphere_coarse.vol");
 ```
 
 Use Netgen when you need to inspect the native mesh GUI, boundary labels, and
-volume cells interactively.  Use `plotVolMesh` when a notebook only needs a
-quick boundary preview, and use the MCP tool `acoustic_fembem_vol_mesh_summary`
-for headless counts, bounding boxes, orientation, and viewer guidance.
+volume cells interactively.  Use `plotVolMesh` when a MATLAB script or
+interactive session needs a quick boundary preview, and use the MCP tool
+`acoustic_fembem_vol_mesh_summary` for headless counts, bounding boxes,
+orientation, and viewer guidance.
+
+## MATLAB Execution Policy
+
+This repository does not use MATLAB Live Editor documents as the default
+interface.  Durable workflows should be ordinary `.m` functions/scripts, MCP
+tools that print compact JSON, and result manifests with versions, dates,
+timing, schema ids, and convention ids.
 
 ## Repository Layout
 

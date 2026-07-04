@@ -1,10 +1,10 @@
 function report = result_manifest_gate(result, options)
-%RESULT_MANIFEST_GATE Check notebook-ready result JSON/struct metadata.
+%RESULT_MANIFEST_GATE Check script/MCP-ready result JSON/struct metadata.
 %
 % report = acoustic_fembem.result_manifest_gate(result)
 % report = acoustic_fembem.result_manifest_gate(jsonFile)
 %
-% A reusable CAE result should carry enough provenance for a notebook panel:
+% A reusable CAE result should carry enough provenance for scripts and MCP tools:
 % run date, MATLAB/Radia versions, pass/fail status, and a compact timing
 % breakdown.  Keep timing to the heaviest few stages so students can scan it.
 
@@ -365,15 +365,15 @@ report.dominant_timing_stages = dominantTiming;
 report.total_recorded_timing_s = sum(timingValues.seconds);
 report.checks = checks;
 report.notes = [
-    "Record run date and versions before importing JSON into notebooks."
+    "Record run date and versions before importing JSON into scripts, tools, or reports."
     "Keep created_at_utc and execution.run_date_utc close enough to describe the same executed result."
-    "Record the execution session id when a notebook result depends on an already-running MATLAB session."
+    "Record the execution session id when a result depends on an already-running MATLAB session."
     "Keep timing to the heaviest stages, normally setup/assembly/solve/postprocess."
-    "Record parameter-set identity and objective observable identity before a notebook reuses JSON values as defaults or optimization inputs."
-    "Record result output schema id, columns, and units before a notebook imports saved JSON/table rows."
+    "Record parameter-set identity and objective observable identity before scripts or optimizers reuse JSON values as defaults or inputs."
+    "Record result output schema id, columns, and units before scripts or MCP tools import saved JSON/table rows."
     "Record a physics or FEM/BEM coupling convention schema id before reusing values whose meaning depends on normals, trace rows, spaces, sources, or kernels."
     "Record a postprocess row convention schema id before reusing trace least-squares rows, residual curves, scalar objectives, or optimizer-facing table reductions."
-    "Store compact JSON sidecars, then render them into executed ipynb panels or docs."
+    "Store compact JSON sidecars, then render them from MATLAB scripts, MCP tools, or ordinary documentation."
 ];
 end
 
