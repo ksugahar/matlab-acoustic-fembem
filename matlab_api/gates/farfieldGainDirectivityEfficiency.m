@@ -6,7 +6,7 @@ function result = farfieldGainDirectivityEfficiency(gainDbi, directivityDbi, opt
 %
 %   eta_rad = P_rad / P_acc,    G = eta_rad * D.
 %
-% This small readable gate is the MATLAB teaching companion to the CST source
+% This small readable gate is the MATLAB teaching companion to source
 % lane and radia-mcp antenna helper.  It intentionally keeps accepted power,
 % radiated power, gain, and directivity in one struct before rows are used by
 % notebooks, optimization, or FEM/BEM comparison.

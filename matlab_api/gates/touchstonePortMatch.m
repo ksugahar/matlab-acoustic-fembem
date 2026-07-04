@@ -2,7 +2,7 @@ function result = touchstonePortMatch(s11, options)
 %touchstonePortMatch Readable S11 match-quality teaching gate.
 %
 % This helper keeps one-port match metrics separate from two-port insertion
-% loss.  It is useful before CST/Touchstone, ngsolve.bem, or measurement rows
+% loss.  It is useful before Touchstone, ngsolve.bem, or measurement rows
 % are ranked by match quality or reused in optimization notebooks.
 %
 %   |Gamma| = |S11|

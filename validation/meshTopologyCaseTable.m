@@ -3,7 +3,6 @@ function cases = meshTopologyCaseTable()
 
 repoRoot = gypsilabRepoRoot();
 fixtureRoot = fullfile(repoRoot, "fixtures", "mesh_topology");
-externalCubit = "W:\00_CAE\CoreformCubit\2026_04_06_CoreformCUBIT_ExportMesh\02_Cylinder_Tet\02_Cylinder_Tet_order1.vol";
 
 cases = [
     row("GYP-001", "unit tetra vol topology", fullfile(fixtureRoot, "unit_tetra.vol"), true)
@@ -15,7 +14,7 @@ cases = [
     row("GYP-007", "tet edge orientation signs", fullfile(fixtureRoot, "tet_edge_orientation_signs.vol"), true)
     row("GYP-008", "quad surface rejection", fullfile(fixtureRoot, "quad_surface_rejection.vol"), false)
     row("GYP-009", "hex volume rejection", fullfile(fixtureRoot, "hex_volume_rejection.vol"), false)
-    row("GYP-010", "real cubit cylinder vol intake", externalCubit, true)
+    row("GYP-010", "unit ball vol intake", fullfile(fixtureRoot, "unit_ball_maxh018.vol"), true)
 ];
 end
 

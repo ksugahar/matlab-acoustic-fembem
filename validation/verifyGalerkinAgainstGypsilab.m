@@ -3,7 +3,7 @@ function report = verifyGalerkinAgainstGypsilab(volFile, gypsilabRoot)
 %
 %   report = verifyGalerkinAgainstGypsilab( ...
 %       "fixtures/mesh_topology/unit_sphere_coarse.vol", ...
-%       "S:\MATLAB\20_Electromagnetics\Gypsilab\00_gypsilab-master");
+%       fullfile("path", "to", "gypsilab"));
 %
 % Builds the boundary P1 Galerkin single layer twice on the same mesh:
 % GalerkinSingleLayer (this repo) versus Gypsilab's

@@ -7,7 +7,7 @@ function tests = testSonicCrystalChain
 % verifySonicCrystalChain) and the honest PHYSICS FINDING: a sparse
 % free-space chain shows broadband sub-wavelength attenuation with NO
 % Bragg stop band at k d = pi (both the BEM and the Foldy model agree) -
-% the band gap of the COMSOL "Sonic Crystal" class model needs duct
+% the band gap of a duct-confined sonic-crystal model needs duct
 % confinement / transverse periodicity, which is the declared next rung
 % (Bloch unit cell + duct transmission FEM).
 

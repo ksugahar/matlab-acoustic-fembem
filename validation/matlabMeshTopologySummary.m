@@ -16,13 +16,13 @@ try
     summary.points = mesh.summary.points;
     summary.triangles = mesh.summary.triangles;
     summary.tets = mesh.summary.tets;
-    summary.materials = mesh.summary.materials;
-    summary.boundaries = mesh.summary.boundaries;
+    summary.materials = countLabels(mesh.tetMat);
+    summary.boundaries = countLabels(mesh.triCol);
     summary.traceNodeCount = numel(mesh.traceNodeIds);
     summary.hcurlEdges = size(model.hcurl.edges, 1);
     summary.rwgDofs = numel(model.rwg.dofEdgeIds);
-    summary.materialNames = mapValues(mesh.materials);
-    summary.boundaryNames = mapValues(mesh.boundaries);
+    summary.materialNames = labelNames(mesh.materials, mesh.tetMat);
+    summary.boundaryNames = labelNames(mesh.boundaries, mesh.triCol);
 catch err
     summary.ok = false;
     summary.errorIdentifier = string(err.identifier);
@@ -41,16 +41,27 @@ end
 end
 
 
-function vals = mapValues(map)
-keysCell = keys(map);
-if isempty(keysCell)
+function n = countLabels(ids)
+ids = unique(ids(:));
+ids = ids(ids > 0);
+n = numel(ids);
+end
+
+
+function vals = labelNames(map, ids)
+ids = unique(ids(:));
+ids = ids(ids > 0);
+if isempty(ids)
     vals = strings(0, 1);
     return
 end
-keysNumeric = cell2mat(keysCell);
-keysNumeric = sort(keysNumeric(:));
-vals = strings(numel(keysNumeric), 1);
-for k = 1:numel(keysNumeric)
-    vals(k) = string(map(keysNumeric(k)));
+vals = strings(numel(ids), 1);
+for k = 1:numel(ids)
+    id = ids(k);
+    if isKey(map, id)
+        vals(k) = string(map(id));
+    else
+        vals(k) = "default";
+    end
 end
 end

@@ -1,11 +1,11 @@
-# MATLAB Gypsilab Education Layer
+# CAE-AI MATLAB FEM/BEM Education Layer
 
 Readable MATLAB prototypes for learning FEM/BEM ideas behind Gypsilab,
 NGSolve, and NGSolve.BEM.
 
-This repository is a local, non-public lab repository. It is not a production
+This repository is an open educational MATLAB codebase. It is not a production
 solver and it is not meant to compete with NGSolve on speed. Its job is to make
-the mathematics readable:
+the mathematics readable and reproducible:
 
 - Cubit/Coreform Netgen `.vol` intake
 - first-order H1 P1 tetrahedral FEM
@@ -27,10 +27,20 @@ mathematical object per class, public properties that expose the mathematics,
 short methods, no hidden performance caches. The name map and layout of the
 2026-07 class refactor are recorded in `docs/CLASS_API_REFACTOR.md`.
 
+## License and Gypsilab Relationship
+
+This repository is released under the GNU GPL v3.0 or later.  Gypsilab itself
+is GPL-3.0 software, and this project intentionally follows its readable MATLAB
+style.  The repository does not vendor the Gypsilab source tree; optional
+cross-checks against a separately installed Gypsilab checkout are kept behind
+explicit verification helpers.  Please cite Gypsilab and its authors when this
+teaching code helps your FEM/BEM work.
+
 ## Basic API
 
 ```matlab
-addpath(genpath("S:\MATLAB\Gypsilab\matlab_api"));
+repoRoot = pwd;                 % or the cloned repository path
+addpath(genpath(fullfile(repoRoot, "matlab_api")));
 
 m = FemBemModel("mesh.vol");
 m.mesh          % VolMesh: vtx / tet / tri + labels + source identity
@@ -213,7 +223,7 @@ to 4.4-7.5e-2 at the probes).
 PHYSICS FINDING (locked as a negative-result test): the sparse free-space
 chain shows broadband sub-wavelength attenuation (~3.5-3.9 dB insertion
 loss, flat over k = 0.6..3.0) and NO Bragg stop band at k d = pi - all
-four legs agree. The band gap of the COMSOL "Sonic Crystal" class model
+four legs agree. A duct-confined sonic-crystal model
 requires duct confinement / transverse periodicity; the Bloch unit cell +
 duct transmission FEM is the declared next rung.
 
@@ -771,7 +781,7 @@ meshGate.checks
 ## Run Tests
 
 ```matlab
-run("S:\MATLAB\Gypsilab\run_tests.m")
+run(fullfile(repoRoot, "run_tests.m"))
 ```
 
 Every test file also runs standalone (each carries a `setupOnce` that adds
@@ -792,7 +802,7 @@ A case can become `verified` only after:
 - the radia-ngsolve reference exists
 - the comparison tolerance is declared
 - the run passes
-- the validation log is recorded under `S:\MATLAB\_crossval`
+- the validation log is recorded under a local `_crossval` directory
 
 The test suite checks that the catalog has exactly 100 unique cases, that all
 verified cases have example scripts, and that validation logs are recorded.
@@ -803,11 +813,9 @@ Current progress:
 - `100 / 100` verified
 - verified groups: all 10 categories
 - validation log:
-  `S:\MATLAB\_crossval\gypsilab_mesh_topology_10of100_20260624.md`
-  `S:\MATLAB\_crossval\gypsilab_remaining_90of100_20260624.md`
-  `S:\MATLAB\_crossval\gypsilab_class_api_refactor_20260703.md`
+  `_crossval/gypsilab_mesh_topology_10of100_20260624.md`
+  `_crossval/gypsilab_remaining_90of100_20260624.md`
+  `_crossval/gypsilab_class_api_refactor_20260703.md`
 
-For acoustic FEM/BEM cases, COMSOL's acoustic FEM/BEM workflow is an important
-internal secondary reference. It is used to understand coupling conventions,
-radiation/open-boundary modeling, and low-frequency behavior. COMSOL references
-must stay private and must use the already-running LiveLink MATLAB session.
+For acoustic FEM/BEM cases, the public gates rely on analytic references,
+NGSolve/NGSolve.BEM reference artifacts, and committed MATLAB fixtures.

@@ -1,7 +1,7 @@
 function result = touchstoneEquivalentCircuit(s11, s21, options)
 %touchstoneEquivalentCircuit Readable S -> Y/Z circuit extraction.
 %
-% This is a small MATLAB teaching companion for CST/Touchstone and
+% This is a small MATLAB teaching companion for Touchstone and
 % ngsolve.bem port-mode rows.  It keeps the reference impedance visible:
 %
 %   Y = (I - S) * inv(I + S) / Z0

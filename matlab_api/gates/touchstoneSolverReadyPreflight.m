@@ -2,7 +2,7 @@ function result = touchstoneSolverReadyPreflight(s11, s21, options)
 %touchstoneSolverReadyPreflight Bundle Touchstone row gates.
 %
 % The inputs are already-normalized complex S-parameters.  This helper keeps
-% the row-level metadata and algebraic checks together before a CST/Touchstone,
+% the row-level metadata and algebraic checks together before a Touchstone,
 % ngsolve.bem, or measurement row is reused as a MATLAB optimization objective,
 % constraint, or notebook result.
 
@@ -73,7 +73,7 @@ result.checks = checks;
 result.notes = [
     "normalize RI/MA/DB to complex S-parameters before calling this helper"
     "do not reuse a row in optimization unless frequency, format, Z0, passivity, reciprocity, and S11 match are carried together"
-    "this is a readable MATLAB companion to CST/radia Touchstone solver-ready preflight gates"
+    "this is a readable MATLAB companion to Touchstone solver-ready preflight gates"
 ];
 
 result.status = "ok";

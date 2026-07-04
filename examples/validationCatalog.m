@@ -15,7 +15,7 @@ groups = [
         "tet edge orientation signs"
         "quad surface rejection"
         "hex volume rejection"
-        "real cubit cylinder vol intake"
+        "unit ball vol intake"
     ])
     group("02_h1_scalar_fem", "h1", 1e-10, [
         "unit tetra p1 stiffness"
@@ -180,7 +180,7 @@ end
 
 function reference = secondaryReferenceFor(category)
 if ismember(category, ["06_acoustic_low_frequency", "07_acoustic_helmholtz", "10_ngsolve_bem_reference"])
-    reference = "COMSOL acoustic FEM/BEM internal";
+    reference = "analytic and open numerical acoustic references";
 else
     reference = "";
 end
@@ -217,7 +217,7 @@ end
 
 
 function cases = markMeshTopologyVerified(cases)
-logPath = "S:\MATLAB\_crossval\gypsilab_mesh_topology_10of100_20260624.md";
+logPath = fullfile("_crossval", "gypsilab_mesh_topology_10of100_20260624.md");
 for k = 1:10
     cases(k).status = "verified";
     cases(k).validationLog = logPath;
@@ -226,7 +226,7 @@ end
 
 
 function cases = markRemainingVerified(cases)
-logPath = "S:\MATLAB\_crossval\gypsilab_remaining_90of100_20260624.md";
+logPath = fullfile("_crossval", "gypsilab_remaining_90of100_20260624.md");
 for k = 11:100
     cases(k).status = "verified";
     cases(k).validationLog = logPath;

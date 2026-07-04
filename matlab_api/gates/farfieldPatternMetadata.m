@@ -5,7 +5,7 @@ function result = farfieldPatternMetadata(thetaValues, phiValues, options)
 % the table says which frequency, angle unit, theta/phi cut, polarization
 % basis, quantity unit, row count, and power normalization produced them.  This
 % helper is intentionally small so the metadata contract stays visible in
-% MATLAB notebooks before a Gypsilab/NGSolve.BEM comparison or optimization.
+% MATLAB notebooks before an NGSolve.BEM comparison or optimization.
 
 arguments
     thetaValues (:,:) double
@@ -142,7 +142,7 @@ result.checks = checks;
 result.notes = [
     "metadata comes before far-field gain, directivity, RCS, or Etheta/Ephi row values"
     "angle units, theta/phi cuts, polarization basis, and power normalization are part of the physics contract"
-    "this is the MATLAB teaching companion to CST/radia far-field metadata gates"
+    "this is the MATLAB teaching companion to far-field metadata gates"
 ];
 
 result.status = "ok";

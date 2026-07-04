@@ -119,4 +119,4 @@ The real consumers rewritten to the class API:
    change (single canonical API, no wrapper layer), and the full suite runs
    green again.
 4. Final: full `run_tests.m` + 100-case batches green, validation log
-   recorded under `S:\MATLAB\_crossval`.
+   recorded under the sibling `_crossval` directory.

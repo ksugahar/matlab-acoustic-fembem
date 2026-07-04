@@ -2,10 +2,9 @@
 
 ## Purpose
 
-This is a local, non-public MATLAB education repository for Sugawara Lab,
-which is treated as a CAE-AI Lab. The repository teaches Gypsilab-style
-FEM/BEM prototypes and MATLAB optimization methods. It prioritizes readability,
-cross validation, and student understanding over performance.
+This is a public MATLAB education repository for readable FEM/BEM prototypes
+and small optimization gates. It prioritizes readability, cross validation,
+and student understanding over performance.
 
 ## Solver Scope
 
@@ -21,9 +20,6 @@ cross validation, and student understanding over performance.
 - Include acoustics as a first-class teaching lane.
 - Include low-frequency-stable Helmholtz kernels by splitting Laplace and
   Helmholtz correction terms.
-- Treat COMSOL acoustic FEM/BEM as an important internal reference for acoustic
-  coupling, sign conventions, radiation boundaries, and low-frequency behavior.
-  Use only the existing COMSOL LiveLink MATLAB session.
 - Do not optimize prematurely. NGSolve/NGSolve.BEM is the performance target;
   this repo is for understanding the method.
 - Prefer readable class/source organization over vectorized cleverness or
@@ -35,9 +31,6 @@ cross validation, and student understanding over performance.
 - Prefer small, inspectable optimization examples with explicit design
   variables, objective functions, constraints, sensitivities when available,
   and reproducible validation gates.
-- Treat `W:\00_CAE\MATLAB\30_Optimization` as the main learning source for
-  optimization methods, but distill only private-safe, license-safe teaching
-  code into this repository.
 - Do not maintain Optuna in this repository. When Optuna operation is needed,
   use the official `optuna-mcp-server`.
 - Couple optimization examples to readable FEM/BEM operators where useful:
@@ -46,18 +39,10 @@ cross validation, and student understanding over performance.
 - Do not hide optimization logic behind opaque solver wrappers. Students
   should be able to open the `.m` file and see the algorithmic loop.
 
-## MATLAB / COMSOL Session
+## License Boundary
 
-- On INTEL11, use the existing COMSOL LiveLink MATLAB session for MATLAB work
-  when available.
-- Do not start or kill COMSOL server, COMSOL batch, or the existing MATLAB
-  session.
-- Use `S:\COMSOL\mcp-server\livelink\scripts\eval_shared_matlab.py` if the
-  MATLAB MCP cannot discover the running session.
-
-## Public Boundary
-
-- This repository is private/local.
-- Do not push it to public GitHub or PyPI.
-- Public-safe generic helpers may be mirrored into radia-mcp only when they do
-  not mention private MATLAB/Gypsilab/Lukas provenance or commercial tools.
+- This repository is GPL-3.0-or-later.
+- Do not vendor third-party source trees. Optional comparisons against
+  separately installed tools should remain explicit verification helpers.
+- Keep examples reproducible from committed fixtures, analytic references, or
+  openly available numerical packages.

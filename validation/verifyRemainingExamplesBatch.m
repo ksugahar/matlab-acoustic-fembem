@@ -45,7 +45,8 @@ end
 
 
 function writeRemainingLog(results, caps)
-logPath = "S:\MATLAB\_crossval\gypsilab_remaining_90of100_20260624.md";
+logPath = fullfile(fileparts(gypsilabRepoRoot()), "_crossval", ...
+    "gypsilab_remaining_90of100_20260624.md");
 logDir = fileparts(logPath);
 if ~isfolder(logDir)
     mkdir(logDir);
@@ -101,7 +102,7 @@ lines = [
     "- verified cases: GYP-011 through GYP-100"
     "- GYP-001 through GYP-010 remain covered by `gypsilab_mesh_topology_10of100_20260624.md`."
     "- These are educational verification gates, not performance claims."
-    "- COMSOL acoustic FEM/BEM remains a private secondary reference and is not encoded in this public-style log."
+    "- The public log records only analytic and open numerical reference gates."
     ""
 ];
 

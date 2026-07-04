@@ -105,7 +105,7 @@ result.checks = checks;
 result.notes = [
     "check metadata before RI/MA/DB row values are converted to complex S-parameters"
     "a passive and reciprocal row can still be wrong if ports are swapped or z0 is missing"
-    "this is the MATLAB teaching companion to CST/radia Touchstone port metadata gates"
+    "this is the MATLAB teaching companion to Touchstone port metadata gates"
 ];
 
 result.status = "ok";

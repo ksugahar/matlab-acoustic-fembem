@@ -8,7 +8,7 @@ z = -3, -1.5, 0, 1.5, 3 (netgen CSG, maxh = 0.15, ~120 boundary triangles
 per sphere - the same faceting class as unit_sphere_coarse). The Bragg
 wavenumber of the chain is k* = pi/d ~ 2.094; the finite-array insertion
 loss shows the stop-band dip there (the sonic-crystal teaching rung,
-COMSOL "Sonic Crystal" model class reproduced in the geometry this
+duct-confined sonic-crystal model class reproduced in the geometry this
 first-order lane supports: sound-soft spheres, lossless).
 
 Each sphere is its own CSG top-level object, so the .vol carries five

@@ -43,13 +43,12 @@ To promote or refresh a case:
 - run the MATLAB example
 - run the radia-ngsolve reference
 - compare with the declared tolerance
-- record the validation log under `S:\MATLAB\_crossval`
+- record the validation log under the sibling `_crossval` directory
 - update or preserve the catalog entry with `status = "verified"` and the log path
 
-## COMSOL Acoustic FEM/BEM Internal Reference
+## Secondary References
 
-Acoustic FEM/BEM examples should also preserve a COMSOL comparison path when it
-is useful. This is a private secondary reference for signs, coupling
-conventions, radiation conditions, and low-frequency behavior. It does not
-replace the radia-ngsolve reference, and it must use the existing COMSOL
-LiveLink MATLAB session rather than starting a new COMSOL process.
+Acoustic FEM/BEM examples should preserve analytic and open numerical
+comparison paths when they are useful. These secondary references are for
+signs, coupling conventions, radiation conditions, and low-frequency behavior.
+They do not replace the radia-ngsolve reference.

@@ -36,7 +36,12 @@ end
 
 
 function writeMeshTopologyLog(results)
-logPath = "S:\MATLAB\_crossval\gypsilab_mesh_topology_10of100_20260624.md";
+logPath = fullfile(fileparts(gypsilabRepoRoot()), "_crossval", ...
+    "gypsilab_mesh_topology_10of100_20260624.md");
+logDir = fileparts(logPath);
+if ~isfolder(logDir)
+    mkdir(logDir);
+end
 lines = [
     "# Gypsilab 100-case campaign: mesh topology 10/100"
     ""

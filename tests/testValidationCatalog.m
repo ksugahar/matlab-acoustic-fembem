@@ -83,7 +83,7 @@ verifyTrue(testCase, all(endsWith([cases.examplePath], ".m")));
 end
 
 
-function testAcousticCasesCarryComsolInternalReference(testCase)
+function testAcousticCasesCarryPublicSecondaryReference(testCase)
 cases = validationCatalog();
 categories = [cases.category];
 secondary = [cases.secondaryReference];
@@ -93,6 +93,6 @@ isAcousticReference = ismember(categories, [
     "10_ngsolve_bem_reference"
 ]);
 
-verifyTrue(testCase, all(contains(secondary(isAcousticReference), "COMSOL acoustic FEM/BEM")));
+verifyTrue(testCase, all(contains(secondary(isAcousticReference), "open numerical acoustic")));
 verifyTrue(testCase, all(secondary(~isAcousticReference) == ""));
 end
