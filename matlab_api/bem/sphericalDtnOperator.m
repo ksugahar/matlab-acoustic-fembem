@@ -6,10 +6,10 @@ function op = sphericalDtnOperator(surface, options)
 %   q = op.apply(p);      % nodal outward normal flux dp/dn from nodal pressure p
 %   D = op.matrix;        % weak DtN <T p, mu_i> (nB x nB, rank (N+1)^2)
 %
-% The exact exterior Dirichlet-to-Neumann map on a SPHERE truncation - the
-% operator the Kelvin transformation (and its radiating extension, Sugahara
-% IEICE 2024: transformation-optics medium + matched HOIBC) represents on the
-% sphere. For an outgoing solution p = sum a_nm h_n(kr)/h_n(kR) Y_n^m the
+% The exact exterior Dirichlet-to-Neumann map on a SPHERE truncation.  In the
+% acoustic lane this is a spherical radiating-impedance/DtN operator, not a
+% Kelvin boundary.  For an outgoing solution
+% p = sum a_nm h_n(kr)/h_n(kR) Y_n^m, the
 % normal derivative on r = R is diagonal in spherical harmonics:
 %
 %   dp/dn|_Gamma = sum a_nm Lambda_n Y_n^m ,   Lambda_n = k h_n'(kR)/h_n(kR)

@@ -1,10 +1,10 @@
 function tests = testSphericalDtnOperator
-%TESTSPHERICALDTNOPERATOR Exact spherical Helmholtz DtN (Kelvin on the sphere).
+%TESTSPHERICALDTNOPERATOR Exact spherical Helmholtz DtN.
 %
 % The low-rank exterior FAST PATH that replaces the dense Galerkin single/
-% double layer when the acoustic truncation surface is a sphere - the operator
-% the Kelvin transformation (and its radiating extension, Sugahara IEICE 2024)
-% represents on the sphere. Gated from the 2026-07-04 measurements:
+% double layer when the acoustic truncation surface is a sphere.  In the
+% acoustic lane this is a radiating-impedance/DtN operator, not a Kelvin
+% boundary. Gated from the 2026-07-04 measurements:
 %   sphere fit deviation 2e-16, Gram cond 7.4 (well-posed);
 %   INDEPENDENT point-source DtN check 2.6e-5 at degree 10 - the operator maps
 %     an outgoing field's Dirichlet trace to its ANALYTIC Neumann trace (not the

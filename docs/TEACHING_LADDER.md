@@ -307,6 +307,70 @@ Three gated cases (`tests/testFemBemHelmholtzCoupling.m`):
    probes 22% -> 7.3% under refinement - the P1 (k1 h)^2 resolution class
    measured, not hidden.
 
+### Frequency-Sweep Time Response
+
+`volFemBemIfftResponse` is the first executable time-domain bridge built on
+the real `.vol` FEM/BEM stack:
+
+```matlab
+td = volFemBemIfftResponse("fixtures/mesh_topology/unit_tetra.vol", ...
+    "NumTime", 16, "FinalTime", 24);
+```
+
+It reads the Netgen `.vol` mesh, assembles H1/P1 tetrahedral volume FEM and
+boundary P1 Galerkin BEM through `FemBemModel`, solves `femBemCoupledSolve`
+on many positive frequency bins, multiplies the transfer function by a real
+pulse spectrum, mirrors the spectrum with Hermitian symmetry, and obtains a
+real pressure time history by `ifft`.
+
+This is not a sine-wave animation and not yet convolution-quadrature
+time-domain BEM. It is the readable frequency-domain FEM/BEM plus inverse-FFT
+route toward the full P1 volume-FEM/P1 surface-BEM transient solver.
+
+### Convolution-Quadrature TD-BEM
+
+`volTdBemConvolutionQuadrature` is the first Lubich CQ time-domain BEM rung:
+
+```matlab
+td = volTdBemConvolutionQuadrature("fixtures/mesh_topology/unit_tetra.vol", ...
+    "NumTime", 8, "TimeStep", 0.6, "Method", "BDF1");
+```
+
+It uses the `.vol` boundary triangles as a genuine 3D P1 Galerkin BEM surface,
+samples the BDF generating function `delta(zeta)`, evaluates Laplace-domain
+retarded single-layer matrices `V(s)` at `s = delta(zeta)/dt` with `Re(s)>0`,
+solves `V(s) qhat = ghat`, and FFT-recovers both the boundary density and
+exterior pressure time histories.
+
+This is different from the drum GIF rung. The current drum visualizer is a
+3D axisymmetric physical picture rendered on an r-z slice: disk and side
+sources are integrated over azimuth, but the mesh is not yet a 3D `.vol`
+P1 volume-FEM/P1 surface-BEM drum. A true drum next step is to generate a
+cylindrical drum `.vol`, then feed its boundary triangles to this CQ-BEM lane
+and later add the coupled volume-FEM interior equation.
+
+`volFemBemCoupledConvolutionQuadrature` adds that first volume-FEM interior:
+
+```matlab
+td = volFemBemCoupledConvolutionQuadrature( ...
+    "fixtures/mesh_topology/four_tet_interior_node.vol", ...
+    "NumTime", 8, "TimeStep", 0.6);
+```
+
+At each CQ Laplace point it solves the readable block system
+
+```text
+[ A+(s/c1)^2 M       -T' Mb ] [ u_hat ] = [ F_hat ]
+[ (1/2 Mb-K(s)) T     V(s)  ] [ q_hat ]   [   0   ]
+```
+
+The volume source pulse drives the interior P1 FEM, the boundary trace is
+coupled to the exterior P1 BEM flux density, and the exterior pressure is
+recovered at observation points by `-S(s)q + D(s)Tu`. This is the
+Calderon/Johnson-Nedelec coupled CQ system with the retarded double-layer
+`K(s)`. The earlier `[Mb*T, -V(s)]` single-layer row remains available only as
+`CouplingForm="SingleLayerTeaching"` for regression and classroom contrast.
+
 ## Adjoint Automatic Differentiation (wavefront synthesis)
 
 Reverse-mode AD *through* the BEM solve, the readable way: differentiate
@@ -437,15 +501,15 @@ kR ~ wavelength - is the accuracy-limiting factor, not the coupling).
 This is the acoustic analogue of the lab's core EM coupling problems
 (nonlinear iron + open boundary, eddy currents in a conductor + open
 boundary), where FEM handles the complex bounded interior and BEM (or the
-Kelvin transform / Radia integral method) handles the exact open boundary.
+BEM/Sommerfeld/DtN/high-order-impedance lane) handles the acoustic open
+boundary.  In the acoustic lane, do not call the boundary Kelvin.
 
-### Spherical DtN Fast Path (the Kelvin operator on the sphere)
+### Spherical DtN Fast Path (Radiating-Impedance Operator on the Sphere)
 
 When the acoustic truncation surface is a SPHERE, the exterior needs no dense
 Galerkin BEM at all: the exact spherical Helmholtz Dirichlet-to-Neumann map
-(`sphericalDtnOperator`) - the operator the Kelvin transformation, and its
-radiating extension (transformation-optics medium + matched HOIBC), represents
-on the sphere - imposes the radiation condition as a low-rank surface operator.
+(`sphericalDtnOperator`) imposes the radiation condition as a low-rank
+surface radiating-impedance operator.
 
 ```matlab
 sol = fsiCoupledSolve(model, "Wavenumber", 2.0, ..., "ExteriorMethod", "dtn");
@@ -466,10 +530,11 @@ Galerkin assembly is skipped entirely. Measured on the unit ball (kR = 2):
 - the dense order-7 Galerkin assembly (~85 s on the unit ball) is gone - the
   DtN solve is sub-second (two orders of magnitude faster).
 
-This is the "Kelvin where Kelvin applies" rule: a sphere (or Kelvin-
-transformable) truncation gets the fast exact operator; a general radiator
-stays on the dense BEM. The path is FAIL-LOUD - `sphericalDtnOperator` raises
-on a non-spherical surface rather than silently falling back to the sphere.
+This is the acoustic "sphere where spherical DtN applies" rule: a spherical
+truncation gets the fast exact operator; a general radiator stays on the
+dense BEM or uses a high-order impedance/absorbing boundary. The path is
+FAIL-LOUD - `sphericalDtnOperator` raises on a non-spherical surface rather
+than silently falling back to the sphere.
 
 ### Elastic-Bead Thrust Design (wavefront synthesis through the FSI)
 

@@ -375,7 +375,9 @@ See `READABLE_CLASS_STYLE.md`.
      last 3 rows of the P1 shape-coefficient inverse).
    This is the acoustic analogue of the lab's core EM coupling
    (nonlinear iron + open boundary; eddy currents + open boundary), where
-   the Kelvin transform / Radia integral method play the BEM role.
+   the BEM / Sommerfeld / spherical-DtN / high-order impedance boundary path
+   plays the acoustic open-boundary role.  Do not call the acoustic boundary
+   a Kelvin boundary.
    NEXT: higher-order interior (P2 elasticity) for the ~10% shear-
    resolution gap, and the adjoint dF/d(phases) with the ELASTIC (FSI)
    scatterer for elastic-bead thrust design.
@@ -421,6 +423,55 @@ See `READABLE_CLASS_STYLE.md`.
       log-derivative so the invisible case gives A_l = 0 EXACTLY; and the
       series term count must key on the FARTHEST evaluation point
       (k0 * r_max), not the sphere radius
+
+10b. Frequency-sweep time-domain bridge, landed 2026-07:
+    - `volFemBemIfftResponse` reads the same tri/tet `.vol` mesh, assembles
+      H1/P1 volume FEM and boundary P1 Galerkin BEM, solves
+      `femBemCoupledSolve` over positive Helmholtz frequency bins, multiplies
+      by a real pulse spectrum, mirrors the spectrum with Hermitian symmetry,
+      and uses `ifft` to produce a real pressure time history at exterior
+      observation points
+    - this is not a periodic sine animation and not yet
+      convolution-quadrature TD-BEM; it is the readable frequency-domain
+      FEM/BEM + inverse-FFT route toward full P1 volume-FEM / P1 surface-BEM
+      transient acoustics
+    - first gate: `tests/testVolFemBemIfftResponse.m` on `unit_tetra.vol`
+      verifies tri/tet intake, P1 FEM/P1 BEM identity, frequency solve
+      residuals, Hermitian/iFFT realness, and nonzero pulse response
+
+10c. Convolution-quadrature TD-BEM bridge, landed 2026-07:
+    - `volTdBemConvolutionQuadrature` is the first Lubich CQ time-domain
+      BEM rung. It uses the `.vol` boundary triangles as a P1 Galerkin BEM
+      surface, samples the BDF generating function `delta(zeta)`, evaluates
+      Laplace-domain retarded single-layer matrices `V(s)` at
+      `s = delta(zeta)/dt` with `Re(s)>0`, solves `V(s) qhat = ghat`, and
+      FFT-recovers the boundary density `q(t)` and exterior pressure
+    - this is not a Helmholtz frequency-sweep/iFFT response; the CQ Laplace
+      points come from the time-stepping formula. Current scope is exterior
+      Dirichlet single-layer TD-BEM on the `.vol` boundary P1 space
+    - first gate: `tests/testVolTdBemConvolutionQuadrature.m` verifies BDF1
+      and BDF2 CQ points, positive-real Laplace parameters, residuals,
+      real time response, and boundary-data shape checking
+
+10d. Volume-FEM / BEM coupled convolution quadrature, landed 2026-07:
+    - `volFemBemCoupledConvolutionQuadrature` is the production-form
+      interior/exterior coupled CQ rung. It uses `.vol` tetrahedra as H1/P1
+      volume wave FEM and `.vol` boundary triangles as P1 exterior BEM, then
+      solves the Johnson-Nedelec / Calderon row at each CQ Laplace point
+      `[A+(s/c1)^2 M, -T'Mb; (1/2 Mb-K(s))*T, V(s)] [u_hat; q_hat] = [F_hat; 0]`
+    - a volume source pulse drives the interior FEM; the BEM flux density
+      radiates to exterior observation points through the matching
+      representation `-S(s)q + D(s)Tu`. The inverse CQ FFT recovers interior
+      pressure, boundary density, and exterior pressure time histories
+    - `K(s)` is the retarded outward-normal principal-value double-layer
+      operator, assembled with the same semi-analytic Laplace split as the
+      verified frequency-domain Johnson-Nedelec solver. The previous
+      `[Mb*T, -V(s)]` single-layer row is still available as
+      `CouplingForm="SingleLayerTeaching"` for regression only
+    - first gate: `tests/testVolFemBemCoupledConvolutionQuadrature.m` verifies
+      an interior-node `.vol`, BDF1/BDF2 positive-real CQ points, coupled
+      residuals, real time responses, nonzero interior/exterior fields, and
+      nonzero `K(s)` participation
 
 ## Gypsilab hmx performance expectation
 

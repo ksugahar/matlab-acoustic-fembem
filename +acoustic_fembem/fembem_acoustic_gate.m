@@ -192,9 +192,10 @@ switch kind
         model = FemBemModel(volPath);
         probes = [2 0 0; 0 0 3; -1.2 1.6 0];
         % same stiff-limit gate on the FAST exterior: the exact spherical
-        % Helmholtz DtN (the Kelvin operator on the sphere) instead of the
-        % dense Galerkin BEM - reproduces the rigid sphere with no dense
-        % N^2 assembly (fail-loud if the truncation is not a sphere).
+        % Helmholtz DtN / radiating-impedance operator instead of the dense
+        % Galerkin BEM - reproduces the rigid sphere with no dense N^2
+        % assembly (fail-loud if the truncation is not a sphere). Acoustic
+        % waves do not use the Kelvin-boundary label in this lab policy.
         sol = fsiCoupledSolve(model, "Wavenumber", k, ...
             "LongitudinalSpeed", 50, "ShearSpeed", 30, "DensityRatio", 100, ...
             "ExteriorMethod", "dtn");

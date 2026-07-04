@@ -69,7 +69,7 @@ end
 
 
 function testDtnStiffLimitReproducesRigidSphere(testCase)
-% the FAST spherical-DtN exterior (the Kelvin operator on the sphere) reproduces
+% the FAST spherical-DtN / radiating-impedance exterior reproduces
 % the rigid sphere in the stiff limit, same as the dense-BEM exterior but with
 % NO dense Galerkin assembly. measured DtN 3.8e-3 (BEM leg 4.2e-3); the two
 % exterior legs agree to 7e-4 - the DtN is an exact, faster drop-in.

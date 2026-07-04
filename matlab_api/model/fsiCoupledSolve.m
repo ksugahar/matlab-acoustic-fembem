@@ -7,7 +7,7 @@ function sol = fsiCoupledSolve(model, options)
 %   p   = sol.totalAt(points);         % incident + scattered
 %
 %   % fast exterior for a SPHERE truncation: the exact spherical Helmholtz DtN
-%   % (the Kelvin operator on the sphere) instead of the dense Galerkin BEM:
+%   % / radiating impedance operator instead of the dense Galerkin BEM:
 %   sol = fsiCoupledSolve(model, "Wavenumber", 2.0, ..., "ExteriorMethod", "dtn");
 %
 % The genuine FEM/BEM coupling for acoustics: a solid ELASTIC scatterer
@@ -38,8 +38,8 @@ function sol = fsiCoupledSolve(model, options)
 % EXTERIOR METHOD (options.ExteriorMethod):
 %   "bem" (default) - dense Galerkin single/double layer, ANY radiator shape.
 %   "dtn"           - the exact spherical Helmholtz DtN (sphericalDtnOperator,
-%                     the Kelvin operator on the sphere / its radiating
-%                     extension). The scattered field is a spherical-harmonic
+%                     a radiating impedance operator for acoustics, not a
+%                     Kelvin boundary). The scattered field is a spherical-harmonic
 %                     expansion p_s = Phi c, q_s = Phi diag(Lambda) c, so the
 %                     exterior reduces to its (N+1)^2 coefficients c and the
 %                     block-3 row becomes the FULL-RANK reduced system
@@ -129,7 +129,7 @@ switch options.ExteriorMethod
         psG = x(3 * nV + (1:nB));
         qs  = x(3 * nV + nB + (1:nB));
     case "dtn"
-        % exact spherical Helmholtz DtN (the Kelvin operator on the sphere):
+        % exact spherical Helmholtz DtN / radiating impedance operator:
         % the scattered field is a spherical-harmonic expansion p_s = Phi c,
         % q_s = dp_s/dn = Phi diag(Lambda) c. Reducing the exterior to its
         % nModes harmonic coefficients c keeps the system FULL RANK (a nodal
