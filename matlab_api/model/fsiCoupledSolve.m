@@ -71,6 +71,7 @@ arguments
     options.ExteriorMethod (1,1) string ...
         {mustBeMember(options.ExteriorMethod, ["bem", "dtn"])} = "bem"
     options.DtnDegree (1,1) double {mustBeInteger} = -1
+    options.Incident = []          % [] = plane wave; else struct(value, grad)
 end
 
 k = options.Wavenumber;
@@ -92,10 +93,20 @@ nB = numel(ids);
 [Ks, Ms] = elasticityMatrices(mesh, lam, mu, rhoS);
 Kdyn = Ks - omega^2 * Ms;
 
+% ---- incident field (plane wave exp(ikz) by default; a custom Incident struct
+% with .value(X) and .grad(X) enables e.g. a phased-array superposition) ----
+if isempty(options.Incident)
+    incValue = @(X) exp(1i * k * X(:, 3));
+    incGrad  = @(X) [zeros(size(X, 1), 2), 1i * k * exp(1i * k * X(:, 3))];
+else
+    incValue = options.Incident.value;
+    incGrad  = options.Incident.grad;
+end
+
 % ---- interface coupling + incident data (common to both exterior methods) ----
 [Mb, ~] = SurfaceP1Space(surface).mass();
-[G, Minc] = interfaceCoupling(surface, ids, nV, k);
-pincB = exp(1i * k * surface.vtx(:, 3));
+[G, Minc] = interfaceCoupling(surface, ids, nV, incGrad);
+pincB = incValue(surface.vtx);
 
 % ---- exterior close + coupled block solve (method-dependent) ----
 dtnInfo = struct("used", false);
@@ -164,7 +175,7 @@ sol.residualNorm = residual;
 sol.scatteredAt = @(points) ...
     doubleLayerPotentialMatrix(surface, points, k, q) * psG ...
     - singleLayerPotentialMatrix(surface, points, k, q) * qs;
-sol.totalAt = @(points) exp(1i*k*points(:,3)) + sol.scatteredAt(points);
+sol.totalAt = @(points) incValue(points) + sol.scatteredAt(points);
 sol.checks = struct( ...
     "solveResidualSmall", residual <= 1e-8 * max(1, norm(rhs)), ...
     "fieldComplex", ~isreal(psG));
@@ -176,9 +187,10 @@ end
 end
 
 
-function [G, Minc] = interfaceCoupling(surface, ids, nV, k)
+function [G, Minc] = interfaceCoupling(surface, ids, nV, incGrad)
 %INTERFACECOUPLING G_ij = int_Gamma mu_i (n . phi_struct_j) and the incident
-% normal-flux load Minc_i = int_Gamma mu_i (d p_inc/dn).
+% normal-flux load Minc_i = int_Gamma mu_i (grad p_inc . n), the incident
+% gradient (incGrad: X -> 1x3) dotted with the outward normal at the centroid.
 signs = surface.orientation.triangleOrientationSignsToOutward(:);
 tri = surface.tri;
 vtx = surface.vtx;
@@ -206,8 +218,9 @@ for t = 1:size(tri, 1)
             end
         end
     end
-    zc = mean(X(:, 3));
-    qinc = 1i * k * nrm(3) * exp(1i * k * zc);   % d/dn exp(ikz), centroid
+    Xc = mean(X, 1);
+    gradC = incGrad(Xc);                 % 1x3 incident gradient at the centroid
+    qinc = gradC * nrm.';                % (grad p_inc) . n_outward
     Minc(lc) = Minc(lc) + (area / 3) * qinc;
 end
 G = sparse(Grow, Gcol, Gval, nB, 3 * nV);

@@ -460,6 +460,44 @@ transformable) truncation gets the fast exact operator; a general radiator
 stays on the dense BEM. The path is FAIL-LOUD - `sphericalDtnOperator` raises
 on a non-spherical surface rather than silently falling back to the sphere.
 
+### Elastic-Bead Thrust Design (wavefront synthesis through the FSI)
+
+`elasticThrustAdjoint` closes the ultrasonic-thrust story: design a phased
+array's complex amplitudes to steer the acoustic RADIATION FORCE on a solid
+ELASTIC bead - through the full FSI solve, because an elastic bead has internal
+compressional + shear resonances a rigid/soft bead cannot show.
+
+```matlab
+res = elasticThrustAdjoint(model, sources, k, amplitudes, "GradientCheck", true);
+res.force            % 1x3 net radiation force on the elastic bead
+res.ascentDirection  % dF_z/dconj(p): raise the thrust
+res.forceForm        % {Q1,Q2,Q3}: reuse in a design loop, F_i(p) = p^H Q_i p
+```
+
+Three readable steps compose the earlier rungs (adjoint AD + radiation force +
+FSI):
+
+1. **The field is linear in the amplitudes** - one FSI solve per source
+   (incident = a unit monopole), then `p_total(X) = fieldAt(X) * p` with the
+   double/single-layer potentials SHARED over sources.
+2. **The force is a quadratic form** - the radiation force is a second-order
+   functional of the linear field, so each component is `F_i(p) = p^H Q_i p`
+   (Q_i Hermitian), assembled from the Brillouin stress on the control sphere.
+3. **The gradient is one matvec** - the Wirtinger steepest ascent of the real
+   force is `dF_i/dconj(p) = 2 Q_i p`. Force AND its full gradient are closed
+   forms once Q_i is built; a design loop REUSES `res.forceForm` with NO
+   re-solve.
+
+Validated (`tests/testElasticThrustAdjoint.m`): the quadratic form reproduces a
+vectorised direct Brillouin integral to ~1e-15 (an independent assembly -
+outer-product form vs scalar-field integral, which caught a `conj(z) z.'` vs
+`z z'` conjugation error), that matches the golden `acousticRadiationForce`, the
+force is control-radius independent (div T = 0), and the Wirtinger gradient
+matches central finite differences to ~1e-13; a step along the ascent raises
+F_z. The N FSI solves are the only real cost (sub-second each via the DtN
+exterior), so build the reusable `forceForm` once (~15 s) and optimise the
+phases freely.
+
 ## H-matrix Teaching Path
 
 ```matlab
