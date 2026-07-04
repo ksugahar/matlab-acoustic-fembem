@@ -12,6 +12,7 @@ kernels, and small optimization gates fit together.
 ## What Is Included
 
 - Netgen `.vol` mesh intake for first-order triangle/tetrahedron meshes.
+- MATLAB PDE Toolbox mesh export to first-order `.vol` for simple geometries.
 - Volume FEM spaces: H1 P1 tetrahedra and HCurl/Nedelec0 tetrahedra.
 - Boundary BEM spaces: scalar P1 traces and RWG0 edge basis functions.
 - FEM/BEM trace maps with explicit row identity.
@@ -41,6 +42,8 @@ that ecosystem, this repository is released under GNU GPL v3.0.
 
 - MATLAB R2021a or later.
 - No required external solver for the fast unit-test lane.
+- Optional: MATLAB PDE Toolbox for simple-geometry mesh generation before
+  exporting first-order tetrahedral `.vol` files.
 - Optional: NGSolve / NGSolve.BEM for regenerating cross-code reference
   artifacts.
 - Optional: a separately installed Gypsilab checkout for the explicit
@@ -92,7 +95,7 @@ maps between volume and boundary spaces easy to inspect.
 
 ```text
 matlab_api/
-  mesh/      .vol parser, VolMesh, SurfaceMesh
+  mesh/      .vol parser, PDE Toolbox exporter, VolMesh, SurfaceMesh
   fem/       H1Space, Nedelec0Space
   bem/       SurfaceP1Space, RwgSpace, TraceOperator
   kernel/    HelmholtzKernel
@@ -127,6 +130,25 @@ addpath(fullfile(repoRoot, "validation"));
 runMeshTopologyExample("GYP-001");
 cases = validationCatalog();
 ```
+
+## MATLAB-Only Mesh Path
+
+For simple teaching geometries, MATLAB PDE Toolbox can generate a linear
+tetrahedral mesh and export it to the same first-order `.vol` contract used by
+the FEM/BEM classes:
+
+```matlab
+model = createpde();
+model.Geometry = multicuboid(1, 1, 1);
+generateMesh(model, "Hmax", 0.25, "GeometricOrder", "linear");
+
+writePdeMeshVol(model.Mesh, "box.vol", ...
+    MaterialName="air", BoundaryName="outer");
+mesh = VolMesh("box.vol");
+```
+
+The exporter rejects non-tetrahedral or higher-order meshes instead of
+silently converting them.
 
 ## Validation Status
 

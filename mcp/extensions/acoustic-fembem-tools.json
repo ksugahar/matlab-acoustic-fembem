@@ -109,7 +109,7 @@
     {
       "name": "acoustic_fembem_knowledge",
       "title": "Acoustic FEM/BEM Knowledge",
-      "description": "Returns one topic of the integrated acoustic FEM/BEM knowledge (the Gypsilab readable lane): overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics (the interface-is-the-battlefield coupling-difficulty synthesis, incl. non-conforming mesh coupling / mortar / supermesh), acoustic, sonic_crystal, adjoint_ad, radia_ngsolve_crossval, validation_discipline, optimization_link, all.",
+      "description": "Returns one topic of the integrated acoustic FEM/BEM knowledge (the Gypsilab readable lane): overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics (the interface-is-the-battlefield coupling-difficulty synthesis, incl. non-conforming mesh coupling / mortar / supermesh), acoustic, sonic_crystal, adjoint_ad, pde_vol_bridge, radia_ngsolve_crossval, validation_discipline, optimization_link, all.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -119,6 +119,22 @@
           }
         },
         "required": ["topic"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "acoustic_fembem_repository_health",
+      "title": "Acoustic FEM/BEM Repository Health",
+      "description": "Runs a lightweight pre-push health check for the integrated MATLAB acoustic FEM/BEM repository: MCP extension registrations, 100-case catalog, .vol fixtures, PDE Toolbox-to-.vol bridge presence, and old repository-name drift.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
       },
       "annotations": {
         "readOnlyHint": true,
@@ -168,6 +184,12 @@
         "order": [
           "topic"
         ]
+      }
+    },
+    "acoustic_fembem_repository_health": {
+      "function": "acoustic_fembem.check_repository_health",
+      "input": {
+        "order": []
       }
     }
   }

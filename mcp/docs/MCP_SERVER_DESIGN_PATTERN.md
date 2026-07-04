@@ -19,6 +19,7 @@ functions plus extension JSON.
 - `acoustic_fembem_acoustic_gate`
 - `acoustic_fembem_crossval_gate`
 - `acoustic_fembem_knowledge`
+- `acoustic_fembem_repository_health`
 
 ## Add A Tool
 
@@ -26,3 +27,5 @@ functions plus extension JSON.
 2. Add or update a test under `tests`.
 3. Register the entry point in `mcp/extensions/acoustic-fembem-tools.json`.
 4. Run `mcp/tools/verify_acoustic_fembem_mcp.ps1`.
+5. Keep file-writing helpers, such as PDE Toolbox mesh-to-.vol export, as normal
+   MATLAB APIs unless the MCP tool explicitly needs write access.

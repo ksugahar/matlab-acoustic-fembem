@@ -29,6 +29,27 @@ verifySubstring(testCase, body, "radia-ngsolve");
 end
 
 
+function testKnowledgeIncludesPdeVolBridgeTopic(testCase)
+body = acoustic_fembem.fembem_knowledge("pde_vol_bridge");
+verifyGreaterThan(testCase, strlength(body), 300);
+verifySubstring(testCase, body, "PDE Toolbox");
+verifySubstring(testCase, body, "writePdeMeshVol");
+verifySubstring(testCase, body, ".vol");
+end
+
+
+function testRepositoryHealthWrapper(testCase)
+out = evalc("acoustic_fembem.check_repository_health()");
+decoded = jsondecode(out);
+verifyTrue(testCase, decoded.ok);
+verifyEqual(testCase, string(decoded.tool), "acoustic_fembem_repository_health");
+verifyEqual(testCase, string(decoded.repository_name), "matlab-acoustic-fembem");
+verifyEqual(testCase, decoded.num_validation_cases, 100);
+verifyEqual(testCase, decoded.num_verified_cases, 100);
+verifyGreaterThanOrEqual(testCase, decoded.num_vol_fixtures, 10);
+end
+
+
 function testResultManifestGateWrapper(testCase)
 artifact = completeArtifact();
 manifestPath = fullfile(tempdir, "acoustic_fembem_result_manifest_gate_test.json");

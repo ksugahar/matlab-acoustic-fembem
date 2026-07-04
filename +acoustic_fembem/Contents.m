@@ -8,6 +8,8 @@
 %   repository_root          Resolve this repository root.
 %   fembem_knowledge          Queryable FEM/BEM knowledge (topic dispatcher).
 %   fembem_knowledge_tool     MCP custom-tool entry point: print one topic.
+%   repository_health         Lightweight repository and MCP extension health.
+%   check_repository_health   MCP custom-tool entry point: print JSON verdict.
 %   fembem_acoustic_gate      Run a Gypsilab acoustic solve vs the analytic
 %                             series; return a struct verdict.
 %   check_fembem_acoustic_gate  MCP custom-tool entry point: print JSON verdict.

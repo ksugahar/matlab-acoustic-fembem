@@ -11,8 +11,9 @@ function text = fembem_knowledge(topic)
 % (acoustic_fembem.repository_root), exercised by the runnable acoustic_fembem.fembem_acoustic_gate.
 %
 % Topics: overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics,
-%         acoustic, sonic_crystal, adjoint_ad, radia_ngsolve_crossval,
-%         validation_discipline, optimization_link, all.
+%         acoustic, sonic_crystal, adjoint_ad, pde_vol_bridge,
+%         radia_ngsolve_crossval, validation_discipline, optimization_link,
+%         all.
 
 arguments
     topic (1,1) string = "overview"
@@ -40,6 +41,8 @@ switch t
     case {"radia_ngsolve_crossval", "radia-ngsolve", "ngsolve_crossval", ...
             "vol_crossval", "vol"}
         text = RADIA_NGSOLVE_CROSSVAL;
+    case {"pde_vol_bridge", "pde_toolbox", "generate_mesh", "matlab_mesh"}
+        text = PDE_VOL_BRIDGE;
     case {"optimization_link", "optimization", "inverse", "design"}
         text = OPTIMIZATION_LINK;
     case {"multiphysics", "interface", "coupling_difficulty", ...
@@ -48,13 +51,13 @@ switch t
     case "all"
         text = strjoin([OVERVIEW, SPACES, GALERKIN_BEM, COUPLED_FEM_BEM, ...
             MULTIPHYSICS, ACOUSTIC, SONIC_CRYSTAL, ADJOINT_AD, ...
-            RADIA_NGSOLVE_CROSSVAL, VALIDATION_DISCIPLINE, ...
+            PDE_VOL_BRIDGE, RADIA_NGSOLVE_CROSSVAL, VALIDATION_DISCIPLINE, ...
             OPTIMIZATION_LINK], [newline newline]);
     otherwise
         text = "Unknown topic '" + topic + "'. Available: overview, " + ...
             "spaces, galerkin_bem, coupled_fem_bem, multiphysics, acoustic, " + ...
-            "sonic_crystal, radia_ngsolve_crossval, validation_discipline, " + ...
-            "optimization_link, all.";
+            "sonic_crystal, adjoint_ad, pde_vol_bridge, " + ...
+            "radia_ngsolve_crossval, validation_discipline, optimization_link, all.";
 end
 end
 
@@ -85,7 +88,7 @@ s = strjoin([
     " 11  rigid scattering + irregular frequencies + CHIEF"
     ""
     "Topics: spaces, galerkin_bem, coupled_fem_bem, multiphysics,"
-    "acoustic, sonic_crystal, radia_ngsolve_crossval,"
+    "acoustic, sonic_crystal, pde_vol_bridge, radia_ngsolve_crossval,"
     "validation_discipline, optimization_link."
     ], newline);
 end
@@ -321,6 +324,32 @@ s = strjoin([
     ""
     "This is why AD lives in a FEM/BEM lab's MCP: the"
     "solver and the design loop that drives it, together."
+    ], newline);
+end
+
+
+function s = PDE_VOL_BRIDGE()
+s = strjoin([
+    "# PDE Toolbox to .vol bridge"
+    ""
+    "Goal: simple geometries should not require an external mesher."
+    "MATLAB PDE Toolbox can generate a linear tetrahedral mesh, then"
+    "writePdeMeshVol turns that mesh into the same Netgen .vol contract"
+    "used by VolMesh, FemBemModel, and the BEM boundary views."
+    ""
+    "Minimal path:"
+    "  model = createpde();"
+    "  model.Geometry = multicuboid(1, 1, 1);"
+    "  generateMesh(model, ""GeometricOrder"", ""linear"");"
+    "  writePdeMeshVol(model.Mesh, ""box.vol"");"
+    "  mesh = VolMesh(""box.vol"");"
+    ""
+    "Policy: no implicit element conversion. The bridge accepts only"
+    "linear tetrahedral PDE meshes; boundary faces are derived as"
+    "outward-oriented triangles, and the round trip is checked by"
+    "readVolTriTet. For very complex CAD, Cubit/Netgen remain better,"
+    "but for teaching cubes, boxes, balls, and parameter sweeps, MATLAB"
+    "alone can now create the solver-facing .vol input."
     ], newline);
 end
 

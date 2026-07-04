@@ -33,6 +33,7 @@ testFiles = [
     fullfile(repoRoot, "tests", "testMeshTopologyValidation.m")
     fullfile(repoRoot, "tests", "testRemainingExamplesValidation.m")
     fullfile(repoRoot, "tests", "testMcpAcousticFembemTools.m")
+    fullfile(repoRoot, "tests", "testPdeVolBridge.m")
 ];
 
 allResults = matlab.unittest.TestResult.empty;
