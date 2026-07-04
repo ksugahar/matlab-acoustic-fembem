@@ -75,7 +75,8 @@ verifySubstring(testCase, body, "baffled circular membrane");
 verifySubstring(testCase, body, "normal velocity");
 verifySubstring(testCase, body, "NGSolve.BEM");
 verifySubstring(testCase, body, "plotDrumStepTimeField");
-verifySubstring(testCase, body, "Gmsh is not required");
+verifySubstring(testCase, body, "writeDrumStepTimeGif");
+verifySubstring(testCase, body, "does not require Gmsh");
 end
 
 
