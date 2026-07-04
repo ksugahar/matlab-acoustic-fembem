@@ -601,6 +601,8 @@ s = strjoin([
     "top membrane at z=0 as the struck surface.  The spherical truncation is"
     "labelled as the high-order impedance absorbing-boundary lane for"
     "Radia-style open-boundary experiments; it is not the Kelvin transform."
+    "In this first rung the lower half-space is intentionally quiet: the"
+    "cylindrical body is a rigid baffle, not a second radiating drum head."
     ""
     "This is better than another sphere-only case because it feels like a"
     "student experiment: hit a drum, watch the membrane mode, then hear the"

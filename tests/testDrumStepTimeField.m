@@ -100,6 +100,7 @@ verifyTrue(testCase, scene.axis.equal);
 verifyEqual(testCase, scene.x(1), scene.z(1), "AbsTol", 1e-12);
 verifyEqual(testCase, scene.x(end), scene.z(end), "AbsTol", 1e-12);
 verifyEqual(testCase, scene.geometry.struck_surface, "top membrane at z=0");
+verifyEqual(testCase, scene.geometry.radiation_model, "one-sided baffled top-head radiation");
 verifyTrue(testCase, any(scene.masks.high_order_impedance_boundary, "all"));
 verifyTrue(testCase, any(scene.masks.high_order_impedance_boundary(scene.z < 0, :), "all"));
 verifyTrue(testCase, any(scene.masks.drum_frame, "all"));
@@ -117,6 +118,7 @@ info = writeDrumHighOrderImpedanceGif(scene, gifPath, "DelayTime", 0.01);
 
 verifyEqual(testCase, info.kind, "drum_high_order_impedance_gif");
 verifyEqual(testCase, info.num_frames, 4);
+verifyTrue(testCase, info.flip_vertical);
 verifyTrue(testCase, isfile(gifPath));
 
 frames = imfinfo(gifPath);

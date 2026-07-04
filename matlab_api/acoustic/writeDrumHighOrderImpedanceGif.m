@@ -13,6 +13,7 @@ arguments
     options.LoopCount (1,1) double {mustBeNonnegative} = Inf
     options.Colormap (1,1) string = "turbo"
     options.NumFieldColors (1,1) double {mustBeInteger, mustBeGreaterThan(options.NumFieldColors, 16), mustBeLessThanOrEqual(options.NumFieldColors, 248)} = 240
+    options.FlipVertical (1,1) logical = true
 end
 
 validateScene(scene);
@@ -38,6 +39,9 @@ for k = 1:size(scene.pressure, 3)
     image(scene.masks.high_order_impedance_boundary) = idx.boundary;
     image(scene.masks.frame_outline) = idx.frame_outline;
     image(scene.masks.membrane) = idx.membrane;
+    if options.FlipVertical
+        image = flipud(image);
+    end
 
     if k == 1
         imwrite(image, map, gifPath, "gif", ...
@@ -63,6 +67,7 @@ info.frame_depth = scene.geometry.frame_depth;
 if isfield(scene, "axis")
     info.axis_equal = scene.axis.equal;
 end
+info.flip_vertical = options.FlipVertical;
 end
 
 

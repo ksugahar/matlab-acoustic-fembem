@@ -80,11 +80,13 @@ scene.z = z;
 scene.t = field.t(timeIndices);
 scene.time_indices = timeIndices;
 scene.pressure = pressure;
-scene.source = "drumStepTimeField Rayleigh pressure from the struck top membrane";
+scene.source = "one-sided baffled top-membrane Rayleigh pressure from drumStepTimeField";
 scene.boundary_type = "full spherical high-order impedance absorbing boundary visualization";
 scene.boundary_notes = [
     "The display boundary is a full spherical truncation surface."
     "The drum top surface at z=0 is struck; the cylinder body sits below it."
+    "The lower half-space is intentionally quiet in this first model because"
+    "the drum body is treated as a rigid baffle, not as a second radiating head."
     "It is intentionally not labelled Kelvin; use it as the high-order"
     "impedance/ABC lane until the Radia production name is finalized."
     ];
@@ -166,5 +168,6 @@ geometry.outer_radius = outerRadius;
 geometry.frame_depth = frameDepth;
 geometry.boundary_radius = boundaryRadius;
 geometry.struck_surface = "top membrane at z=0";
+geometry.radiation_model = "one-sided baffled top-head radiation";
 geometry.description = "cylindrical drum cross-section inside a full spherical high-order impedance boundary";
 end

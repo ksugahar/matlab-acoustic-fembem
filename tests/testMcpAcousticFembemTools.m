@@ -80,6 +80,8 @@ verifySubstring(testCase, body, "drumHighOrderImpedanceScene");
 verifySubstring(testCase, body, "axis-equal");
 verifySubstring(testCase, body, "not a hemisphere");
 verifySubstring(testCase, body, "top membrane");
+verifySubstring(testCase, body, "lower half-space is intentionally quiet");
+verifySubstring(testCase, body, "rigid baffle");
 verifySubstring(testCase, body, "not the Kelvin transform");
 verifySubstring(testCase, body, "does not require Gmsh");
 end
