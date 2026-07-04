@@ -29,6 +29,16 @@ verifySubstring(testCase, body, "radia-ngsolve");
 end
 
 
+function testKnowledgeIncludesNgsolveBem50Topic(testCase)
+body = acoustic_fembem.fembem_knowledge("ngsolve_bem_50");
+verifyGreaterThan(testCase, strlength(body), 600);
+verifySubstring(testCase, body, "50 examples");
+verifySubstring(testCase, body, "NGSolve.BEM");
+verifySubstring(testCase, body, "Netgen");
+verifySubstring(testCase, body, "Do not claim an analytic solution");
+end
+
+
 function testKnowledgeIncludesPdeVolBridgeTopic(testCase)
 body = acoustic_fembem.fembem_knowledge("pde_vol_bridge");
 verifyGreaterThan(testCase, strlength(body), 300);

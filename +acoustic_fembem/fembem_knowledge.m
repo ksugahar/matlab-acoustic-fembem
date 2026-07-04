@@ -13,7 +13,8 @@ function text = fembem_knowledge(topic)
 % Topics: overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics,
 %         acoustic, sonic_crystal, adjoint_ad, matlab_execution_policy,
 %         vol_visualization, pde_vol_bridge,
-%         radia_ngsolve_crossval, validation_discipline, optimization_link,
+%         radia_ngsolve_crossval, ngsolve_bem_50,
+%         validation_discipline, optimization_link,
 %         all.
 
 arguments
@@ -42,6 +43,9 @@ switch t
     case {"radia_ngsolve_crossval", "radia-ngsolve", "ngsolve_crossval", ...
             "vol_crossval", "vol"}
         text = RADIA_NGSOLVE_CROSSVAL;
+    case {"ngsolve_bem_50", "bem_50", "ngsolve_bem", "bem_crossval_50", ...
+            "fifty"}
+        text = NGSOLVE_BEM_50;
     case {"pde_vol_bridge", "pde_toolbox", "generate_mesh", "matlab_mesh"}
         text = PDE_VOL_BRIDGE;
     case {"vol_visualization", "visualization", "netgen_viewer", "vol_viewer"}
@@ -58,14 +62,16 @@ switch t
         text = strjoin([OVERVIEW, SPACES, GALERKIN_BEM, COUPLED_FEM_BEM, ...
             MULTIPHYSICS, ACOUSTIC, SONIC_CRYSTAL, ADJOINT_AD, ...
             MATLAB_EXECUTION_POLICY, VOL_VISUALIZATION, PDE_VOL_BRIDGE, ...
-            RADIA_NGSOLVE_CROSSVAL, VALIDATION_DISCIPLINE, ...
+            RADIA_NGSOLVE_CROSSVAL, NGSOLVE_BEM_50, ...
+            VALIDATION_DISCIPLINE, ...
             OPTIMIZATION_LINK], [newline newline]);
     otherwise
         text = "Unknown topic '" + topic + "'. Available: overview, " + ...
             "spaces, galerkin_bem, coupled_fem_bem, multiphysics, acoustic, " + ...
             "sonic_crystal, adjoint_ad, matlab_execution_policy, " + ...
             "vol_visualization, pde_vol_bridge, " + ...
-            "radia_ngsolve_crossval, validation_discipline, optimization_link, all.";
+            "radia_ngsolve_crossval, ngsolve_bem_50, " + ...
+            "validation_discipline, optimization_link, all.";
 end
 end
 
@@ -97,7 +103,7 @@ s = strjoin([
     ""
     "Topics: spaces, galerkin_bem, coupled_fem_bem, multiphysics,"
     "acoustic, sonic_crystal, matlab_execution_policy, vol_visualization,"
-    "pde_vol_bridge, radia_ngsolve_crossval,"
+    "pde_vol_bridge, radia_ngsolve_crossval, ngsolve_bem_50,"
     "validation_discipline, optimization_link."
     ], newline);
 end
@@ -473,6 +479,40 @@ s = strjoin([
     "  requiring the operator to match the reference much better than its"
     "  conjugate. A passing artifact can be promoted into MCP knowledge"
     "  only after the gate, artifact metadata, and focused verifier pass."
+    ], newline);
+end
+
+
+function s = NGSOLVE_BEM_50()
+s = strjoin([
+    "# NGSolve.BEM 50-case comparison lane"
+    ""
+    "Yes: 50 examples are realistic before the full 100-case catalog. Use the"
+    "BEM-heavy half of catalog_100 as the first milestone, all driven by the"
+    "same first-order Netgen .vol tri/tet fixtures:"
+    ""
+    "  GYP-031..040  Laplace P1 BEM, dense assembly"
+    "  GYP-041..050  Laplace P1 BEM, H-matrix/compression checks"
+    "  GYP-051..060  acoustic low-frequency stability checks"
+    "  GYP-061..070  acoustic Helmholtz P1 BEM"
+    "  GYP-091..100  NGSolve.BEM reference and convention checks"
+    ""
+    "The .vol visualization skill for this lane is:"
+    "  1. open the solver-facing .vol in Netgen for human inspection;"
+    "  2. run acoustic_fembem_vol_mesh_summary for MCP/headless preflight;"
+    "  3. use plotVolMesh only as a MATLAB quick-look figure."
+    ""
+    "Analytic references are not gone, but they are no longer enough by"
+    "themselves. Keep the exact sphere/ball, Laplace capacity, point-source"
+    "reproduction, reciprocity, symmetry, and convergence identities as"
+    "anchors; for the remaining coverage, compare MATLAB/Gypsilab against"
+    "radia-ngsolve/NGSolve.BEM and store result manifests with versions,"
+    "run dates, timing breakdowns, schema ids, and convention ids."
+    ""
+    "Promotion rule: a 50-case result teaches the MCP only after mesh summary,"
+    "operator convention gate, reference comparison, and manifest metadata all"
+    "pass. Do not claim an analytic solution when the reference is a measured"
+    "cross-code artifact."
     ], newline);
 end
 
