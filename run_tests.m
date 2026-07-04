@@ -1,5 +1,6 @@
 repoRoot = fileparts(mfilename("fullpath"));
 addpath(genpath(fullfile(repoRoot, "matlab_api")));
+addpath(repoRoot);
 addpath(fullfile(repoRoot, "examples"));
 addpath(fullfile(repoRoot, "validation"));
 
@@ -31,6 +32,7 @@ testFiles = [
     fullfile(repoRoot, "tests", "testValidationCatalog.m")
     fullfile(repoRoot, "tests", "testMeshTopologyValidation.m")
     fullfile(repoRoot, "tests", "testRemainingExamplesValidation.m")
+    fullfile(repoRoot, "tests", "testMcpAcousticFembemTools.m")
 ];
 
 allResults = matlab.unittest.TestResult.empty;

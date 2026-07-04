@@ -1,4 +1,4 @@
-# CAE-AI MATLAB FEM/BEM
+# MATLAB Acoustic FEM/BEM
 
 Readable MATLAB prototypes for learning the FEM/BEM ideas behind Gypsilab,
 NGSolve, and NGSolve.BEM.
@@ -20,6 +20,8 @@ kernels, and small optimization gates fit together.
 - A readable educational H-matrix matvec.
 - Acoustic scattering, FEM/BEM coupling, FSI, radiation-force, and adjoint
   teaching gates.
+- Adjoint automatic differentiation gates for acoustic wavefront and
+  radiation-force optimization.
 - 100 validation examples organized under `examples`.
 
 The detailed solver story, including the validation ladder and acoustic/FSI
@@ -47,7 +49,7 @@ that ecosystem, this repository is released under GNU GPL v3.0.
 ## Quick Start
 
 ```matlab
-repoRoot = "path/to/caeai-matlab-fembem";
+repoRoot = "path/to/matlab-acoustic-fembem";
 addpath(genpath(fullfile(repoRoot, "matlab_api")));
 addpath(fullfile(repoRoot, "validation"));
 
@@ -111,7 +113,7 @@ docs/        design notes and the detailed teaching ladder
 From MATLAB:
 
 ```matlab
-repoRoot = "path/to/caeai-matlab-fembem";
+repoRoot = "path/to/matlab-acoustic-fembem";
 run(fullfile(repoRoot, "run_tests.m"))
 ```
 
@@ -142,11 +144,29 @@ not required for a basic checkout.
 
 ## MATLAB MCP Integration
 
-The companion repository
-[caeai-matlab-mcp](https://github.com/ksugahar/caeai-matlab-mcp) exposes a
-MATLAB MCP domain layer around selected gates in this FEM/BEM repository.
-The MCP repository treats the official MathWorks MATLAB MCP Server as an
-external runtime and keeps domain behavior in versioned MATLAB functions.
+This repository includes its own MATLAB MCP layer under [mcp](mcp/).  It uses
+the official MathWorks MATLAB MCP Server as the runtime and exposes the acoustic
+FEM/BEM gates through `+acoustic_fembem`.
+
+```powershell
+--extension-file=<repo>\mcp\extensions\acoustic-fembem-tools.json
+```
+
+## Adjoint Optimization
+
+This repository includes readable reverse-mode adjoint gates for optimization.
+The key idea is to differentiate the equation, not the linear solver: one
+transpose/adjoint solve gives the gradient of a scalar objective with respect
+to many source amplitudes or design variables.
+
+Current gates include:
+
+- acoustic focusing: phased-array amplitudes maximize `|p(target)|^2`;
+- acoustic radiation force: the force is a quadratic form of the linear field;
+- elastic-bead thrust: FSI solve + Brillouin stress + Wirtinger gradient.
+
+The MCP entry point `acoustic_fembem_acoustic_gate` exposes these as
+`focus_adjoint`, `radiation_force`, and `thrust_adjoint`.
 
 ## License
 
