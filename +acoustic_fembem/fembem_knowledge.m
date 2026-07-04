@@ -13,7 +13,8 @@ function text = fembem_knowledge(topic)
 % Topics: overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics,
 %         acoustic, sonic_crystal, adjoint_ad, matlab_execution_policy,
 %         vol_visualization, pde_vol_bridge,
-%         radia_ngsolve_crossval, ngsolve_bem_50,
+%         radia_ngsolve_crossval, ngsolve_bem_50, catalog_100,
+%         vibroacoustic_drum, curved_vol_geometry,
 %         validation_discipline, optimization_link,
 %         all.
 
@@ -46,6 +47,14 @@ switch t
     case {"ngsolve_bem_50", "bem_50", "ngsolve_bem", "bem_crossval_50", ...
             "fifty"}
         text = NGSOLVE_BEM_50;
+    case {"catalog_100", "hundred", "100", "gyp_100"}
+        text = CATALOG_100;
+    case {"vibroacoustic_drum", "drum", "taiko", "radiating_membrane", ...
+            "baffled_drum"}
+        text = VIBROACOUSTIC_DRUM;
+    case {"curved_vol_geometry", "curved_vol", "high_order_curve", ...
+            "geometry_order"}
+        text = CURVED_VOL_GEOMETRY;
     case {"pde_vol_bridge", "pde_toolbox", "generate_mesh", "matlab_mesh"}
         text = PDE_VOL_BRIDGE;
     case {"vol_visualization", "visualization", "netgen_viewer", "vol_viewer"}
@@ -62,7 +71,8 @@ switch t
         text = strjoin([OVERVIEW, SPACES, GALERKIN_BEM, COUPLED_FEM_BEM, ...
             MULTIPHYSICS, ACOUSTIC, SONIC_CRYSTAL, ADJOINT_AD, ...
             MATLAB_EXECUTION_POLICY, VOL_VISUALIZATION, PDE_VOL_BRIDGE, ...
-            RADIA_NGSOLVE_CROSSVAL, NGSOLVE_BEM_50, ...
+            RADIA_NGSOLVE_CROSSVAL, NGSOLVE_BEM_50, CATALOG_100, ...
+            VIBROACOUSTIC_DRUM, CURVED_VOL_GEOMETRY, ...
             VALIDATION_DISCIPLINE, ...
             OPTIMIZATION_LINK], [newline newline]);
     otherwise
@@ -70,7 +80,8 @@ switch t
             "spaces, galerkin_bem, coupled_fem_bem, multiphysics, acoustic, " + ...
             "sonic_crystal, adjoint_ad, matlab_execution_policy, " + ...
             "vol_visualization, pde_vol_bridge, " + ...
-            "radia_ngsolve_crossval, ngsolve_bem_50, " + ...
+            "radia_ngsolve_crossval, ngsolve_bem_50, catalog_100, " + ...
+            "vibroacoustic_drum, curved_vol_geometry, " + ...
             "validation_discipline, optimization_link, all.";
 end
 end
@@ -104,6 +115,7 @@ s = strjoin([
     "Topics: spaces, galerkin_bem, coupled_fem_bem, multiphysics,"
     "acoustic, sonic_crystal, matlab_execution_policy, vol_visualization,"
     "pde_vol_bridge, radia_ngsolve_crossval, ngsolve_bem_50,"
+    "catalog_100, vibroacoustic_drum, curved_vol_geometry,"
     "validation_discipline, optimization_link."
     ], newline);
 end
@@ -383,9 +395,22 @@ s = strjoin([
     "  acoustic_fembem.vol_mesh_summary(""mesh.vol"") -> counts, bbox, labels"
     ""
     "Practical split:"
-    "  - GUI/user inspection: Netgen native .vol viewer."
+    "  - GUI/user inspection: Netgen native .vol viewer, but do not rely"
+    "    on a raw Windows netgen.exe file association."
     "  - MATLAB script/report: plotVolMesh plus the summary JSON."
     "  - LLM/headless preflight: acoustic_fembem_vol_mesh_summary."
+    ""
+    "Windows double-click rule:"
+    "  Raw .vol -> netgen.exe can open a blank GUI because the startup path"
+    "  does not necessarily call the native Tcl mesh loader. Use the Radia"
+    "  helper association (`radia-vol-viewer --register`) or an equivalent"
+    "  Netgen startup hook that runs:"
+    "    Ng_LoadMesh ""mesh.vol"""
+    "    set selectvisual mesh"
+    "    Ng_SetVisParameters; redraw; Ng_ReadStatus"
+    "  .sol files are mesh-free GridFunction coefficient dumps, so double-click"
+    "  handling must locate or receive the companion .vol and the matching FES"
+    "  order before selecting solution visual mode."
     ""
     "Do not turn visualization into a hidden mesh conversion step. The"
     "solver-facing contract remains first-order tri/tet .vol, and the"
@@ -513,6 +538,92 @@ s = strjoin([
     "operator convention gate, reference comparison, and manifest metadata all"
     "pass. Do not claim an analytic solution when the reference is a measured"
     "cross-code artifact."
+    ], newline);
+end
+
+
+function s = CATALOG_100()
+s = strjoin([
+    "# 100-case acoustic FEM/BEM catalog"
+    ""
+    "The repository already has a runnable 100-case teaching catalog:"
+    "  acoustic_fembem.fembem_crossval_gate(""catalog_100"")"
+    ""
+    "Coverage:"
+    "  GYP-001..010  .vol mesh/topology, including negative quad/hex rejection"
+    "  GYP-011..020  H1 P1 tetra FEM"
+    "  GYP-021..030  HCurl/Nedelec edge FEM"
+    "  GYP-031..040  Laplace P1 BEM dense operators"
+    "  GYP-041..050  readable Laplace H-matrix blocks"
+    "  GYP-051..060  acoustic low-frequency kernels"
+    "  GYP-061..070  Helmholtz/acoustic BEM"
+    "  GYP-071..080  scalar FEM/BEM coupling"
+    "  GYP-081..090  RWG/HCurl trace maps"
+    "  GYP-091..100  NGSolve/NGSolve.BEM reference smoke gates"
+    ""
+    "This catalog is a regression/teaching ladder, not the end of the story."
+    "The next high-value examples should be more physical: baffled vibrating"
+    "disk/drum radiation, vibro-acoustic FEM/BEM coupling, and radiation"
+    "impedance checks."
+    ], newline);
+end
+
+
+function s = VIBROACOUSTIC_DRUM()
+s = strjoin([
+    "# Vibro-acoustic drum / struck membrane example"
+    ""
+    "Yes, this is exactly the kind of FEM/BEM example the teaching lane should"
+    "grow next.  The educational model is a baffled circular membrane or thin"
+    "elastic plate: the structural FEM supplies the normal velocity on the"
+    "radiating face, and the acoustic P1 BEM supplies the exterior radiation"
+    "condition and pressure field."
+    ""
+    "Minimal readable rung:"
+    "  1. Membrane/plate FEM eigenmode on a circular disk (start with mode 0,1)."
+    "  2. Use the mode shape as prescribed normal velocity on the disk."
+    "  3. Solve exterior Helmholtz P1 BEM for the radiated pressure."
+    "  4. Check acoustic power/radiation impedance and far-field directivity."
+    "  5. Compare with NGSolve.BEM on the same .vol/.surface labels."
+    ""
+    "Time-domain MATLAB visualization rung:"
+    "  field = drumStepTimeField();"
+    "  plotDrumStepTimeField(field, 30);"
+    "This uses a step-force structural modal response plus the causal Rayleigh"
+    "retarded-potential integral, then draws the r-z pressure snapshot inside"
+    "MATLAB.  Gmsh is not required for this teaching visualization."
+    ""
+    "This is better than another sphere-only case because it feels like a"
+    "student experiment: hit a drum, watch the membrane mode, then hear the"
+    "radiated sound.  It should become a post-100 catalog extension before"
+    "performance tuning."
+    ], newline);
+end
+
+
+function s = CURVED_VOL_GEOMETRY()
+s = strjoin([
+    "# Curve-only high-order .vol geometry policy"
+    ""
+    "Good idea, but keep it optional and isolated.  The readable teaching"
+    "solver should keep first-order unknowns: H1 P1 for FEM and P1 boundary"
+    "BEM.  A high-order .vol should be used only as a geometry/quadrature view"
+    "for curved surfaces, not as hidden high-order solution DOFs."
+    ""
+    "Readable design:"
+    "  - VolMesh remains the first-order tri/tet connectivity and node-id"
+    "    contract."
+    "  - CurvedBoundaryView, or an equivalent small adapter, owns high-order"
+    "    boundary nodes, curved triangle mapping, normals, Jacobians, and"
+    "    quadrature points."
+    "  - FEM/BEM operators accept either SurfaceMesh or CurvedBoundaryView."
+    "  - The default parser still fails loud on high-order records unless"
+    "    EnableCurvedGeometry=true is explicitly requested."
+    ""
+    "This does lower readability if mixed into readVolTriTet or every operator."
+    "It stays readable if all curved geometry logic lives behind one adapter and"
+    "the examples show both: linear geometry first, curved geometry as the"
+    "accuracy extension."
     ], newline);
 end
 

@@ -21,6 +21,7 @@ verifyEqual(testCase, report.points, 4);
 verifyEqual(testCase, report.triangles, 4);
 verifyEqual(testCase, report.tets, 1);
 verifyEqual(testCase, report.recommended_gui_viewer, "Netgen/native .vol viewer");
+verifyTrue(testCase, contains(report.recommended_windows_double_click_handler, "Ng_LoadMesh"));
 verifyEqual(testCase, report.recommended_matlab_preview, "plotVolMesh");
 end
 

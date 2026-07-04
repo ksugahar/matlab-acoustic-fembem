@@ -54,6 +54,37 @@ verifyGreaterThan(testCase, strlength(body), 300);
 verifySubstring(testCase, body, "Netgen");
 verifySubstring(testCase, body, "plotVolMesh");
 verifySubstring(testCase, body, "acoustic_fembem_vol_mesh_summary");
+verifySubstring(testCase, body, "Ng_LoadMesh");
+verifySubstring(testCase, body, ".sol files are mesh-free");
+end
+
+
+function testKnowledgeIncludesCatalog100Topic(testCase)
+body = acoustic_fembem.fembem_knowledge("catalog_100");
+verifyGreaterThan(testCase, strlength(body), 500);
+verifySubstring(testCase, body, "100-case");
+verifySubstring(testCase, body, "GYP-001..010");
+verifySubstring(testCase, body, "GYP-091..100");
+end
+
+
+function testKnowledgeIncludesDrumTopic(testCase)
+body = acoustic_fembem.fembem_knowledge("vibroacoustic_drum");
+verifyGreaterThan(testCase, strlength(body), 500);
+verifySubstring(testCase, body, "baffled circular membrane");
+verifySubstring(testCase, body, "normal velocity");
+verifySubstring(testCase, body, "NGSolve.BEM");
+verifySubstring(testCase, body, "plotDrumStepTimeField");
+verifySubstring(testCase, body, "Gmsh is not required");
+end
+
+
+function testKnowledgeIncludesCurvedVolGeometryTopic(testCase)
+body = acoustic_fembem.fembem_knowledge("curved_vol_geometry");
+verifyGreaterThan(testCase, strlength(body), 500);
+verifySubstring(testCase, body, "first-order unknowns");
+verifySubstring(testCase, body, "CurvedBoundaryView");
+verifySubstring(testCase, body, "EnableCurvedGeometry=true");
 end
 
 
@@ -72,6 +103,7 @@ decoded = jsondecode(out);
 verifyTrue(testCase, decoded.ok);
 verifyEqual(testCase, string(decoded.tool), "acoustic_fembem_vol_mesh_summary");
 verifyEqual(testCase, string(decoded.recommended_gui_viewer), "Netgen/native .vol viewer");
+verifyTrue(testCase, contains(string(decoded.recommended_windows_double_click_handler), "Ng_LoadMesh"));
 verifyGreaterThan(testCase, decoded.points, 0);
 verifyGreaterThan(testCase, decoded.triangles, 0);
 verifyGreaterThan(testCase, decoded.tets, 0);

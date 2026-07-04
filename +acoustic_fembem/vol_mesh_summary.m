@@ -38,6 +38,8 @@ report.boundary_orientation = mesh.boundaryOrientation.boundaryOrientation;
 report.trace_nodes = numel(mesh.traceNodeIds);
 report.bounding_box = bounds;
 report.recommended_gui_viewer = "Netgen/native .vol viewer";
+report.recommended_windows_double_click_handler = ...
+    "radia-vol-viewer --register, or a Netgen startup hook that calls Ng_LoadMesh and selects mesh/solution visual mode";
 report.recommended_matlab_preview = "plotVolMesh";
 report.recommended_llm_preflight = "acoustic_fembem_vol_mesh_summary";
 end
