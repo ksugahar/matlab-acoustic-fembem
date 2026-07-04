@@ -4,13 +4,16 @@ function scene = drumFemBemCoupledDemo(options)
 %   scene = drumFemBemCoupledDemo() builds a readable time-domain
 %   vibro-acoustic demo for a real drum-like object:
 %
-%       top membrane FEM mode  -> internal cavity pressure FEM mode
-%       bottom membrane FEM mode + shell leakage
+%       top membrane damped FEM mode
+%       bottom membrane damped FEM mode + shell damped leakage mode
 %       -> exterior retarded-potential boundary integrals (BEM view)
 %
 %   This is deliberately a reduced-order teaching model, not a production
-%   drum solver.  Its purpose is to make the coupling topology visible before
-%   moving to P1 volume FEM + P1 BEM on a .vol mesh.
+%   drum solver.  Its purpose is to make the structural-FEM / acoustic-BEM
+%   coupling topology visible before replacing the modal drum DOFs with a
+%   membrane/shell FEM mesh.  The .vol P1 acoustic volume-FEM/BEM lane is a
+%   separate acoustic-transmission teaching benchmark, not the preferred drum
+%   split.
 
 arguments
     options.Radius (1,1) double {mustBePositive} = 0.10
@@ -19,22 +22,28 @@ arguments
     options.BoundaryRadius (1,1) double {mustBePositive} = 0.28
     options.SoundSpeed (1,1) double {mustBePositive} = 343.0
     options.Density (1,1) double {mustBePositive} = 1.2
-    options.TopFrequency (1,1) double {mustBePositive} = 220.0
-    options.BottomFrequency (1,1) double {mustBePositive} = 185.0
-    options.CavityFrequency (1,1) double {mustBePositive} = 620.0
-    options.MembraneDamping (1,1) double {mustBeNonnegative} = 0.035
-    options.CavityDamping (1,1) double {mustBeNonnegative} = 0.055
+    options.TopFrequency (1,1) double {mustBePositive} = 720.0
+    options.BottomFrequency (1,1) double {mustBePositive} = 610.0
+    options.ShellFrequency (1,1) double {mustBePositive} = 430.0
+    options.DampingRatio (1,1) double {mustBeNonnegative} = 0.08
+    options.TopDampingRatio double = []
+    options.BottomDampingRatio double = []
+    options.ShellDampingRatio double = []
+    options.MembraneDamping double = []       % compatibility alias for DampingRatio
+    options.CavityFrequency double = []       % deprecated; cavity DOF is no longer used
+    options.CavityDamping double = []         % deprecated; cavity DOF is no longer used
     options.CouplingStrength (1,1) double {mustBeNonnegative} = 1.0e4
-    options.CavityGain (1,1) double {mustBeNonnegative} = 5.0e5
-    options.SideLeakage (1,1) double {mustBeNonnegative} = 2.5e3
-    options.CavityDisplayGain (1,1) double {mustBeNonnegative} = 0.0
+    options.CavityGain double = []            % deprecated; cavity DOF is no longer used
+    options.SideLeakage (1,1) double {mustBeNonnegative} = 0.35
+    options.CavityDisplayGain double = []     % deprecated; interior air is never color-mapped
     options.ForcePerModalMass (1,1) double = 1.0
     options.Excitation (1,1) string {mustBeMember(options.Excitation, ["impact", "step"])} = "impact"
+    options.ImpactStartTime (1,1) double {mustBeNonnegative} = 0.0
     options.ImpactDuration (1,1) double {mustBePositive} = 1.8e-4
     options.NumX (1,1) double {mustBeInteger, mustBeGreaterThan(options.NumX, 24)} = 120
     options.NumZ (1,1) double {mustBeInteger, mustBeGreaterThan(options.NumZ, 24)} = 120
     options.NumTime (1,1) double {mustBeInteger, mustBeGreaterThan(options.NumTime, 8)} = 72
-    options.TMax (1,1) double {mustBePositive} = 2.4e-3
+    options.TMax (1,1) double {mustBePositive} = 4.0e-3
     options.NumSourceRadial (1,1) double {mustBeInteger, mustBeGreaterThan(options.NumSourceRadial, 2)} = 10
     options.NumSourceAzimuth (1,1) double {mustBeInteger, mustBeGreaterThan(options.NumSourceAzimuth, 3)} = 20
     options.NumSideAxial (1,1) double {mustBeInteger, mustBeGreaterThan(options.NumSideAxial, 2)} = 8
@@ -60,7 +69,7 @@ domain = rho <= boundaryRadius;
 [masks, geometry] = drumMasks(X, Z, options);
 pressure = zeros(numel(z), numel(x), numel(t));
 
-exteriorObservation = domain & ~masks.cavity & ~masks.drum_frame;
+exteriorObservation = domain & ~masks.interior_air & ~masks.drum_frame;
 upperExterior = exteriorObservation & Z > 0;
 lowerExterior = exteriorObservation & Z < -depth;
 lateralExterior = exteriorObservation & Z < 0 & Z > -depth;
@@ -98,9 +107,6 @@ for k = 1:numel(t)
     componentMax.side_to_lower_exterior = maxMaskedComponent( ...
         componentMax.side_to_lower_exterior, pSide, lowerVec);
 
-    if options.CavityDisplayGain > 0
-        p(masks.cavity) = options.CavityDisplayGain * motion.cavity_pressure(k);
-    end
     pressure(:, :, k) = p;
 end
 
@@ -112,21 +118,22 @@ scene.t = t;
 scene.time_indices = 1:numel(t);
 scene.pressure = pressure;
 scene.motion = motion;
-scene.source = "reduced FEM membrane/cavity model coupled to exterior BEM-style retarded integrals";
+scene.source = "structural FEM-style damped membrane/shell model coupled to acoustic exterior BEM-style retarded integrals";
 scene.boundary_type = "full spherical high-order impedance absorbing boundary visualization";
 scene.coupling = struct();
-scene.coupling.kind = "reduced_fem_internal_air_plus_exterior_bem";
-scene.coupling.fem_dofs = ["top_membrane_mode", "bottom_membrane_mode", "internal_cavity_pressure"];
+scene.coupling.kind = "structural_fem_membrane_shell_plus_acoustic_exterior_bem";
+scene.coupling.structural_solver = "FEM for drum membranes and shell";
+scene.coupling.acoustic_solver = "BEM for exterior acoustic radiation";
+scene.coupling.fem_dofs = ["top_membrane_mode", "bottom_membrane_mode", "shell_leakage_mode"];
 scene.coupling.bem_surfaces = ["top_head_exterior", "bottom_head_exterior", "side_shell_leakage"];
-scene.coupling.note = "Every BEM boundary source is evaluated at every exterior observation point with the same retarded free-space Green kernel. The internal cavity pressure drives the coupling but is not color-mapped by default.";
-scene.coupling.cavity_display_gain = options.CavityDisplayGain;
+scene.coupling.note = "The drum structure is a FEM object and the sound field is an exterior BEM object. Every acoustic BEM boundary source is evaluated at every exterior observation point with the same retarded free-space Green kernel. The drum is modeled as damped membrane/shell vibration, not as an internal cavity-pressure oscillator.";
 scene.bem = struct();
 scene.bem.kernel = "causal retarded free-space Green function";
 scene.bem.observation_rule = "top, bottom, and side boundary sources all contribute to every exterior air observation point";
-scene.bem.unknown_view = "FEM modal accelerations provide Neumann boundary data for the BEM teaching layer";
+scene.bem.unknown_view = "structural FEM/modal accelerations provide Neumann boundary data for the acoustic BEM teaching layer";
 scene.visualization = struct();
 scene.visualization.field = "propagating_air_pressure_only";
-scene.visualization.internal_cavity = "special coupling state, not a plotted pressure field";
+scene.visualization.interior_air = "geometric air volume only, not a cavity pressure DOF and not color-mapped";
 scene.geometry = geometry;
 scene.masks = masks;
 scene.axis = struct();
@@ -138,18 +145,29 @@ scene.summary = struct();
 scene.summary.max_abs_pressure = max(abs(pressure), [], "all");
 scene.summary.top_peak_acceleration = max(abs(motion.top_acceleration));
 scene.summary.bottom_peak_acceleration = max(abs(motion.bottom_acceleration));
-scene.summary.cavity_peak_pressure = max(abs(motion.cavity_pressure));
+scene.summary.shell_peak_acceleration = max(abs(motion.side_leakage_acceleration));
+scene.summary.damping_ratios = motion.damping_ratios;
+scene.summary.top_displacement_decay_ratio = motion.top_displacement_decay_ratio;
+scene.summary.bottom_displacement_decay_ratio = motion.bottom_displacement_decay_ratio;
+scene.summary.shell_displacement_decay_ratio = motion.shell_displacement_decay_ratio;
 lowerMask3 = repmat(Z < -depth, 1, 1, numel(t));
 scene.summary.lower_half_wave_present = max(abs(pressure(lowerMask3)), [], "all") > 0;
-scene.summary.internal_resonance_present = scene.summary.cavity_peak_pressure > 0;
 scene.summary.bem_cross_direction = componentMax;
-cavityMask3 = repmat(masks.cavity, 1, 1, numel(t));
-scene.summary.cavity_display_peak = max(abs(pressure(cavityMask3)), [], "all");
+interiorMask3 = repmat(masks.interior_air, 1, 1, numel(t));
+scene.summary.interior_air_display_peak = max(abs(pressure(interiorMask3)), [], "all");
 scene.checks = struct();
 scene.checks.finite_pressure = all(isfinite(pressure), "all");
 scene.checks.lower_half_wave_present = scene.summary.lower_half_wave_present;
-scene.checks.internal_cavity_coupled = scene.summary.internal_resonance_present;
-scene.checks.cavity_not_colormapped = scene.summary.cavity_display_peak == 0;
+scene.checks.no_cavity_pressure_dof = ~isfield(motion, "cavity_pressure") ...
+    && ~any(contains(scene.coupling.fem_dofs, "cavity"));
+scene.checks.damping_ratio_positive = all(structfun(@(v) v > 0, motion.damping_ratios));
+scene.checks.damped_vibration_present = ...
+    motion.top_displacement_decay_ratio < 0.98 ...
+    && motion.shell_displacement_decay_ratio < 0.98;
+scene.checks.drum_structure_fem_acoustics_bem_split = ...
+    contains(scene.coupling.structural_solver, "FEM") ...
+    && contains(scene.coupling.acoustic_solver, "BEM");
+scene.checks.interior_air_not_colormapped = scene.summary.interior_air_display_peak == 0;
 crossScale = max(scene.summary.max_abs_pressure, eps);
 scene.checks.top_source_reaches_lateral_exterior = ...
     componentMax.top_to_lateral_exterior > 1e-10 * crossScale;
@@ -181,63 +199,111 @@ end
 function motion = solveReducedFemDrum(t, options)
 wTop = 2 * pi * options.TopFrequency;
 wBottom = 2 * pi * options.BottomFrequency;
-wCavity = 2 * pi * options.CavityFrequency;
-zetaM = min(options.MembraneDamping, 0.999);
-zetaC = min(options.CavityDamping, 0.999);
+wShell = 2 * pi * options.ShellFrequency;
+zetaDefault = options.DampingRatio;
+if ~isempty(options.MembraneDamping)
+    zetaDefault = options.MembraneDamping;
+end
+zetaTop = dampingOrDefault(options.TopDampingRatio, zetaDefault);
+zetaBottom = dampingOrDefault(options.BottomDampingRatio, zetaDefault);
+zetaShell = dampingOrDefault(options.ShellDampingRatio, 1.3 * zetaDefault);
 alpha = options.CouplingStrength;
-beta = options.CavityGain;
 force = options.ForcePerModalMass;
-forceAt = @(time) impactForce(time, force, options.Excitation, options.ImpactDuration);
+forceAt = @(time) impactForce(time, force, options.Excitation, ...
+    options.ImpactDuration, options.ImpactStartTime);
 
-opts = odeset("RelTol", 1e-7, "AbsTol", 1e-9);
+sampleDt = min(diff(t));
+odeMaxStep = sampleDt / 4;
+if options.Excitation == "impact"
+    odeMaxStep = min(odeMaxStep, options.ImpactDuration / 10);
+end
+odeMaxStep = max(odeMaxStep, eps(max(t(end), 1)));
+opts = odeset("RelTol", 1e-7, "AbsTol", 1e-9, "MaxStep", odeMaxStep);
 odeRhs = @(time, y) [
     y(2)
-    forceAt(time) - 2*zetaM*wTop*y(2) - wTop^2*y(1) - alpha*y(5)
+    forceAt(time) - 2*zetaTop*wTop*y(2) - wTop^2*y(1)
     y(4)
-    alpha*y(5) - 2*zetaM*wBottom*y(4) - wBottom^2*y(3)
+    alpha*(y(1) - y(3)) - 2*zetaBottom*wBottom*y(4) - wBottom^2*y(3)
     y(6)
-    beta*(y(2) - y(4)) - 2*zetaC*wCavity*y(6) - wCavity^2*y(5)
+    0.5*alpha*(y(1) + y(3) - 2*y(5)) - 2*zetaShell*wShell*y(6) - wShell^2*y(5)
     ];
 [~, y] = ode45(odeRhs, t, zeros(6, 1), opts);
 
 forceHistory = forceAt(t(:));
-topAcceleration = forceHistory - 2*zetaM*wTop*y(:, 2) - wTop^2*y(:, 1) - alpha*y(:, 5);
-bottomAcceleration = alpha*y(:, 5) - 2*zetaM*wBottom*y(:, 4) - wBottom^2*y(:, 3);
-sideLeakageAcceleration = options.SideLeakage * y(:, 5);
+topAcceleration = forceHistory - 2*zetaTop*wTop*y(:, 2) - wTop^2*y(:, 1);
+bottomAcceleration = alpha*(y(:, 1) - y(:, 3)) ...
+    - 2*zetaBottom*wBottom*y(:, 4) - wBottom^2*y(:, 3);
+shellAcceleration = 0.5*alpha*(y(:, 1) + y(:, 3) - 2*y(:, 5)) ...
+    - 2*zetaShell*wShell*y(:, 6) - wShell^2*y(:, 5);
+sideLeakageAcceleration = options.SideLeakage * shellAcceleration;
 
 motion = struct();
-motion.kind = "reduced_fem_membrane_cavity_motion";
+motion.kind = "reduced_fem_damped_membrane_shell_motion";
 motion.t = t;
 motion.top_displacement = y(:, 1).';
 motion.top_velocity = y(:, 2).';
 motion.bottom_displacement = y(:, 3).';
 motion.bottom_velocity = y(:, 4).';
-motion.cavity_pressure = y(:, 5).';
-motion.cavity_pressure_rate = y(:, 6).';
+motion.shell_displacement = y(:, 5).';
+motion.shell_velocity = y(:, 6).';
 motion.force = forceHistory.';
 motion.top_acceleration = topAcceleration.';
 motion.bottom_acceleration = bottomAcceleration.';
 motion.side_leakage_acceleration = sideLeakageAcceleration.';
+motion.damping_ratios = struct( ...
+    "top", zetaTop, ...
+    "bottom", zetaBottom, ...
+    "shell", zetaShell);
+motion.top_displacement_decay_ratio = tailToHeadRatio(motion.top_displacement);
+motion.bottom_displacement_decay_ratio = tailToHeadRatio(motion.bottom_displacement);
+motion.shell_displacement_decay_ratio = tailToHeadRatio(motion.shell_displacement);
 motion.parameters = struct( ...
     "top_frequency", options.TopFrequency, ...
     "bottom_frequency", options.BottomFrequency, ...
-    "cavity_frequency", options.CavityFrequency, ...
+    "shell_frequency", options.ShellFrequency, ...
+    "top_damping_ratio", zetaTop, ...
+    "bottom_damping_ratio", zetaBottom, ...
+    "shell_damping_ratio", zetaShell, ...
     "coupling_strength", options.CouplingStrength, ...
-    "cavity_gain", options.CavityGain, ...
     "side_leakage", options.SideLeakage, ...
     "excitation", options.Excitation, ...
+    "impact_start_time", options.ImpactStartTime, ...
     "impact_duration", options.ImpactDuration);
 end
 
 
-function f = impactForce(t, amplitude, excitation, duration)
+function zeta = dampingOrDefault(value, fallback)
+if isempty(value)
+    zeta = fallback;
+else
+    zeta = value;
+end
+zeta = min(max(zeta, 0), 0.999);
+end
+
+
+function ratio = tailToHeadRatio(signal)
+signal = abs(signal(:));
+if isempty(signal)
+    ratio = 0;
+    return
+end
+n = numel(signal);
+head = max(signal(1:max(1, floor(n/2))));
+tail = max(signal(max(1, floor(n/2) + 1):end));
+ratio = tail / max(head, eps);
+end
+
+
+function f = impactForce(t, amplitude, excitation, duration, startTime)
 switch excitation
     case "step"
-        f = amplitude * double(t >= 0);
+        f = amplitude * double(t >= startTime);
     otherwise
         f = zeros(size(t));
-        active = t >= 0 & t <= duration;
-        f(active) = amplitude * sin(pi * t(active) / duration);
+        active = t >= startTime & t <= startTime + duration;
+        tau = t(active) - startTime;
+        f(active) = amplitude * sin(pi * tau / duration);
 end
 end
 
@@ -293,7 +359,7 @@ dx = abs(X(1, 2) - X(1, 1));
 dz = abs(Z(2, 1) - Z(1, 1));
 tol = 0.75 * max(dx, dz);
 
-cavity = abs(X) < a & Z < 0 & Z > -depth;
+interiorAir = abs(X) < a & Z < 0 & Z > -depth;
 insideCylinder = abs(X) <= outerRadius & Z >= -depth & Z <= 0;
 hollow = abs(X) < a & Z > -depth & Z < 0;
 drumFrame = insideCylinder & ~hollow;
@@ -317,7 +383,8 @@ masks.frame_outline = frameOutline;
 masks.membrane = topMembrane | bottomMembrane;
 masks.top_membrane = topMembrane;
 masks.bottom_membrane = bottomMembrane;
-masks.cavity = cavity;
+masks.interior_air = interiorAir;
+masks.cavity = interiorAir;   % compatibility alias; not a cavity-pressure DOF
 
 geometry = struct();
 geometry.radius = a;
@@ -326,7 +393,7 @@ geometry.depth = depth;
 geometry.frame_depth = depth;
 geometry.boundary_radius = boundaryRadius;
 geometry.struck_surface = "top membrane at z=0";
-geometry.radiation_model = "two-head drum with internal cavity and side leakage";
+geometry.radiation_model = "two-head damped membrane drum with shell side leakage";
 geometry.description = "cylindrical drum body inside a full spherical high-order impedance boundary";
 end
 

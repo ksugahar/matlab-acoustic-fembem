@@ -12,7 +12,7 @@ function text = fembem_knowledge(topic)
 %
 % Topics: overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics,
 %         acoustic, sonic_crystal, adjoint_ad, matlab_execution_policy,
-%         vol_visualization, pde_vol_bridge,
+%         vol_visualization, pde_vol_bridge, gmsh_artifact,
 %         radia_ngsolve_crossval, ngsolve_bem_50, catalog_100,
 %         vibroacoustic_drum, curved_vol_geometry,
 %         validation_discipline, optimization_link,
@@ -59,6 +59,9 @@ switch t
         text = PDE_VOL_BRIDGE;
     case {"vol_visualization", "visualization", "netgen_viewer", "vol_viewer"}
         text = VOL_VISUALIZATION;
+    case {"gmsh_artifact", "gmsh", "node_data", "vol_fembem_gmsh", ...
+            "artifact_contract"}
+        text = GMSH_ARTIFACT;
     case {"matlab_execution_policy", "execution_policy", "no_live_documents", ...
             "scripts", "mcp_json"}
         text = MATLAB_EXECUTION_POLICY;
@@ -71,6 +74,7 @@ switch t
         text = strjoin([OVERVIEW, SPACES, GALERKIN_BEM, COUPLED_FEM_BEM, ...
             MULTIPHYSICS, ACOUSTIC, SONIC_CRYSTAL, ADJOINT_AD, ...
             MATLAB_EXECUTION_POLICY, VOL_VISUALIZATION, PDE_VOL_BRIDGE, ...
+            GMSH_ARTIFACT, ...
             RADIA_NGSOLVE_CROSSVAL, NGSOLVE_BEM_50, CATALOG_100, ...
             VIBROACOUSTIC_DRUM, CURVED_VOL_GEOMETRY, ...
             VALIDATION_DISCIPLINE, ...
@@ -79,7 +83,7 @@ switch t
         text = "Unknown topic '" + topic + "'. Available: overview, " + ...
             "spaces, galerkin_bem, coupled_fem_bem, multiphysics, acoustic, " + ...
             "sonic_crystal, adjoint_ad, matlab_execution_policy, " + ...
-            "vol_visualization, pde_vol_bridge, " + ...
+            "vol_visualization, pde_vol_bridge, gmsh_artifact, " + ...
             "radia_ngsolve_crossval, ngsolve_bem_50, catalog_100, " + ...
             "vibroacoustic_drum, curved_vol_geometry, " + ...
             "validation_discipline, optimization_link, all.";
@@ -114,7 +118,7 @@ s = strjoin([
     ""
     "Topics: spaces, galerkin_bem, coupled_fem_bem, multiphysics,"
     "acoustic, sonic_crystal, matlab_execution_policy, vol_visualization,"
-    "pde_vol_bridge, radia_ngsolve_crossval, ngsolve_bem_50,"
+    "pde_vol_bridge, gmsh_artifact, radia_ngsolve_crossval, ngsolve_bem_50,"
     "catalog_100, vibroacoustic_drum, curved_vol_geometry,"
     "validation_discipline, optimization_link."
     ], newline);
@@ -419,6 +423,54 @@ s = strjoin([
 end
 
 
+function s = GMSH_ARTIFACT()
+s = strjoin([
+    "# Gmsh artifact contract for .vol P1 FEM/BEM CQ"
+    ""
+    "writeVolFemBemCqGmsh3dArtifact is the current bridge from the readable"
+    "Gypsilab-style MATLAB solver into a durable visualization/result"
+    "artifact:"
+    "  .vol tri/tet -> FemBemModel"
+    "  H1Space P1 tetrahedra -> volume pressure unknowns"
+    "  SurfaceP1Space P1 triangles -> boundary BEM density"
+    "  Johnson-Nedelec / Calderon CQ -> time history"
+    "  Gmsh MSH v4.1 -> time-stepped NodeData views"
+    ""
+    "Viewer contract:"
+    "  - Open case.geo for post-processing. The writer stores the display"
+    "    recipe in the .geo and emits the exact auto-load twin case.geo.opt."
+    "  - Open case.msh for raw mesh/data inspection. The writer emits"
+    "    case.msh.opt with post views hidden and mesh faces/edges visible."
+    "  - A plain case.opt is kept only as a compatibility mirror; Gmsh"
+    "    Explorer/double-click auto-loads case.geo.opt or case.msh.opt."
+    ""
+    "Minimal path:"
+    "  artifact = writeVolFemBemCqGmsh3dArtifact(""mesh.vol"", ..."
+    "      ""OutputBase"", ""out/vol_fembem_case"", ..."
+    "      ""CouplingForm"", ""JohnsonNedelec"");"
+    "  gmsh out/vol_fembem_case.geo"
+    ""
+    "The .msh contains two scalar NodeData time series on the same 3D"
+    "tetrahedral volume mesh:"
+    "  - interior_pressure on all P1 volume nodes"
+    "  - boundary_density on boundary nodes, zero on interior nodes"
+    ""
+    "Open-boundary discipline: the numerical radiation condition here is"
+    "the coupled P1 BEM row. The high-order impedance boundary is recorded"
+    "as the Radia open-boundary policy lane and is explicitly NOT Kelvin."
+    "That metadata is useful when this same artifact contract is later used"
+    "by radia-acoustic, pure volume-FEM ABC experiments, and NGSolve/BEM"
+    "cross validation."
+    ""
+    "Verified artifact example (2026-07-04):"
+    "  out/vol_fembem_cq_p1_gmsh3d_YYYYMMDD.*"
+    "Checks: Gmsh v4.1, tet element type 4, two NodeData views, P1 volume"
+    "FEM, P1 boundary BEM, Johnson-Nedelec/Calderon form, double-layer"
+    "K(s), high-order impedance lane recorded, not Kelvin, residual < 1e-8."
+    ], newline);
+end
+
+
 function s = MATLAB_EXECUTION_POLICY()
 s = strjoin([
     "# MATLAB execution policy"
@@ -578,6 +630,10 @@ s = strjoin([
     "elastic plate: the structural FEM supplies the normal velocity on the"
     "radiating face, and the acoustic P1 BEM supplies the exterior radiation"
     "condition and pressure field."
+    "Standing split for drums: the drum structure is FEM; the air radiation"
+    "is acoustic BEM.  Do not make the drum body an acoustic volume-FEM"
+    "problem unless the lesson is specifically an interior-air/cavity"
+    "transmission problem."
     ""
     "Minimal readable rung:"
     "  1. Membrane/plate FEM eigenmode on a circular disk (start with mode 0,1)."
@@ -589,12 +645,14 @@ s = strjoin([
     "Time-domain MATLAB visualization rung:"
     "  field = drumStepTimeField();"
     "  plotDrumStepTimeField(field, 30);"
-    "  writeDrumStepTimeGif(field, ""W:\00_CAE\MATLAB\_crossval\drum_step_time_field.gif"");"
+    "  writeDrumStepTimeGif(field, fullfile(tempdir, ""drum_step_time_field.gif""));"
     "  scene = drumHighOrderImpedanceScene(field);"
-    "  writeDrumHighOrderImpedanceGif(scene, ""W:\00_CAE\MATLAB\_crossval\drum_high_order_impedance.gif"");"
+    "  writeDrumHighOrderImpedanceGif(scene, fullfile(tempdir, ""drum_high_order_impedance.gif""));"
     "  realScene = drumFemBemCoupledDemo();"
-    "  writeDrumHighOrderImpedanceGif(realScene, ""W:\00_CAE\MATLAB\_crossval\drum_fembem_coupled.gif"");"
-    "  td = volFemBemIfftResponse(""drum.vol"", ""NumTime"", 64);"
+    "  writeDrumHighOrderImpedanceGif(realScene, fullfile(tempdir, ""drum_fembem_coupled.gif""));"
+    "  writeDrumBemPlaneGmshArtifact(""drum_scene.mat"", ..."
+    "      ""OutputBase"", fullfile(tempdir, ""drum_bem_xz_plane""));"
+    "  gmshArt = writeVolFemBemCqGmsh3dArtifact(""acoustic_fixture.vol"");"
     "This uses a step-force structural modal response plus the causal Rayleigh"
     "retarded-potential integral, then draws the r-z pressure snapshot inside"
     "MATLAB.  The GIF writer maps the pressure array directly to an indexed"
@@ -609,9 +667,12 @@ s = strjoin([
     "In this first rung the lower half-space is intentionally quiet: the"
     "cylindrical body is a rigid baffle, not a second radiating drum head."
     "The real-drum rung, drumFemBemCoupledDemo, removes that simplification:"
-    "top membrane FEM mode, bottom membrane FEM mode, and an internal cavity"
-    "pressure FEM mode are coupled, then the exterior top/bottom/side"
-    "radiation is evaluated by BEM-style retarded boundary integrals.  The"
+    "top membrane FEM mode, bottom membrane FEM mode, and shell side-leakage"
+    "mode are damped oscillators with explicit damping ratios, then the"
+    "exterior top/bottom/side radiation is evaluated by BEM-style retarded"
+    "boundary integrals.  Do not model this teaching drum as an internal"
+    "cavity-pressure oscillator unless a true acoustic cavity mesh is present."
+    "The"
     "BEM layer must NOT split the observation field by source direction:"
     "top, bottom, and side boundary sources are all evaluated at every"
     "exterior air observation point with the same retarded Green kernel,"
@@ -619,25 +680,31 @@ s = strjoin([
     "side source may radiate upward/downward; direction-only painting is a"
     "visualization bug, not FEM/BEM coupling."
     "transient solve is a reduced FEM ODE integrated by ode45 with an impact"
-    "pulse; the exterior field is reconstructed from causal retarded boundary"
-    "potentials.  It is a readable FEM/BEM coupling demo, not yet a full"
-    "time-domain P1 volume-FEM/P1 surface-BEM solver.  The visualized color"
-    "field is only the propagating air pressure outside the drum; the internal"
-    "cavity pressure is a special coupling state and is not color-mapped by"
-    "default.  The result intentionally shows lower-half radiation, side"
-    "leakage, and internal cavity resonance."
+    "pulse and damping-ratio terms; the exterior field is reconstructed from"
+    "causal retarded boundary potentials.  It is a readable FEM/BEM coupling"
+    "demo, not yet a full time-domain P1 volume-FEM/P1 surface-BEM solver."
+    "The visualized color field is only the propagating air pressure outside"
+    "the drum; the interior air volume is geometric only and is not a cavity"
+    "pressure DOF.  The result intentionally shows lower-half radiation,"
+    "side leakage, and decaying membrane/shell vibration."
+    "The same modeling split can be implemented in NGSolve: membrane/shell"
+    "FEM or modal damped oscillators provide Neumann data, ngsolve.bem"
+    "provides the exterior radiation operator, and time response comes from"
+    "frequency sweeps with inverse FFT or from an externally assembled CQ"
+    "loop over Laplace-domain BEM operators."
     "Be precise about dimensionality: the drum GIF is a 3D axisymmetric"
     "physical picture rendered on an r-z slice.  Disk and side sources are"
     "integrated over azimuth, so it is not a 2D Cartesian wave cartoon, but"
-    "it is not yet a full 3D .vol P1 volume-FEM/P1 surface-BEM drum mesh."
-    "The next genuine time-domain lane is volFemBemIfftResponse: read the"
-    "Netgen .vol tri/tet mesh, assemble H1/P1 volume FEM plus boundary P1"
-    "BEM, solve the frequency-domain Helmholtz FEM/BEM system on many"
-    "frequency bins, multiply by a real pulse spectrum, enforce Hermitian"
-    "symmetry, and inverse FFT to obtain a real pressure time history.  This"
-    "is not a periodic sine-wave animation and not yet convolution-quadrature"
-    "TD-BEM; it is the frequency-sweep/iFFT route toward the full time-domain"
-    "P1 volume-FEM/P1 surface-BEM solver."
+    "it is not yet a full 3D structural-FEM/acoustic-BEM drum mesh."
+    "The parallel acoustic-volume teaching lane is volFemBemIfftResponse:"
+    "read a Netgen .vol tri/tet mesh, assemble H1/P1 acoustic volume FEM"
+    "plus boundary P1 BEM, solve the frequency-domain Helmholtz FEM/BEM"
+    "system on many frequency bins, multiply by a real pulse spectrum,"
+    "enforce Hermitian symmetry, and inverse FFT to obtain a real pressure"
+    "time history.  This is not a periodic sine-wave animation and not yet"
+    "convolution-quadrature TD-BEM; it is the frequency-sweep/iFFT route for"
+    "acoustic transmission and interior-fluid examples, not the preferred"
+    "drum structural model."
     "The first convolution-quadrature TD-BEM rung is"
     "volTdBemConvolutionQuadrature.  It uses the .vol boundary triangles as"
     "a P1 Galerkin BEM surface, samples the BDF generating function"
@@ -646,7 +713,7 @@ s = strjoin([
     "the exterior pressure.  This is real Lubich CQ TD-BEM for the exterior"
     "Dirichlet single-layer problem; the production volume-FEM/interior"
     "coupling CQ version is the next step."
-    "The production-form volume-FEM/interior coupled CQ rung is"
+    "The production-form acoustic-volume/interior coupled CQ rung is"
     "volFemBemCoupledConvolutionQuadrature.  It uses the same .vol volume"
     "tetrahedra as H1/P1 interior wave FEM and the same boundary triangles as"
     "P1 BEM, then solves [A+(s/c1)^2 M, -T'Mb; (1/2 Mb-K(s))*T, V(s)]"
@@ -656,6 +723,16 @@ s = strjoin([
     "system with the retarded double-layer K(s).  CouplingForm="
     "SingleLayerTeaching keeps the old [Mb*T, -V(s)] rung for regression,"
     "but production examples should use the JohnsonNedelec default."
+    "writeVolFemBemCqGmsh3dArtifact exports that acoustic-volume CQ result"
+    "as Gmsh v4.1 NodeData and is useful for radia-acoustic artifact"
+    "contracts.  For a drum, reuse the artifact contract but replace the interior acoustic volume FEM with structural membrane/shell FEM and use"
+    "the BEM unknowns for exterior sound."
+    "For the drum post display, prefer writeDrumBemPlaneGmshArtifact:"
+    "View[0] is the BEM acoustic pressure on the x-z plane, while View[1]"
+    "is the 3D drum BEM/radiation surface with vector displacement"
+    "(VectorType=5).  This avoids the misleading sphere-in-plane picture:"
+    "the sound field is a plane plot, and the drum boundary itself is the"
+    "3D object that moves."
     ""
     "This is better than another sphere-only case because it feels like a"
     "student experiment: hit a drum, watch the membrane mode, then hear the"

@@ -59,6 +59,20 @@ verifySubstring(testCase, body, ".sol files are mesh-free");
 end
 
 
+function testKnowledgeIncludesGmshArtifactTopic(testCase)
+body = acoustic_fembem.fembem_knowledge("gmsh_artifact");
+verifyGreaterThan(testCase, strlength(body), 500);
+verifySubstring(testCase, body, "writeVolFemBemCqGmsh3dArtifact");
+verifySubstring(testCase, body, "P1 FEM/BEM CQ");
+verifySubstring(testCase, body, "Gmsh MSH v4.1");
+verifySubstring(testCase, body, "interior_pressure");
+verifySubstring(testCase, body, "boundary_density");
+verifySubstring(testCase, body, "Johnson-Nedelec");
+verifySubstring(testCase, body, "high-order impedance boundary");
+verifySubstring(testCase, body, "NOT Kelvin");
+end
+
+
 function testKnowledgeIncludesCatalog100Topic(testCase)
 body = acoustic_fembem.fembem_knowledge("catalog_100");
 verifyGreaterThan(testCase, strlength(body), 500);
@@ -74,6 +88,9 @@ verifyGreaterThan(testCase, strlength(body), 500);
 verifySubstring(testCase, body, "baffled circular membrane");
 verifySubstring(testCase, body, "normal velocity");
 verifySubstring(testCase, body, "NGSolve.BEM");
+verifySubstring(testCase, body, "the drum structure is FEM");
+verifySubstring(testCase, body, "air radiation");
+verifySubstring(testCase, body, "acoustic BEM");
 verifySubstring(testCase, body, "plotDrumStepTimeField");
 verifySubstring(testCase, body, "writeDrumStepTimeGif");
 verifySubstring(testCase, body, "drumHighOrderImpedanceScene");
@@ -89,19 +106,25 @@ verifySubstring(testCase, body, "high-order impedance boundary is mandatory");
 verifySubstring(testCase, body, "do not use or name a Kelvin");
 verifySubstring(testCase, body, "reduced FEM ODE");
 verifySubstring(testCase, body, "ode45");
+verifySubstring(testCase, body, "damping-ratio");
+verifySubstring(testCase, body, "not a cavity");
+verifySubstring(testCase, body, "decaying membrane/shell vibration");
+verifySubstring(testCase, body, "same modeling split can be implemented in NGSolve");
 verifySubstring(testCase, body, "retarded boundary");
 verifySubstring(testCase, body, "must NOT split the observation field by source direction");
 verifySubstring(testCase, body, "all evaluated at every");
 verifySubstring(testCase, body, "direction-only painting is a");
-verifySubstring(testCase, body, "not color-mapped");
+verifySubstring(testCase, body, "not a cavity");
+verifySubstring(testCase, body, "pressure DOF");
 verifySubstring(testCase, body, "lower-half radiation");
 verifySubstring(testCase, body, "3D axisymmetric");
 verifySubstring(testCase, body, "r-z slice");
-verifySubstring(testCase, body, "not yet a full 3D .vol");
+verifySubstring(testCase, body, "not yet a full 3D structural-FEM/acoustic-BEM drum mesh");
 verifySubstring(testCase, body, "frequency-domain Helmholtz FEM/BEM");
 verifySubstring(testCase, body, "inverse FFT");
 verifySubstring(testCase, body, "not a periodic sine-wave animation");
-verifySubstring(testCase, body, "not yet convolution-quadrature");
+verifySubstring(testCase, body, "parallel acoustic-volume teaching lane");
+verifySubstring(testCase, body, "not the preferred");
 verifySubstring(testCase, body, "BDF generating function");
 verifySubstring(testCase, body, "Laplace-domain single-layer");
 verifySubstring(testCase, body, "real Lubich CQ TD-BEM");
@@ -112,6 +135,8 @@ verifySubstring(testCase, body, "-S(s)q + D(s)Tu");
 verifySubstring(testCase, body, "Calderon/Johnson-Nedelec coupled CQ");
 verifySubstring(testCase, body, "retarded double-layer K(s)");
 verifySubstring(testCase, body, "SingleLayerTeaching");
+verifySubstring(testCase, body, "writeVolFemBemCqGmsh3dArtifact");
+verifySubstring(testCase, body, "replace the interior acoustic volume FEM with structural membrane/shell FEM");
 verifySubstring(testCase, body, "does not require Gmsh");
 end
 

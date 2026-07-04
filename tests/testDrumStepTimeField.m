@@ -126,12 +126,13 @@ verifyEqual(testCase, numel(frames), 4);
 end
 
 
-function testReducedFemBemDrumHasBottomRadiation(testCase)
+function testReducedFemBemDrumUsesDampedVibrationNotCavity(testCase)
 scene = drumFemBemCoupledDemo( ...
     "NumX", 42, ...
     "NumZ", 42, ...
-    "NumTime", 14, ...
-    "TMax", 1.0e-3, ...
+    "NumTime", 28, ...
+    "TMax", 4.0e-3, ...
+    "DampingRatio", 0.14, ...
     "NumSourceRadial", 4, ...
     "NumSourceAzimuth", 8, ...
     "NumSideAxial", 4);
@@ -139,19 +140,29 @@ scene = drumFemBemCoupledDemo( ...
 verifyEqual(testCase, scene.kind, "drum_reduced_fem_bem_coupled_scene");
 verifyEqual(testCase, scene.status, "ok");
 verifyTrue(testCase, contains(scene.coupling.kind, "fem"));
+verifyTrue(testCase, contains(scene.coupling.kind, "acoustic"));
+verifyEqual(testCase, scene.coupling.structural_solver, ...
+    "FEM for drum membranes and shell");
+verifyEqual(testCase, scene.coupling.acoustic_solver, ...
+    "BEM for exterior acoustic radiation");
 verifyTrue(testCase, contains(scene.boundary_type, "high-order impedance"));
 verifyTrue(testCase, contains(scene.bem.observation_rule, "every exterior air observation point"));
 verifyTrue(testCase, scene.checks.lower_half_wave_present);
-verifyTrue(testCase, scene.checks.internal_cavity_coupled);
+verifyTrue(testCase, scene.checks.no_cavity_pressure_dof);
+verifyTrue(testCase, scene.checks.damping_ratio_positive);
+verifyTrue(testCase, scene.checks.damped_vibration_present);
+verifyTrue(testCase, scene.checks.drum_structure_fem_acoustics_bem_split);
+verifyFalse(testCase, any(contains(scene.coupling.fem_dofs, "cavity")));
 verifyTrue(testCase, scene.checks.top_source_reaches_lateral_exterior);
 verifyTrue(testCase, scene.checks.top_source_reaches_lower_exterior);
 verifyTrue(testCase, scene.checks.bottom_source_reaches_upper_exterior);
 verifyTrue(testCase, scene.checks.side_source_reaches_upper_exterior);
 verifyTrue(testCase, scene.checks.side_source_reaches_lower_exterior);
 verifyTrue(testCase, any(scene.masks.bottom_membrane, "all"));
-verifyTrue(testCase, any(scene.masks.cavity, "all"));
+verifyTrue(testCase, any(scene.masks.interior_air, "all"));
 verifyGreaterThan(testCase, scene.summary.bottom_peak_acceleration, 0);
-verifyGreaterThan(testCase, scene.summary.cavity_peak_pressure, 0);
+verifyGreaterThan(testCase, scene.summary.shell_peak_acceleration, 0);
+verifyLessThan(testCase, scene.summary.top_displacement_decay_ratio, 0.98);
 verifyGreaterThan(testCase, scene.summary.bem_cross_direction.top_to_lateral_exterior, 0);
 verifyGreaterThan(testCase, scene.summary.bem_cross_direction.top_to_lower_exterior, 0);
 verifyGreaterThan(testCase, scene.summary.bem_cross_direction.side_to_upper_exterior, 0);
