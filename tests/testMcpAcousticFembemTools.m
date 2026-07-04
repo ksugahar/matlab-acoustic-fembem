@@ -76,6 +76,8 @@ verifySubstring(testCase, body, "normal velocity");
 verifySubstring(testCase, body, "NGSolve.BEM");
 verifySubstring(testCase, body, "plotDrumStepTimeField");
 verifySubstring(testCase, body, "writeDrumStepTimeGif");
+verifySubstring(testCase, body, "drumHighOrderImpedanceScene");
+verifySubstring(testCase, body, "not the Kelvin transform");
 verifySubstring(testCase, body, "does not require Gmsh");
 end
 
