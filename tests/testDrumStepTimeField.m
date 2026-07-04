@@ -95,8 +95,13 @@ scene = drumHighOrderImpedanceScene(field, ...
 
 verifyEqual(testCase, scene.kind, "drum_high_order_impedance_scene");
 verifyTrue(testCase, contains(scene.boundary_type, "high-order impedance"));
-verifySize(testCase, scene.pressure, [42, 50, 4]);
+verifySize(testCase, scene.pressure, [50, 50, 4]);
+verifyTrue(testCase, scene.axis.equal);
+verifyEqual(testCase, scene.x(1), scene.z(1), "AbsTol", 1e-12);
+verifyEqual(testCase, scene.x(end), scene.z(end), "AbsTol", 1e-12);
+verifyEqual(testCase, scene.geometry.struck_surface, "top membrane at z=0");
 verifyTrue(testCase, any(scene.masks.high_order_impedance_boundary, "all"));
+verifyTrue(testCase, any(scene.masks.high_order_impedance_boundary(scene.z < 0, :), "all"));
 verifyTrue(testCase, any(scene.masks.drum_frame, "all"));
 verifyTrue(testCase, any(scene.masks.membrane, "all"));
 verifyGreaterThan(testCase, scene.summary.max_abs_pressure, 0);

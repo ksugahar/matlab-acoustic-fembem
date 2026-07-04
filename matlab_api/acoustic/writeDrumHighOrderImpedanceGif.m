@@ -60,6 +60,9 @@ info.pressure_scale = scale;
 info.boundary_type = scene.boundary_type;
 info.boundary_radius = scene.geometry.boundary_radius;
 info.frame_depth = scene.geometry.frame_depth;
+if isfield(scene, "axis")
+    info.axis_equal = scene.axis.equal;
+end
 end
 
 

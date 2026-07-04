@@ -2,9 +2,9 @@ function scene = drumHighOrderImpedanceScene(field, options)
 %DRUMHIGHORDERIMPEDANCESCENE Build a drum + high-order impedance boundary scene.
 %
 %   scene = drumHighOrderImpedanceScene(field) converts the axisymmetric
-%   front-side pressure returned by drumStepTimeField into an x-z cut-plane
-%   scene.  The scene contains a cylindrical drum frame, the vibrating
-%   membrane, and a spherical truncation boundary annotated as the
+%   top-side pressure returned by drumStepTimeField into an x-z cut-plane
+%   scene.  The scene contains a cylindrical drum body, its struck top
+%   membrane, and a full spherical truncation boundary annotated as the
 %   high-order impedance / absorbing-boundary lane used for Radia-style open
 %   boundary experiments.  This is a visualization scaffold; the pressure is
 %   still the readable Rayleigh time-domain model from drumStepTimeField.
@@ -15,7 +15,8 @@ arguments
     options.FrameDepth (1,1) double {mustBeNonnegative} = 0
     options.RimThickness (1,1) double {mustBeNonnegative} = 0
     options.NumX (1,1) double {mustBeInteger, mustBeGreaterThan(options.NumX, 8)} = 150
-    options.NumZ (1,1) double {mustBeInteger, mustBeGreaterThan(options.NumZ, 8)} = 120
+    options.NumZ (1,1) double {mustBeInteger, mustBeGreaterThan(options.NumZ, 8)} = 150
+    options.AxisEqual (1,1) logical = true
     options.TimeIndices = []
 end
 
@@ -39,6 +40,12 @@ if rimThickness <= 0
 end
 outerRadius = radius + rimThickness;
 
+numX = options.NumX;
+numZ = options.NumZ;
+if options.AxisEqual
+    numZ = numX;
+end
+
 if isempty(options.TimeIndices)
     timeIndices = 1:numel(field.t);
 else
@@ -48,14 +55,15 @@ else
     timeIndices = min(timeIndices, numel(field.t));
 end
 
-x = linspace(-boundaryRadius, boundaryRadius, options.NumX);
-z = linspace(-frameDepth, boundaryRadius, options.NumZ);
+x = linspace(-boundaryRadius, boundaryRadius, numX);
+z = linspace(-boundaryRadius, boundaryRadius, numZ);
 [X, Z] = meshgrid(x, z);
 R = abs(X);
 rho = hypot(X, Z);
 
-domain = rho <= boundaryRadius & Z >= field.z(1);
-interpolationDomain = domain & R <= field.r(end) & Z <= field.z(end);
+domain = rho <= boundaryRadius;
+topRadiatingDomain = domain & Z >= field.z(1);
+interpolationDomain = topRadiatingDomain & R <= field.r(end) & Z <= field.z(end);
 pressure = zeros(numel(z), numel(x), numel(timeIndices));
 for k = 1:numel(timeIndices)
     pressure(:, :, k) = interpolatePressure(field, timeIndices(k), ...
@@ -72,15 +80,21 @@ scene.z = z;
 scene.t = field.t(timeIndices);
 scene.time_indices = timeIndices;
 scene.pressure = pressure;
-scene.source = "drumStepTimeField Rayleigh pressure, shown on the front half-space";
-scene.boundary_type = "spherical high-order impedance absorbing boundary visualization";
+scene.source = "drumStepTimeField Rayleigh pressure from the struck top membrane";
+scene.boundary_type = "full spherical high-order impedance absorbing boundary visualization";
 scene.boundary_notes = [
-    "The display boundary is a spherical truncation surface."
+    "The display boundary is a full spherical truncation surface."
+    "The drum top surface at z=0 is struck; the cylinder body sits below it."
     "It is intentionally not labelled Kelvin; use it as the high-order"
     "impedance/ABC lane until the Radia production name is finalized."
     ];
 scene.geometry = geometry;
 scene.masks = masks;
+scene.axis = struct();
+scene.axis.equal = options.AxisEqual;
+scene.axis.x_limits = [x(1), x(end)];
+scene.axis.z_limits = [z(1), z(end)];
+scene.axis.pixel_size = [numel(x), numel(z)];
 scene.summary = struct();
 scene.summary.num_frames = numel(timeIndices);
 scene.summary.max_abs_pressure = max(abs(pressure), [], "all");
@@ -137,7 +151,7 @@ membrane = abs(Z) <= tol & abs(X) <= radius;
 
 rho = hypot(X, Z);
 boundary = abs(rho - boundaryRadius) <= tol;
-boundaryDomain = rho <= boundaryRadius & Z >= 0;
+boundaryDomain = rho <= boundaryRadius;
 
 masks = struct();
 masks.boundary_domain = boundaryDomain;
@@ -151,5 +165,6 @@ geometry.radius = radius;
 geometry.outer_radius = outerRadius;
 geometry.frame_depth = frameDepth;
 geometry.boundary_radius = boundaryRadius;
-geometry.description = "cylindrical drum cross-section with high-order impedance boundary";
+geometry.struck_surface = "top membrane at z=0";
+geometry.description = "cylindrical drum cross-section inside a full spherical high-order impedance boundary";
 end
