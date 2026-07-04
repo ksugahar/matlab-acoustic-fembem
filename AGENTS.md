@@ -41,7 +41,7 @@ and student understanding over performance.
 
 ## License Boundary
 
-- This repository is GPL-3.0-or-later.
+- This repository is GPL-3.0.
 - Do not vendor third-party source trees. Optional comparisons against
   separately installed tools should remain explicit verification helpers.
 - Keep examples reproducible from committed fixtures, analytic references, or

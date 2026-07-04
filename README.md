@@ -29,8 +29,8 @@ short methods, no hidden performance caches. The name map and layout of the
 
 ## License and Gypsilab Relationship
 
-This repository is released under the GNU GPL v3.0 or later.  Gypsilab itself
-is GPL-3.0 software, and this project intentionally follows its readable MATLAB
+This repository is released under the GNU GPL v3.0.  Gypsilab itself is
+GPL-3.0 software, and this project intentionally follows its readable MATLAB
 style.  The repository does not vendor the Gypsilab source tree; optional
 cross-checks against a separately installed Gypsilab checkout are kept behind
 explicit verification helpers.  Please cite Gypsilab and its authors when this
