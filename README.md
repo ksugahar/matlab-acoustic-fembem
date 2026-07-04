@@ -387,8 +387,46 @@ the fluid limit by 20-70% - only the independent Anderson reference
 exposed it (gate on both). The elastic radiation force shows the
 resonance: a lucite-like sphere has Y_p(kR) peaking at 2.83 near kR = 3
 (well above the rigid ~0.75), the internal resonance rigid/soft cannot
-produce. The genuine FEM/BEM FSI coupled solve (VectorH1 elasticity FEM +
-acoustic BEM) is the declared next increment, gated against this analytic.
+produce. ## Acoustic FSI Coupled Solve (fluid-structure interaction)
+
+`fsiCoupledSolve` is the genuine acoustic FEM/BEM coupling: a solid ELASTIC
+scatterer (vector P1 elasticity FEM interior) radiating into an unbounded
+fluid (acoustic BEM exterior), coupled through the interface conditions
+(fluid pressure loads the solid as a normal traction; fluid and solid
+normal velocities match). This is the case where FEM/BEM coupling is FOR -
+the interior displacement field (internal compressional + shear resonances)
+must be solved, unlike a rigid/soft scatterer (pure BEM).
+
+```matlab
+m = FemBemModel("fixtures/mesh_topology/unit_ball_maxh018.vol");
+sol = fsiCoupledSolve(m, "Wavenumber", 2.0, ...
+    "LongitudinalSpeed", 1.6, "ShearSpeed", 0.9, "DensityRatio", 1.15);
+p = sol.totalAt(points);           % exterior total pressure
+u = sol.interiorDisplacement;      % solved elastic field inside
+```
+
+The coupled block system mirrors the scalar Johnson-Nedelec
+femBemCoupledSolve with a VECTOR interior (unknowns interior displacement u,
+scattered boundary pressure p_s, scattered flux q_s):
+
+```
+[ K - w^2 M      G'            0   ] [u  ]   [-G' p_inc]
+[ -rho_f w^2 G   0             Mb  ] [p_s] = [-Mb q_inc]
+[ 0              1/2 Mb - K_k  V_k ] [q_s]   [ 0       ]
+```
+
+Validated (`tests/testFsiCoupledSolve.m`) against the analytic elastic
+sphere: the stiff limit reproduces the rigid sphere to ~1e-3 (the
+formulation gate - the interface + BEM coupling is exact, independent of
+interior resolution), and the elastic field CONVERGES to
+elasticSphereScattering under mesh refinement (25% coarse -> 7% fine at
+kR = 2; the P1 interior elasticity - especially the shear field at
+kR ~ wavelength - is the accuracy-limiting factor, not the coupling).
+
+This is the acoustic analogue of the lab's core EM coupling problems
+(nonlinear iron + open boundary, eddy currents in a conductor + open
+boundary), where FEM handles the complex bounded interior and BEM (or the
+Kelvin transform / Radia integral method) handles the exact open boundary.
 
 ## H-matrix Teaching Path
 

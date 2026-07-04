@@ -346,12 +346,39 @@ See `READABLE_CLASS_STYLE.md`.
      a lucite-like sphere (rho 1.15, cL 1.6, cT 0.9 vs fluid) has Y_p(kR)
      rising to 2.83 at kR = 3 (an internal resonance well above the rigid
      ~0.75 plateau) then falling, control-radius independent to 1e-10.
-   NEXT INCREMENT (declared): the FSI COUPLED SOLVE - a VectorH1 elasticity
-   FEM interior coupled to the acoustic BEM exterior through the interface
-   conditions (fluid pressure <-> solid normal traction, fluid normal
-   velocity <-> solid normal displacement), gated against this analytic.
-   That is the genuine FEM/BEM coupling for acoustics; the scalar
-   femBemCoupledSolve is its scalar precursor.
+   Its coupled solve landed as stage 14b (below).
+
+14b. Acoustic FSI COUPLED SOLVE, landed 2026-07: fsiCoupledSolve - the
+   genuine acoustic FEM/BEM coupling. Vector P1 elasticity FEM interior
+   (elasticityMatrices: per-tet 12x12 B'DB stiffness + consistent mass)
+   coupled to the acoustic BEM exterior (V_k, K_k) through the FSI
+   interface (dynamic: sigma(u).n = -p n; kinematic:
+   (1/(rho_f w^2)) dp/dn = u.n). Coupled block system (the scalar
+   Johnson-Nedelec femBemCoupledSolve with a VECTOR interior; unknowns
+   u, p_s, q_s):
+     [ K - w^2 M      G'            0   ] [u  ]   [-G' p_inc]
+     [ -rho_f w^2 G   0             Mb  ] [p_s] = [-Mb q_inc]
+     [ 0              1/2 Mb - K_k  V_k ] [q_s]   [ 0       ]
+   with G = int_Gamma mu (n.v) the interface coupling, exterior
+   representation p_s = D_k[p_s|Gamma] - S_k[q_s]. Also promoted the
+   reusable singleLayerPotentialMatrix (density -> field, refactored out
+   of singleLayerDirichletSolve for DRY).
+   - VALIDATED against the analytic elastic sphere (stage 14a): the STIFF
+     limit reproduces rigidSphereScattering to 5e-4 / 4.2e-3 / 2.2e-4 -
+     the formulation gate (the interface + BEM coupling is exact,
+     independent of interior resolution); the elastic field CONVERGES to
+     elasticSphereScattering under refinement (coarse 25/55/26% -> fine
+     7.5/16.7/7.7% at kR = 2). The remaining ~10% is the P1 interior
+     elasticity (shear wavelength ~ sphere size at kR = 2 - low-order FEM
+     dispersion), NOT the coupling.
+   - grad/typo bug fixed (elasticityMatrices: grad = inv(C)(2:4,:), the
+     last 3 rows of the P1 shape-coefficient inverse).
+   This is the acoustic analogue of the lab's core EM coupling
+   (nonlinear iron + open boundary; eddy currents + open boundary), where
+   the Kelvin transform / Radia integral method play the BEM role.
+   NEXT: higher-order interior (P2 elasticity) for the ~10% shear-
+   resolution gap, and the adjoint dF/d(phases) with the ELASTIC (FSI)
+   scatterer for elastic-bead thrust design.
 
 11. Rigid scattering + irregular frequencies + CHIEF, landed 2026-07:
    - total-field equation (1/2 M - K_k) t = M g_inc

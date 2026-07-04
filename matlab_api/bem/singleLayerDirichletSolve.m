@@ -93,19 +93,5 @@ function u = potentialAt(surface, q, points, k, quad)
 % Gauss points, so the k -> 0 limit reproduces the Laplace evaluation
 % exactly.
 
-u = zeros(size(points, 1), 1);
-tri = surface.tri;
-vtx = surface.vtx;
-for t = 1:size(tri, 1)
-    [~, I1] = laplacePanelIntegrals(vtx(tri(t, :), :), points);
-    u = u + I1 * q(tri(t, :));
-end
-u = u / (4 * pi);
-
-if k > 0
-    parts = HelmholtzKernel(points, quad.points, ...
-        "Wavenumber", k, "SourceWeights", quad.weights);
-    % singleLayerCorrection already carries source weights + 1/(4*pi)
-    u = u + parts.singleLayerCorrection * (quad.basis * q);
-end
+u = singleLayerPotentialMatrix(surface, points, k, quad.order) * q;
 end
