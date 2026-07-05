@@ -84,7 +84,7 @@ pressureHat = zeros(N, size(obs, 1));
 relativeResiduals = zeros(N, 1);
 conditionNumbers = zeros(N, 1);
 for ell = 1:N
-    V = cqSingleLayerGalerkin(surface, s(ell), options.SoundSpeed, ...
+    V = laplaceSingleLayerGalerkin(surface, s(ell), options.SoundSpeed, ...
         options.QuadratureOrder);
     rhs = boundaryHat(ell, :).';
     q = V \ rhs;
@@ -152,27 +152,6 @@ end
 end
 
 
-function V = cqSingleLayerGalerkin(surface, s, soundSpeed, quadratureOrder)
-quad = SurfaceQuadrature(surface, quadratureOrder);
-nGauss = quad.nPoints();
-nNodes = size(surface.vtx, 1);
-tri = surface.tri;
-vtx = surface.vtx;
-
-P = zeros(nGauss, nNodes);
-for t = 1:size(tri, 1)
-    [~, I1] = laplacePanelIntegrals(vtx(tri(t, :), :), quad.points);
-    P(:, tri(t, :)) = P(:, tri(t, :)) + I1;
-end
-Bw = quad.weightedBasis();
-V = Bw.' * P / (4 * pi);
-
-correction = cqSingleLayerCorrection(quad.points, quad.points, s, ...
-    soundSpeed, quad.weights);
-V = V + Bw.' * (correction * quad.basis);
-end
-
-
 function rows = cqSingleLayerPotential(surface, points, s, soundSpeed, quadratureOrder)
 tri = surface.tri;
 vtx = surface.vtx;
@@ -198,7 +177,9 @@ for i = 1:nTarget
     for j = 1:nSource
         r = norm(targetPoints(i, :) - sourcePoints(j, :));
         if r == 0
-            value = -alpha;
+            % Coincident quadrature point: match the frequency-domain
+            % HelmholtzKernel convention (leave the smooth correction at 0).
+            value = 0;
         else
             z = -alpha * r;
             value = stableExpm1OverR(z, r);
