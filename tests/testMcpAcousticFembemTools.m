@@ -21,6 +21,17 @@ verifyTrue(testCase, isfile(fullfile(root, "mcp", "extensions", "acoustic-fembem
 end
 
 
+function testMcpLayerStaysInsideAcousticFembemRepo(testCase)
+root = acoustic_fembem.repository_root();
+readme = string(fileread(fullfile(root, "mcp", "README.md")));
+requirements = string(fileread(fullfile(root, "mcp", "REQUIREMENTS.md")));
+verifySubstring(testCase, readme, "stays inside this repository");
+verifySubstring(testCase, readme, "official MathWorks server remains the runtime");
+verifySubstring(testCase, requirements, "extension is intentionally thin");
+verifySubstring(testCase, requirements, "process/session management");
+end
+
+
 function testKnowledgeIncludesCrossvalTopic(testCase)
 body = acoustic_fembem.fembem_knowledge("radia_ngsolve_crossval");
 verifyGreaterThan(testCase, strlength(body), 300);
@@ -56,6 +67,26 @@ verifySubstring(testCase, body, "plotVolMesh");
 verifySubstring(testCase, body, "acoustic_fembem_vol_mesh_summary");
 verifySubstring(testCase, body, "Ng_LoadMesh");
 verifySubstring(testCase, body, ".sol files are mesh-free");
+end
+
+
+function testKnowledgeIncludesPublicAcousticBlogLessons(testCase)
+body = acoustic_fembem.fembem_knowledge("public_acoustic_blog_lessons");
+verifyGreaterThan(testCase, strlength(body), 700);
+verifySubstring(testCase, body, "Unbounded exterior radiation");
+verifySubstring(testCase, body, "frequency domain");
+verifySubstring(testCase, body, "high-order surface");
+verifySubstring(testCase, body, "PML=false");
+verifySubstring(testCase, body, "time-domain lane is explicitly CQ");
+verifySubstring(testCase, body, "Acoustic-structure interaction");
+verifySubstring(testCase, body, "two-way coupling");
+verifySubstring(testCase, body, "Impedance lumping");
+verifySubstring(testCase, body, "p=Z_s v");
+verifySubstring(testCase, body, "p=Z Q");
+verifySubstring(testCase, body, "local reaction and extended reaction");
+verifySubstring(testCase, body, "high-order Zs");
+verifySubstring(testCase, body, "Schroeder-frequency");
+verifySubstring(testCase, body, "acoustic_method_selection_manifest_gate");
 end
 
 

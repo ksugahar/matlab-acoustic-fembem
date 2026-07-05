@@ -11,7 +11,8 @@ function text = fembem_knowledge(topic)
 % (acoustic_fembem.repository_root), exercised by the runnable acoustic_fembem.fembem_acoustic_gate.
 %
 % Topics: overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics,
-%         acoustic, sonic_crystal, adjoint_ad, matlab_execution_policy,
+%         acoustic, public_acoustic_blog_lessons, sonic_crystal, adjoint_ad,
+%         matlab_execution_policy,
 %         vol_visualization, pde_vol_bridge, gmsh_artifact,
 %         radia_ngsolve_crossval, ngsolve_bem_50, catalog_100,
 %         vibroacoustic_drum, curved_vol_geometry,
@@ -37,6 +38,9 @@ switch t
         text = COUPLED_FEM_BEM;
     case {"acoustic", "helmholtz", "scattering"}
         text = ACOUSTIC;
+    case {"public_acoustic_blog_lessons", "acoustic_blog", ...
+            "method_selection", "comsol_blog_acoustics"}
+        text = PUBLIC_ACOUSTIC_BLOG_LESSONS;
     case {"sonic_crystal", "band_gap", "bloch", "metamaterial", "duct"}
         text = SONIC_CRYSTAL;
     case {"validation_discipline", "validation", "gates", "cross_check"}
@@ -72,7 +76,8 @@ switch t
         text = MULTIPHYSICS;
     case "all"
         text = strjoin([OVERVIEW, SPACES, GALERKIN_BEM, COUPLED_FEM_BEM, ...
-            MULTIPHYSICS, ACOUSTIC, SONIC_CRYSTAL, ADJOINT_AD, ...
+            MULTIPHYSICS, ACOUSTIC, PUBLIC_ACOUSTIC_BLOG_LESSONS, ...
+            SONIC_CRYSTAL, ADJOINT_AD, ...
             MATLAB_EXECUTION_POLICY, VOL_VISUALIZATION, PDE_VOL_BRIDGE, ...
             GMSH_ARTIFACT, ...
             RADIA_NGSOLVE_CROSSVAL, NGSOLVE_BEM_50, CATALOG_100, ...
@@ -82,7 +87,8 @@ switch t
     otherwise
         text = "Unknown topic '" + topic + "'. Available: overview, " + ...
             "spaces, galerkin_bem, coupled_fem_bem, multiphysics, acoustic, " + ...
-            "sonic_crystal, adjoint_ad, matlab_execution_policy, " + ...
+            "public_acoustic_blog_lessons, sonic_crystal, adjoint_ad, " + ...
+            "matlab_execution_policy, " + ...
             "vol_visualization, pde_vol_bridge, gmsh_artifact, " + ...
             "radia_ngsolve_crossval, ngsolve_bem_50, catalog_100, " + ...
             "vibroacoustic_drum, curved_vol_geometry, " + ...
@@ -117,7 +123,8 @@ s = strjoin([
     " 11  rigid scattering + irregular frequencies + CHIEF"
     ""
     "Topics: spaces, galerkin_bem, coupled_fem_bem, multiphysics,"
-    "acoustic, sonic_crystal, matlab_execution_policy, vol_visualization,"
+    "acoustic, public_acoustic_blog_lessons, sonic_crystal,"
+    "matlab_execution_policy, vol_visualization,"
     "pde_vol_bridge, gmsh_artifact, radia_ngsolve_crossval, ngsolve_bem_50,"
     "catalog_100, vibroacoustic_drum, curved_vol_geometry,"
     "validation_discipline, optimization_link."
@@ -261,6 +268,61 @@ s = strjoin([
     "envelope), Anderson fluid-sphere transmission (log-derivative-stable"
     "per-mode solve; size the series on the FARTHEST probe k*r_max)."
     "Run any of these via acoustic_fembem.fembem_acoustic_gate."
+    ], newline);
+end
+
+
+function s = PUBLIC_ACOUSTIC_BLOG_LESSONS()
+s = strjoin([
+    "# Public acoustic blog lessons -> readable FEM/BEM method selection"
+    ""
+    "This topic distills public acoustic modeling blog material into a"
+    "solver-independent teaching checklist.  It is not a COMSOL benchmark"
+    "and it does not import proprietary models or numerical values.  The"
+    "lesson is how to choose the modeling family before writing a Gypsilab-"
+    "style MATLAB script."
+    ""
+    "1. Unbounded exterior radiation: use BEM or an exact DtN/open-boundary"
+    "   operator in the frequency domain when the exterior is homogeneous."
+    "   CAE-AI Lab policy for wave boundaries is high-order surface"
+    "   impedance Zs; do not use PML as the default validation route for"
+    "   acoustic or electromagnetic waves."
+    "   In this repository, the readable route is .vol boundary triangles ->"
+    "   P1 BEM; the production reference is NGSolve.BEM/radia-ngsolve."
+    "   Do not claim a generic time-domain BEM just because the frequency-"
+    "   domain BEM exists.  Our time-domain lane is explicitly CQ:"
+    "   volTdBemConvolutionQuadrature / volFemBemCoupledConvolutionQuadrature."
+    ""
+    "2. Acoustic-structure interaction: the interface must carry both"
+    "   structural displacement/normal velocity and acoustic pressure/normal"
+    "   traction.  A drum, bell, transducer, membrane, or elastic bead is a"
+    "   FEM interior plus acoustic exterior problem, not a painted pressure"
+    "   animation.  The teaching gate is two-way coupling plus a result"
+    "   artifact schema for the interface convention."
+    ""
+    "3. Impedance lumping: a detailed thermo/viscous or resonator submodel"
+    "   can be replaced by a frequency-dependent impedance only if the"
+    "   impedance definition travels with the power balance.  Record whether"
+    "   it is specific impedance p=Z_s v or acoustic impedance p=Z Q, and"
+    "   keep incident/reflected/transmitted/dissipated power explicit."
+    ""
+    "4. Absorbing boundaries: local reaction and extended reaction are"
+    "   different modeling assumptions, but they are metadata below the lab"
+    "   boundary policy.  For acoustic and electromagnetic waves, record"
+    "   high-order Zs as the boundary model and explicitly record PML=false."
+    "   Extended-reaction porous or interior-impedance physics can inform the"
+    "   fitted Zs, but a scalar absorption coefficient alone is not a reusable"
+    "   validation artifact."
+    ""
+    "5. Room acoustics: choose by acoustic/geometric scale.  Below the"
+    "   Schroeder-frequency region, wave/FEM or eigenmode analysis teaches"
+    "   modal behavior.  At high frequency, ray or diffusion models are"
+    "   efficient but no longer resolve wave effects such as diffraction and"
+    "   standing waves.  A hybrid example should record the split frequency."
+    ""
+    "MCP/radia bridge: use radia-mcp acoustic_method_selection_manifest_gate"
+    "before promoting any public acoustic blog/literature lesson into a"
+    "Gypsilab example, report, or radia-ngsolve validation candidate."
     ], newline);
 end
 

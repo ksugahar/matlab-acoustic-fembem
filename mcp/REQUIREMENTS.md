@@ -33,3 +33,7 @@ matlab-mcp-server-windows-x64.exe --extension-file=<repo>\mcp\extensions\acousti
 
 Add `--matlab-session-mode=existing` when you want the server to attach to a
 shared MATLAB session instead of starting a new one.
+
+The acoustic FEM/BEM extension is intentionally thin.  The official MathWorks
+server owns process/session management; this repository owns only domain MATLAB
+functions, validation gates, and the extension-file contract.

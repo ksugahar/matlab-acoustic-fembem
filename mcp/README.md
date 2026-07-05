@@ -43,3 +43,12 @@ Install the official MathWorks MATLAB MCP Server separately, then pass:
 
 The official server supplies the MCP runtime.  This repository supplies the
 domain tools and validation gates.
+
+## Repository Boundary
+
+The acoustic FEM/BEM MCP layer stays inside this repository.  Do not maintain a
+separate lab `matlab-mcp` repository for these tools: the extension file is the
+public contract, while the official MathWorks server remains the runtime.
+Internal cross-validation provenance, local solver logs, and private MATLAB
+automation notes stay outside the public package unless rewritten as scrubbed
+domain knowledge.
