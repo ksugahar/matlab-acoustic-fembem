@@ -90,6 +90,25 @@ verifySubstring(testCase, body, "acoustic_method_selection_manifest_gate");
 end
 
 
+function testKnowledgeIncludesPublicAcousticNonboundary10(testCase)
+body = acoustic_fembem.fembem_knowledge("public_acoustic_nonboundary_10");
+verifyGreaterThan(testCase, strlength(body), 1200);
+verifySubstring(testCase, body, "10 public acoustic non-boundary problems");
+verifySubstring(testCase, body, "absorbing boundaries");
+verifySubstring(testCase, body, "PML=false");
+verifySubstring(testCase, body, "Acoustic trap");
+verifySubstring(testCase, body, "Surface-acoustic-wave droplet streaming");
+verifySubstring(testCase, body, "Thermoviscous acoustic radiation force");
+verifySubstring(testCase, body, "Thermoacoustic engine");
+verifySubstring(testCase, body, "Acoustic topology optimization");
+verifySubstring(testCase, body, "Room response split");
+verifySubstring(testCase, body, "Small-speaker room impulse response");
+verifySubstring(testCase, body, "Ultrasonic pipe pulse-echo");
+verifySubstring(testCase, body, "public_acoustic_nonboundary_problem_catalog");
+verifySubstring(testCase, body, "acoustic_nonboundary_problem_catalog_manifest_gate");
+end
+
+
 function testKnowledgeIncludesGmshArtifactTopic(testCase)
 body = acoustic_fembem.fembem_knowledge("gmsh_artifact");
 verifyGreaterThan(testCase, strlength(body), 500);

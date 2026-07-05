@@ -11,7 +11,8 @@ function text = fembem_knowledge(topic)
 % (acoustic_fembem.repository_root), exercised by the runnable acoustic_fembem.fembem_acoustic_gate.
 %
 % Topics: overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics,
-%         acoustic, public_acoustic_blog_lessons, sonic_crystal, adjoint_ad,
+%         acoustic, public_acoustic_blog_lessons,
+%         public_acoustic_nonboundary_10, sonic_crystal, adjoint_ad,
 %         matlab_execution_policy,
 %         vol_visualization, pde_vol_bridge, gmsh_artifact,
 %         radia_ngsolve_crossval, ngsolve_bem_50, catalog_100,
@@ -39,8 +40,11 @@ switch t
     case {"acoustic", "helmholtz", "scattering"}
         text = ACOUSTIC;
     case {"public_acoustic_blog_lessons", "acoustic_blog", ...
-            "method_selection", "comsol_blog_acoustics"}
+            "method_selection", "public_acoustic_modeling_lessons"}
         text = PUBLIC_ACOUSTIC_BLOG_LESSONS;
+    case {"public_acoustic_nonboundary_10", "nonboundary_acoustics", ...
+            "acoustic_nonboundary_10", "modeling_nonboundary_10"}
+        text = PUBLIC_ACOUSTIC_NONBOUNDARY_10;
     case {"sonic_crystal", "band_gap", "bloch", "metamaterial", "duct"}
         text = SONIC_CRYSTAL;
     case {"validation_discipline", "validation", "gates", "cross_check"}
@@ -77,6 +81,7 @@ switch t
     case "all"
         text = strjoin([OVERVIEW, SPACES, GALERKIN_BEM, COUPLED_FEM_BEM, ...
             MULTIPHYSICS, ACOUSTIC, PUBLIC_ACOUSTIC_BLOG_LESSONS, ...
+            PUBLIC_ACOUSTIC_NONBOUNDARY_10, ...
             SONIC_CRYSTAL, ADJOINT_AD, ...
             MATLAB_EXECUTION_POLICY, VOL_VISUALIZATION, PDE_VOL_BRIDGE, ...
             GMSH_ARTIFACT, ...
@@ -87,7 +92,8 @@ switch t
     otherwise
         text = "Unknown topic '" + topic + "'. Available: overview, " + ...
             "spaces, galerkin_bem, coupled_fem_bem, multiphysics, acoustic, " + ...
-            "public_acoustic_blog_lessons, sonic_crystal, adjoint_ad, " + ...
+            "public_acoustic_blog_lessons, public_acoustic_nonboundary_10, " + ...
+            "sonic_crystal, adjoint_ad, " + ...
             "matlab_execution_policy, " + ...
             "vol_visualization, pde_vol_bridge, gmsh_artifact, " + ...
             "radia_ngsolve_crossval, ngsolve_bem_50, catalog_100, " + ...
@@ -123,7 +129,8 @@ s = strjoin([
     " 11  rigid scattering + irregular frequencies + CHIEF"
     ""
     "Topics: spaces, galerkin_bem, coupled_fem_bem, multiphysics,"
-    "acoustic, public_acoustic_blog_lessons, sonic_crystal,"
+    "acoustic, public_acoustic_blog_lessons, public_acoustic_nonboundary_10,"
+    "sonic_crystal,"
     "matlab_execution_policy, vol_visualization,"
     "pde_vol_bridge, gmsh_artifact, radia_ngsolve_crossval, ngsolve_bem_50,"
     "catalog_100, vibroacoustic_drum, curved_vol_geometry,"
@@ -274,10 +281,10 @@ end
 
 function s = PUBLIC_ACOUSTIC_BLOG_LESSONS()
 s = strjoin([
-    "# Public acoustic blog lessons -> readable FEM/BEM method selection"
+    "# Public acoustic modeling lessons -> readable FEM/BEM method selection"
     ""
-    "This topic distills public acoustic modeling blog material into a"
-    "solver-independent teaching checklist.  It is not a COMSOL benchmark"
+    "This topic distills public acoustic modeling material into a"
+    "solver-independent teaching checklist.  It is not a solver benchmark"
     "and it does not import proprietary models or numerical values.  The"
     "lesson is how to choose the modeling family before writing a Gypsilab-"
     "style MATLAB script."
@@ -321,8 +328,83 @@ s = strjoin([
     "   standing waves.  A hybrid example should record the split frequency."
     ""
     "MCP/radia bridge: use radia-mcp acoustic_method_selection_manifest_gate"
-    "before promoting any public acoustic blog/literature lesson into a"
+    "before promoting any public acoustic literature lesson into a"
     "Gypsilab example, report, or radia-ngsolve validation candidate."
+    ], newline);
+end
+
+
+function s = PUBLIC_ACOUSTIC_NONBOUNDARY_10()
+s = strjoin([
+    "# 10 public acoustic non-boundary problems for Gypsilab/radia-acoustic"
+    ""
+    "This catalog deliberately excludes boundary-condition topics such as"
+    "absorbing boundaries, PML, port boundaries, and impedance-boundary-only"
+    "examples.  When an open wave closure is later needed, CAE-AI Lab policy"
+    "still records high-order Zs and PML=false, but these ten lessons are"
+    "about the acoustic physics inside the model."
+    ""
+    "1. Acoustic trap with Gor'kov potential, streaming, and particles:"
+    "   Gypsilab task = P1 pressure plus a particle-force post map."
+    "   radia-acoustic task = manifest gate for pressure extrema, force"
+    "   direction, and particle equilibrium."
+    ""
+    "2. Surface-acoustic-wave droplet streaming:"
+    "   Gypsilab task = SAW source field -> quadratic streaming forcing."
+    "   radia-acoustic task = reduced streaming-force artifact with wave"
+    "   direction, steady-flow sign, and mixing observable."
+    ""
+    "3. Thermoviscous acoustic radiation force:"
+    "   Gypsilab task = inviscid Gor'kov fast gate, with thermoviscous"
+    "   corrections marked as the heavy lane."
+    "   radia-acoustic task = gate first-order-field provenance, particle"
+    "   contrast, perturbation order, and force vector."
+    ""
+    "4. Small microphone with thermoviscous and electromechanical losses:"
+    "   Gypsilab task = lumped diaphragm plus thermoviscous duct/cavity."
+    "   radia-acoustic task = frequency-response artifact with acoustic"
+    "   compliance, mechanical resonance, and loss-channel identity."
+    ""
+    "5. Thermoacoustic engine:"
+    "   Gypsilab task = readable 1D transfer-matrix or weak-form gate."
+    "   radia-acoustic task = heat-work sign, acoustic power flux, and"
+    "   stack-location metadata."
+    ""
+    "6. Acoustic topology optimization with density/bulk-modulus"
+    "   interpolation:"
+    "   Gypsilab task = tiny Helmholtz design field with objective,"
+    "   constraint, filter, and material interpolation metadata."
+    "   radia-acoustic task = design-variable bounds and objective-region"
+    "   gate."
+    ""
+    "7. Microacoustic topology optimization with thermoviscous losses:"
+    "   Gypsilab task = lossy equivalent-fluid objective before full"
+    "   thermoviscous elements."
+    "   radia-acoustic task = loss-model identity and dissipated-power"
+    "   columns in the result artifact."
+    ""
+    "8. Room response split into wave and statistical/high-frequency"
+    "   methods:"
+    "   Gypsilab task = Schroeder-split teaching manifest."
+    "   radia-acoustic task = low-band method, high-band method, transition"
+    "   frequency, and merge-rule gate."
+    ""
+    "9. Small-speaker room impulse response with FEM-to-ray source handoff:"
+    "   Gypsilab task = save source directivity/near-field data before"
+    "   room propagation."
+    "   radia-acoustic task = receiver list, source-map id, and time-axis"
+    "   convention gate."
+    ""
+    "10. Ultrasonic pipe pulse-echo reduced replay:"
+    "    Gypsilab task = symmetry-reduced pulse/echo manifest with material"
+    "    wave speeds."
+    "    radia-acoustic task = pulse definition, echo windows, and arrival-"
+    "    ordering gate."
+    ""
+    "Reusable gate: radia-mcp public_acoustic_nonboundary_problem_catalog"
+    "returns the same ten case families, and"
+    "acoustic_nonboundary_problem_catalog_manifest_gate rejects boundary"
+    "families, PML use, missing Gypsilab/radia tasks, and missing observables."
     ], newline);
 end
 

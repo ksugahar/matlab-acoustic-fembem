@@ -109,7 +109,7 @@
     {
       "name": "acoustic_fembem_knowledge",
       "title": "Acoustic FEM/BEM Knowledge",
-      "description": "Returns one topic of the integrated acoustic FEM/BEM knowledge (the Gypsilab readable lane): overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics (the interface-is-the-battlefield coupling-difficulty synthesis, incl. non-conforming mesh coupling / mortar / supermesh), acoustic, sonic_crystal, adjoint_ad, matlab_execution_policy, vol_visualization, pde_vol_bridge, radia_ngsolve_crossval, ngsolve_bem_50, catalog_100, vibroacoustic_drum, curved_vol_geometry, validation_discipline, optimization_link, all.",
+      "description": "Returns one topic of the integrated acoustic FEM/BEM knowledge (the Gypsilab readable lane): overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics (the interface-is-the-battlefield coupling-difficulty synthesis, incl. non-conforming mesh coupling / mortar / supermesh), acoustic, public_acoustic_nonboundary_10, sonic_crystal, adjoint_ad, matlab_execution_policy, vol_visualization, pde_vol_bridge, radia_ngsolve_crossval, ngsolve_bem_50, catalog_100, vibroacoustic_drum, curved_vol_geometry, validation_discipline, optimization_link, all.",
       "inputSchema": {
         "type": "object",
         "properties": {
