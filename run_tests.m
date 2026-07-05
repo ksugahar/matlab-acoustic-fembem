@@ -4,38 +4,11 @@ addpath(repoRoot);
 addpath(fullfile(repoRoot, "examples"));
 addpath(fullfile(repoRoot, "validation"));
 
-testFiles = [
-    fullfile(repoRoot, "tests", "testReadVolTriTet.m")
-    fullfile(repoRoot, "tests", "testMeshImportQuality.m")
-    fullfile(repoRoot, "tests", "testFirstOrderFemBemSpaces.m")
-    fullfile(repoRoot, "tests", "testLaplaceDirichletSolve.m")
-    fullfile(repoRoot, "tests", "testLaplacePanelIntegrals.m")
-    fullfile(repoRoot, "tests", "testGalerkinSingleLayer.m")
-    fullfile(repoRoot, "tests", "testFemBemCoupledSolve.m")
-    fullfile(repoRoot, "tests", "testFemBemHelmholtzCoupling.m")
-    fullfile(repoRoot, "tests", "testNgsolveBemCrossCheck.m")
-    fullfile(repoRoot, "tests", "testHelmholtzScattering.m")
-    fullfile(repoRoot, "tests", "testSonicCrystalChain.m")
-    fullfile(repoRoot, "tests", "testDuctBandGap.m")
-    fullfile(repoRoot, "tests", "testAcousticFocusAdjoint.m")
-    fullfile(repoRoot, "tests", "testAcousticRadiationForce.m")
-    fullfile(repoRoot, "tests", "testElasticSphereScattering.m")
-    fullfile(repoRoot, "tests", "testSphericalDtnOperator.m")
-    fullfile(repoRoot, "tests", "testFsiCoupledSolve.m")
-    fullfile(repoRoot, "tests", "testElasticThrustAdjoint.m")
-    fullfile(repoRoot, "tests", "testRwgVectorCoupling.m")
-    fullfile(repoRoot, "tests", "testHMatrix.m")
-    fullfile(repoRoot, "tests", "testAcoustics.m")
-    fullfile(repoRoot, "tests", "testCoulombGauge.m")
-    fullfile(repoRoot, "tests", "testOptimizationGates.m")
-    fullfile(repoRoot, "tests", "testGeometricIntegration.m")
-    fullfile(repoRoot, "tests", "testValidationCatalog.m")
-    fullfile(repoRoot, "tests", "testMeshTopologyValidation.m")
-    fullfile(repoRoot, "tests", "testRemainingExamplesValidation.m")
-    fullfile(repoRoot, "tests", "testMcpAcousticFembemTools.m")
-    fullfile(repoRoot, "tests", "testPdeVolBridge.m")
-    fullfile(repoRoot, "tests", "testVolVisualization.m")
-];
+% Discover every tests/test*.m by globbing the folder, so a newly added test
+% cannot silently go unregistered (a manual literal list previously let 7 test
+% files - the CQ time-domain, iFFT, drum, and Gmsh-artifact lane - never run).
+testEntries = dir(fullfile(repoRoot, "tests", "test*.m"));
+testFiles = string(fullfile({testEntries.folder}, {testEntries.name}));
 
 allResults = matlab.unittest.TestResult.empty;
 for k = 1:numel(testFiles)

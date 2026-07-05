@@ -81,7 +81,7 @@ cL = options.LongitudinalSpeed;
 cT = options.ShearSpeed;
 rhoS = options.DensityRatio;
 mu = rhoS * cT^2;
-lam = rhoS * (cL^2 - 2 * cT^2);
+lamElastic = rhoS * (cL^2 - 2 * cT^2);
 
 mesh = model.mesh;
 surface = model.surface;
@@ -90,7 +90,7 @@ ids = surface.volNodeIds;               % boundary(compact) -> volume node
 nB = numel(ids);
 
 % ---- interior: vector elasticity dynamic stiffness ----
-[Ks, Ms] = elasticityMatrices(mesh, lam, mu, rhoS);
+[Ks, Ms] = elasticityMatrices(mesh, lamElastic, mu, rhoS);
 Kdyn = Ks - omega^2 * Ms;
 
 % ---- incident field (plane wave exp(ikz) by default; a custom Incident struct
@@ -178,7 +178,8 @@ sol.scatteredAt = @(points) ...
 sol.totalAt = @(points) incValue(points) + sol.scatteredAt(points);
 sol.checks = struct( ...
     "solveResidualSmall", residual <= 1e-8 * max(1, norm(rhs)), ...
-    "fieldComplex", ~isreal(psG));
+    "fieldComplex", ~isreal(psG), ...
+    "exteriorWellPosed", ~dtnInfo.used || dtnInfo.gramCondition < 1e12);
 if all(structfun(@(v) logical(v), sol.checks))
     sol.status = "ok";
 else
@@ -197,8 +198,8 @@ vtx = surface.vtx;
 nB = size(vtx, 1);
 massTri = (ones(3) + eye(3)) / 12;      % P1 triangle mass / area
 
-nnz = 27 * size(tri, 1);
-Grow = zeros(nnz, 1); Gcol = zeros(nnz, 1); Gval = zeros(nnz, 1);
+nEntries = 27 * size(tri, 1);
+Grow = zeros(nEntries, 1); Gcol = zeros(nEntries, 1); Gval = zeros(nEntries, 1);
 Minc = zeros(nB, 1);
 cursor = 1;
 for t = 1:size(tri, 1)

@@ -58,6 +58,7 @@ for k = 1:numel(verified)
         "Missing example for " + verified(k).id);
     verifyNotEqual(testCase, verified(k).validationLog, "");
 end
+end
 
 
 function testAllCasesHaveExampleScriptAndGypsilabInspiration(testCase)
@@ -69,7 +70,6 @@ for k = 1:numel(cases)
         "Missing example for " + cases(k).id);
     verifyNotEqual(testCase, cases(k).gypsilabInspiration, "", ...
         "Missing Gypsilab inspiration for " + cases(k).id);
-end
 end
 end
 

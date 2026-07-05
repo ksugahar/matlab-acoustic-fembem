@@ -78,7 +78,7 @@ copyfile(geoOptPath, optPath, "f");
 writeMeshOptions(mshOptPath, options, rotation, maxViewIndex);
 
 artifact = struct();
-artifact.schema = "cae-ai-lab.gmsh-post-launch.v1";
+artifact.schema = "matlab-acoustic-fembem.gmsh-post-launch.v1";
 artifact.generated_at_utc = string(datetime("now", "TimeZone", "UTC", ...
     "Format", "yyyy-MM-dd'T'HH:mm:ss'Z'"));
 artifact.matlab_version = string(version);

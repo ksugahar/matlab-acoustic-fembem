@@ -270,7 +270,7 @@ end
 
 function artifact = completeArtifact()
 artifact = struct();
-artifact.schema = "cae-ai-lab.crossval.v1";
+artifact.schema = "matlab-acoustic-fembem.crossval.v1";
 artifact.pass = true;
 artifact.created_at_utc = "2026-07-04T00:00:00Z";
 artifact.versions = struct("matlab", version, "radia_mcp", "test");

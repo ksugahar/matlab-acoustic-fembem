@@ -25,8 +25,9 @@ function ref = elasticSphereScattering(waveNumber, radius, points, options)
 %
 % VALIDATED against two INDEPENDENT references (limits, 2026-07-04):
 %   ShearSpeed -> 0 reproduces the Anderson fluid sphere
-%     (fluidSphereScattering) to 1e-10 - the exact fluid limit;
-%   very stiff (cL, cT, rho large) reproduces rigidSphereScattering.
+%     (fluidSphereScattering) to ~3e-8, gated at 1e-6 - the exact fluid limit;
+%   very stiff (cL, cT, rho large) reproduces rigidSphereScattering (~1% at
+%     cL = 50, tightening to ~1e-7 as the stiffness ratio grows).
 % The Reynolds/sign discipline mattered: the radial-stress boundary term
 % is -lambda kL^2 A j_l(kL R) (sigma_rr = -p), NOT +; a flipped sign passes
 % the stiff limit but fails the fluid limit by 20-70% (lock against an

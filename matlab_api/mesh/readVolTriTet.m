@@ -1,7 +1,7 @@
 function mesh = readVolTriTet(volFile)
 %READVOLTRITET Read the tri/tet subset of a Netgen .vol file.
 %
-% The MATLAB/Lukas/Gypsilab lane deliberately accepts only boundary triangles
+% This first-order FEM/BEM lane deliberately accepts only boundary triangles
 % and volume tetrahedra. Quad/hex/prism/pyramid records are rejected instead of
 % being split implicitly.
 

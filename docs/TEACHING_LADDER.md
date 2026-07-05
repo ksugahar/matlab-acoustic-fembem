@@ -1,7 +1,7 @@
 # FEM/BEM Teaching Ladder
 
 This document preserves the detailed solver narrative for
-`caeai-matlab-fembem`: the readable MATLAB API, the cross-validation ladder,
+`matlab-acoustic-fembem`: the readable MATLAB API, the cross-validation ladder,
 and the acoustic/FSI examples that are too long for the top-level README.
 
 This repository is an open educational MATLAB codebase. It is not a production

@@ -125,6 +125,7 @@ patterns = [
     "caeai-" + "matlab-fembem"
     "caeai" + "_check_"
     "caeai" + "_fembem_"
+    "cae-ai" + "-lab"
     "GYPSILAB" + "_ROOT"
     "gypsilab" + "_root"
 ];
@@ -134,6 +135,9 @@ files = [
     string(fullfile(root, "run_tests.m"))
     textFilesUnder(fullfile(root, "+acoustic_fembem"))
     textFilesUnder(fullfile(root, "mcp"))
+    textFilesUnder(fullfile(root, "docs"))
+    textFilesUnder(fullfile(root, "matlab_api"))
+    textFilesUnder(fullfile(root, "tests"))
 ];
 
 hits = scanTextPatterns(root, files, patterns, ...

@@ -25,7 +25,8 @@ function res = acousticRadiationForce(pressureField, wavenumber, options)
 %
 % Dimensionless by default (rho = c = 1, omega = k, unit scatterer and
 % incident amplitude); the physical force in a medium is
-%   F_z = Y_p * pi * Rs^2 * <E>,   <E> = p_rms^2 / (rho c^2).
+%   F_z = Y_p * pi * Rs^2 * <E>,   <E> = p_rms^2 / (rho c^2) = |A|^2 / (2 rho c^2)
+%                                        for a progressive wave (p_rms = |A|/sqrt2).
 % Air @ 40 kHz (c = 343, rho = 1.2, lambda = 8.58 mm): kR = 2 is a
 % Rs = 2.73 mm scatterer; at 140 dB SPL (<E> = 0.28 J/m^3) a Y_p ~ 0.75
 % sphere feels ~5 uN, at 160 dB ~0.5 mN - the acoustic-manipulation regime.

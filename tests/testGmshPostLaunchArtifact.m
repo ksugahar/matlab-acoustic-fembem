@@ -12,7 +12,7 @@ end
 
 
 function testWriterRecordsCameraCutPlaneAndViews(testCase)
-outBase = string(fullfile("C:\temp", ...
+outBase = string(fullfile(tempdir, ...
     "test_gmsh_post_launch_" + char(java.util.UUID.randomUUID())));
 mshPath = outBase + ".msh";
 writeText(mshPath, "$MeshFormat" + newline + "4.1 0 8" + newline + "$EndMeshFormat");
@@ -48,7 +48,7 @@ artifact = writeGmshPostLaunchArtifact(mshPath, ...
     "MeshSurfaceEdges", true, ...
     "Views", views);
 
-verifyEqual(testCase, artifact.schema, "cae-ai-lab.gmsh-post-launch.v1");
+verifyEqual(testCase, artifact.schema, "matlab-acoustic-fembem.gmsh-post-launch.v1");
 verifyTrue(testCase, artifact.pass);
 verifyEqual(testCase, artifact.launch_target, outBase + ".geo");
 verifyEqual(testCase, artifact.mesh_inspection_target, mshPath);
@@ -85,7 +85,7 @@ verifyTrue(testCase, contains(mshOptText, "View[0].Visible = 0"));
 verifyTrue(testCase, contains(mshOptText, "View[1].Visible = 0"));
 
 jsonText = string(fileread(jsonPath));
-verifyTrue(testCase, contains(jsonText, """schema"":""cae-ai-lab.gmsh-post-launch.v1"""));
+verifyTrue(testCase, contains(jsonText, """schema"":""matlab-acoustic-fembem.gmsh-post-launch.v1"""));
 verifyTrue(testCase, contains(jsonText, """launch_target_is_geo"":true"));
 end
 

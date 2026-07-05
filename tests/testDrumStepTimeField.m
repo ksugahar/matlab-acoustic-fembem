@@ -57,7 +57,7 @@ field = drumStepTimeField( ...
     "NumTime", 10, ...
     "TMax", 6e-4);
 
-outDir = "C:\temp";
+outDir = tempdir;
 if ~isfolder(outDir)
     mkdir(outDir);
 end
@@ -107,7 +107,7 @@ verifyTrue(testCase, any(scene.masks.drum_frame, "all"));
 verifyTrue(testCase, any(scene.masks.membrane, "all"));
 verifyGreaterThan(testCase, scene.summary.max_abs_pressure, 0);
 
-outDir = "C:\temp";
+outDir = tempdir;
 if ~isfolder(outDir)
     mkdir(outDir);
 end
@@ -167,7 +167,7 @@ verifyGreaterThan(testCase, scene.summary.bem_cross_direction.top_to_lateral_ext
 verifyGreaterThan(testCase, scene.summary.bem_cross_direction.top_to_lower_exterior, 0);
 verifyGreaterThan(testCase, scene.summary.bem_cross_direction.side_to_upper_exterior, 0);
 
-outDir = "C:\temp";
+outDir = tempdir;
 if ~isfolder(outDir)
     mkdir(outDir);
 end

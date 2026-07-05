@@ -66,7 +66,7 @@ geoSeconds = toc(geoTimer);
 
 jsonTimer = tic;
 artifact = struct();
-artifact.schema = "cae-ai-lab.drum-bem-plane-gmsh.v1";
+artifact.schema = "matlab-acoustic-fembem.drum-bem-plane-gmsh.v1";
 artifact.generated_at_utc = string(datetime("now", "TimeZone", "UTC", ...
     "Format", "yyyy-MM-dd'T'HH:mm:ss'Z'"));
 artifact.matlab_version = string(version);

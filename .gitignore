@@ -2,6 +2,12 @@
 *.m~
 *.mlx~
 *.mat
+# Reference .mat artifacts under validation/data/ are tracked so a fresh clone
+# can run the cross-code checks without regenerating them.
+!validation/data/*.mat
+# ...except this large NGSolve.BEM ball reference, which no committed test
+# consumes (the ball tests use analytic references) - keep it out of history.
+validation/data/ngbem_helmholtz_reference_unit_ball_maxh018.mat
 *.mex*
 *.log
 .pytest_cache/

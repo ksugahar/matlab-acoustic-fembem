@@ -70,6 +70,12 @@ end
 k = wavenumber;
 rho = options.FluidDensity;
 c = options.SoundSpeed;
+if c ~= 1
+    error("elasticThrustAdjoint:soundSpeed", ...
+        "SoundSpeed must be 1: fsiCoupledSolve works in fluid-relative units " + ...
+        "(fluid c = 1) and is not re-scaled here, so a non-unit SoundSpeed " + ...
+        "would desync the FSI solve from the radiation-force post-processing.");
+end
 omega = k * c;
 nSrc = size(sources, 1);
 if numel(amplitudes) ~= nSrc

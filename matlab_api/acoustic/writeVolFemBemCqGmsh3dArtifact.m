@@ -95,7 +95,7 @@ matSeconds = toc(matTimer);
 
 jsonTimer = tic;
 artifact = struct();
-artifact.schema = "cae-ai-lab.vol-fembem-cq-gmsh3d-build.v1";
+artifact.schema = "matlab-acoustic-fembem.vol-fembem-cq-gmsh3d-build.v1";
 artifact.generated_at_utc = string(datetime("now", "TimeZone", "UTC", ...
     "Format", "yyyy-MM-dd'T'HH:mm:ss'Z'"));
 artifact.matlab_version = string(version);
