@@ -94,6 +94,7 @@ function testKnowledgeIncludesGmshArtifactTopic(testCase)
 body = acoustic_fembem.fembem_knowledge("gmsh_artifact");
 verifyGreaterThan(testCase, strlength(body), 500);
 verifySubstring(testCase, body, "writeVolFemBemCqGmsh3dArtifact");
+verifySubstring(testCase, body, "writeGmshPostLaunchArtifact");
 verifySubstring(testCase, body, "P1 FEM/BEM CQ");
 verifySubstring(testCase, body, "Gmsh MSH v4.1");
 verifySubstring(testCase, body, "interior_pressure");

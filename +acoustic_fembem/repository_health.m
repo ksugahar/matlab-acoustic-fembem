@@ -69,6 +69,7 @@ checks.catalog_verified = verifiedCount == 100;
 checks.vol_fixture_count_sufficient = numel(volFixtures) >= 10;
 checks.pde_vol_bridge_present = isfile(fullfile(root, "matlab_api", "mesh", "writePdeMeshVol.m"));
 checks.vol_plot_preview_present = isfile(fullfile(root, "matlab_api", "mesh", "plotVolMesh.m"));
+checks.gmsh_post_launch_writer_present = isfile(fullfile(root, "matlab_api", "mesh", "writeGmshPostLaunchArtifact.m"));
 checks.old_repository_names_absent = isempty(oldNameHits);
 checks.mcp_surface_avoids_live_document_policy = isempty(mcpUiPolicyHits);
 
