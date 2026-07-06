@@ -98,7 +98,7 @@ doubleLayerNorms = zeros(N, 1);
 for ell = 1:N
     alpha = s(ell) / options.InteriorSoundSpeed;
     Kdyn = A + alpha^2 * Mv;
-    V = cqSingleLayerGalerkin(surface, s(ell), options.ExteriorSoundSpeed, ...
+    V = laplaceSingleLayerGalerkin(surface, s(ell), options.ExteriorSoundSpeed, ...
         options.QuadratureOrder);
     Sobs = cqSingleLayerPotential(surface, obs, s(ell), ...
         options.ExteriorSoundSpeed, options.QuadratureOrder);
@@ -257,27 +257,6 @@ quad = SurfaceQuadrature(surface, quadratureOrder);
 correction = cqDoubleLayerCorrection(points, quad.points, s, ...
     soundSpeed, quad.weights, quad.outwardNormals());
 rows = rows + correction * quad.basis;
-end
-
-
-function V = cqSingleLayerGalerkin(surface, s, soundSpeed, quadratureOrder)
-quad = SurfaceQuadrature(surface, quadratureOrder);
-nGauss = quad.nPoints();
-nNodes = size(surface.vtx, 1);
-tri = surface.tri;
-vtx = surface.vtx;
-
-P = zeros(nGauss, nNodes);
-for t = 1:size(tri, 1)
-    [~, I1] = laplacePanelIntegrals(vtx(tri(t, :), :), quad.points);
-    P(:, tri(t, :)) = P(:, tri(t, :)) + I1;
-end
-Bw = quad.weightedBasis();
-V = Bw.' * P / (4 * pi);
-
-correction = cqSingleLayerCorrection(quad.points, quad.points, s, ...
-    soundSpeed, quad.weights);
-V = V + Bw.' * (correction * quad.basis);
 end
 
 
