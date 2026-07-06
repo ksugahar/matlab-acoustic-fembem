@@ -73,31 +73,62 @@ if ~isequal(size(boundaryData), [N, nBoundary])
 end
 
 cqTimer = tic;
-n = (0:N-1).';
-zeta = rho * exp(-2i * pi * n / N);
-s = bdfDelta(zeta, options.Method) / dt;
-scaledBoundary = (rho .^ n) .* boundaryData;
-boundaryHat = fft(scaledBoundary, [], 1);
 
-densityHat = zeros(N, nBoundary);
-pressureHat = zeros(N, size(obs, 1));
+% ===================================================================== %
+% CONVOLUTION QUADRATURE.  The time-domain convolution  V(d/dt) q = g is
+% turned into N DECOUPLED frequency solves by the discrete Fourier
+% transform (Lubich).  The CQ weights are never formed explicitly -- that
+% is the whole point.  visualizeConvolutionQuadrature(result) draws each of
+% the four phases below.
+% ===================================================================== %
+
+% --- Phase 1: sample the CQ contour, map it to Laplace nodes. --------- %
+% zeta walks a circle of radius rho < 1; the BDF generating function
+% delta(zeta) maps it to s = delta(zeta)/dt.  For an A-stable BDF the image
+% lies entirely in Re(s) > 0, so every kernel exp(-s r/c) DECAYS (a
+% screened-Laplace kernel) -- this is why CQ is stable where naive
+% marching-on-in-time would ring.
+n    = (0:N-1).';
+zeta = rho * exp(-2i * pi * n / N);
+s    = bdfDelta(zeta, options.Method) / dt;
+
+% --- Phase 2: rho-weight and FFT the boundary data. ------------------- %
+% The rho^n weighting is the CQ scaling trick that keeps the later inverse
+% transform well-behaved; the FFT diagonalizes the lower-triangular CQ
+% convolution into N independent right-hand sides boundaryHat(ell, :).
+scaledBoundary = (rho .^ n) .* boundaryData;
+boundaryHat    = fft(scaledBoundary, [], 1);
+
+% --- Phase 3: one independent frequency-domain BEM solve per node. ---- %
+% For each Laplace node s(ell): assemble the Galerkin single layer V(s),
+% solve V q = g_hat for the surface density q(s), and apply the single-layer
+% potential S(s) to carry q to the observation points.  cond(V) and the solve
+% residual are recorded so the health of every node stays auditable/visible.
+densityHat        = zeros(N, nBoundary);
+pressureHat       = zeros(N, size(obs, 1));
 relativeResiduals = zeros(N, 1);
-conditionNumbers = zeros(N, 1);
+conditionNumbers  = zeros(N, 1);
 for ell = 1:N
-    V = laplaceSingleLayerGalerkin(surface, s(ell), options.SoundSpeed, ...
+    V   = laplaceSingleLayerGalerkin(surface, s(ell), options.SoundSpeed, ...
         options.QuadratureOrder);
     rhs = boundaryHat(ell, :).';
-    q = V \ rhs;
+    q   = V \ rhs;                                   % surface density q(s)
     Sobs = cqSingleLayerPotential(surface, obs, s(ell), ...
         options.SoundSpeed, options.QuadratureOrder);
-    densityHat(ell, :) = q.';
-    pressureHat(ell, :) = (Sobs * q).';
+    densityHat(ell, :)     = q.';
+    pressureHat(ell, :)    = (Sobs * q).';           % p(x, s) = S(s) q(s)
     relativeResiduals(ell) = norm(V * q - rhs) / max(1, norm(rhs));
-    conditionNumbers(ell) = cond(V);
+    conditionNumbers(ell)  = cond(V);
 end
-densityComplex = (rho .^ (-n)) .* ifft(densityHat, [], 1);
+
+% --- Phase 4: inverse FFT + rho^-n unscaling -> causal time signal. --- %
+% rho^-n undoes the Phase-2 weighting.  Caveat worth SEEING (panels 5-6 of
+% the visualizer): rho^-n grows to 1/sqrt(eps) at the last step, so it also
+% amplifies round-off there -- pushing N too far lets the tail drown in
+% machine noise even while the per-node residuals stay ~1e-16.
+densityComplex  = (rho .^ (-n)) .* ifft(densityHat, [], 1);
 pressureComplex = (rho .^ (-n)) .* ifft(pressureHat, [], 1);
-density = real(densityComplex);
+density  = real(densityComplex);                     % causal, real-valued
 pressure = real(pressureComplex);
 cqSeconds = toc(cqTimer);
 
