@@ -1,13 +1,15 @@
 function tests = testLaplaceSingleLayerGalerkin
-%TESTLAPLACESINGLELAYERGALERKIN Laplace single layer == Helmholtz on imag axis.
+%TESTLAPLACESINGLELAYERGALERKIN Laplace single layer vs Helmholtz on imag axis.
 %
 % The Lubich CQ time-domain BEM (volTdBemConvolutionQuadrature) is only as
 % trustworthy as its Laplace-domain building block V(s).  This locks that block
 % to the analytically-validated frequency-domain single layer: on the imaginary
 % axis s = -1i c k the retarded kernel exp(-s r/c) equals the Helmholtz kernel
-% exp(1i k r), so V(-1i c k) must equal GalerkinSingleLayer(k) to machine
-% precision - an EXACT golden that pins the s/c scaling, the sign of the
-% exponent, and the 1/(4 pi), not just a self-consistent CQ residual.
+% exp(1i k r), so V(-1i c k) equals GalerkinSingleLayer(k) plus the KNOWN
+% coincident-quadrature-node limit term Delta (this operator keeps the finite
+% smooth-correction limit; GalerkinSingleLayer drops it).  Matching to machine
+% precision pins the s/c scaling, the exponent sign, and the 1/(4 pi) - not just
+% a self-consistent CQ residual.
 
 tests = functiontests(localfunctions);
 end
@@ -26,9 +28,11 @@ surface = VolMesh(volFile).boundary();
 end
 
 
-function testImaginaryAxisMatchesHelmholtzSingleLayer(testCase)
-% s = -1i c k  =>  exp(-s r/c) = exp(1i k r): V(s) must equal the Helmholtz
-% single layer to machine precision at every quadrature order and wavenumber.
+function testImaginaryAxisMatchesHelmholtzPlusCoincidentLimit(testCase)
+% s = -1i c k  =>  exp(-s r/c) = exp(1i k r).  V(s) must equal the Helmholtz
+% single layer plus the coincident-node limit term Delta_ij =
+% (-alpha/4pi) sum_g w_g^2 phi_i(x_g) phi_j(x_g) with alpha = s/c (= -1i k here,
+% so -alpha = 1i k), to machine precision, at every quadrature order and k.
 surface = coarseSphere();
 c = 1.3;
 for q = [1 3 7]
@@ -37,9 +41,14 @@ for q = [1 3 7]
         V = laplaceSingleLayerGalerkin(surface, s, c, q);
         Vref = GalerkinSingleLayer(surface, "Wavenumber", k, ...
             "QuadratureOrder", q).matrix;
-        relErr = norm(V - Vref, "fro") / norm(Vref, "fro");
+        quad = SurfaceQuadrature(surface, q);
+        w = quad.weights;
+        B = quad.basis;
+        Delta = (1i * k) / (4 * pi) * (B.' * (w.^2 .* B));
+        relErr = norm(V - (Vref + Delta), "fro") / norm(Vref, "fro");
         verifyLessThan(testCase, relErr, 1e-12, ...
-            sprintf("V(-i c k) != Helmholtz at q=%d k=%.2f (relerr %.2e)", q, k, relErr));
+            sprintf("V(-i c k) != Helmholtz + Delta at q=%d k=%.2f (relerr %.2e)", ...
+            q, k, relErr));
     end
 end
 end
@@ -74,21 +83,42 @@ verifyLessThan(testCase, norm(Va - Vb, "fro") / norm(Vb, "fro"), 1e-12);
 end
 
 
-function testCqPathUsesThisOperator(testCase)
-% The CQ solver must actually build V(s) with laplaceSingleLayerGalerkin at its
-% own nodes (so this golden protects the shipped path, not a parallel copy).
+function testNonFiniteLaplaceParameterFailsLoud(testCase)
+% The promoted public operator rejects a non-finite s rather than silently
+% returning NaN/Inf (fail-loud discipline).
+surface = coarseSphere();
+verifyError(testCase, @() laplaceSingleLayerGalerkin(surface, complex(Inf, 0), 1.0, 1), ...
+    "MATLAB:validators:mustBeFinite");
+verifyError(testCase, @() laplaceSingleLayerGalerkin(surface, complex(0, NaN), 1.0, 1), ...
+    "MATLAB:validators:mustBeFinite");
+end
+
+
+function testShippedCqSolveUsesThisOperator(testCase)
+% End-to-end: rebuild the CQ boundary density from laplaceSingleLayerGalerkin at
+% the CQ's OWN Laplace nodes and confirm it reproduces the shipped
+% result.boundaryDensity.  This protects the operator the CQ actually uses - a
+% mutated operator (or a reverted private copy in volTdBem) would diverge here.
 repoRoot = fileparts(fileparts(mfilename("fullpath")));
 volFile = fullfile(repoRoot, "fixtures", "mesh_topology", "unit_tetra.vol");
-result = volTdBemConvolutionQuadrature(volFile, "NumTime", 8, "TimeStep", 0.6, ...
-    "QuadratureOrder", 3, "Method", "BDF1");
+N = 8;
+q = 3;
+result = volTdBemConvolutionQuadrature(volFile, "NumTime", N, "TimeStep", 0.6, ...
+    "QuadratureOrder", q, "Method", "BDF1");
 surface = VolMesh(volFile).boundary();
+nB = size(surface.vtx, 1);
+n = (0:N-1).';
+rho = result.cqRadius;
 s = result.cqLaplaceParameter;
-worst = 0;
-for ell = 1:numel(s)
-    V = laplaceSingleLayerGalerkin(surface, s(ell), 1.0, 3);
-    q = V \ ones(size(surface.vtx, 1), 1);
-    worst = max(worst, norm(V * q - ones(size(surface.vtx, 1), 1)) / sqrt(numel(q)));
+boundaryHat = fft((rho .^ n) .* result.boundaryData, [], 1);
+densityHat = zeros(N, nB);
+for ell = 1:N
+    V = laplaceSingleLayerGalerkin(surface, s(ell), 1.0, q);   % c = 1 (CQ default)
+    densityHat(ell, :) = (V \ boundaryHat(ell, :).').';
 end
-verifyLessThan(testCase, worst, 1e-10);   % V(s) is well-formed at the CQ nodes
+density = real((rho .^ (-n)) .* ifft(densityHat, [], 1));
+relErr = norm(density - result.boundaryDensity, "fro") / ...
+    max(1, norm(result.boundaryDensity, "fro"));
+verifyLessThan(testCase, relErr, 1e-10);
 verifyEqual(testCase, result.status, "ok");
 end

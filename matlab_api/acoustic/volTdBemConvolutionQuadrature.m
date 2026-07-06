@@ -177,9 +177,9 @@ for i = 1:nTarget
     for j = 1:nSource
         r = norm(targetPoints(i, :) - sourcePoints(j, :));
         if r == 0
-            % Coincident quadrature point: match the frequency-domain
-            % HelmholtzKernel convention (leave the smooth correction at 0).
-            value = 0;
+            % Coincident quadrature point: finite limit of the regular smooth
+            % correction (exp(-alpha r)-1)/(4 pi r) -> -alpha/(4 pi) as r -> 0.
+            value = -alpha;
         else
             z = -alpha * r;
             value = stableExpm1OverR(z, r);

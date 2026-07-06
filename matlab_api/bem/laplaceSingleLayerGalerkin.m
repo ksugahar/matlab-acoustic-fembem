@@ -13,25 +13,33 @@ function V = laplaceSingleLayerGalerkin(surface, s, soundSpeed, quadratureOrder)
 %
 % It is the SAME operator as the frequency-domain Helmholtz single layer
 % GalerkinSingleLayer: on the imaginary axis s = -1i c k the kernel
-% exp(-s r/c) = exp(1i k r), so
+% exp(-s r/c) = exp(1i k r).  The two agree exactly EXCEPT at coincident
+% quadrature points: this operator keeps the finite limit of the smooth
+% correction there (the correct product-Gauss sample, see below), while
+% GalerkinSingleLayer / HelmholtzKernel drop it.  The difference is the known
+% term
+%
+%   Delta_ij = (-alpha / (4 pi)) * sum_g w_g^2 phi_i(x_g) phi_j(x_g),   alpha = s/c,
+%
+% so, locked by tests/testLaplaceSingleLayerGalerkin,
 %
 %   laplaceSingleLayerGalerkin(surface, -1i c k, c, q)
-%       == GalerkinSingleLayer(surface, "Wavenumber", k, "QuadratureOrder", q).matrix
+%       == GalerkinSingleLayer(surface, "Wavenumber", k, "QuadratureOrder", q).matrix + Delta
 %
-% to machine precision (locked by tests/testLaplaceSingleLayerGalerkin).  This
-% is the CQ correctness anchor: the retarded kernel scaling s/c, the 1/(4 pi),
-% and the exponent sign are all pinned to the analytically-validated
-% frequency-domain single layer, not just to a self-consistent residual.
+% to machine precision.  This pins the retarded kernel scaling s/c, the 1/(4 pi),
+% and the exponent sign to the analytically-validated frequency-domain single
+% layer, not just to a self-consistent CQ residual.
 %
 % Built exactly like GalerkinSingleLayer: the singular Laplace part 1/(4 pi r)
 % is integrated ANALYTICALLY over every source triangle (laplacePanelIntegrals)
-% at each test Gauss point; the smooth correction (exp(-s r/c) - 1)/(4 pi r) is
-% regular and taken by product Gauss quadrature, with the coincident-point value
-% left at 0 to match the validated frequency-domain convention (HelmholtzKernel).
+% at each test Gauss point; the smooth correction (exp(-s r/c) - 1)/(4 pi r) is a
+% regular integrand taken by product Gauss quadrature, INCLUDING its finite limit
+% -alpha/(4 pi) at coincident points (the correct sample, and the same
+% convention as the coupled CQ lane volFemBemCoupledConvolutionQuadrature).
 
 arguments
     surface (1,1) SurfaceMesh
-    s (1,1) double
+    s (1,1) double {mustBeFinite}
     soundSpeed (1,1) double {mustBePositive} = 1.0
     quadratureOrder (1,1) double {mustBeMember(quadratureOrder, [1 3 7])} = 1
 end
@@ -67,10 +75,12 @@ for i = 1:nTarget
     for j = 1:nSource
         r = norm(targetPoints(i, :) - sourcePoints(j, :));
         if r == 0
-            % Coincident quadrature point: leave the smooth correction at 0,
-            % the same convention the frequency-domain HelmholtzKernel uses, so
-            % V(s) is identical to GalerkinSingleLayer on the imaginary axis.
-            value = 0;
+            % Coincident quadrature point: the smooth correction
+            % (exp(-alpha r) - 1)/(4 pi r) is regular with the finite limit
+            % -alpha/(4 pi) as r -> 0.  Keep that limit (the correct product-
+            % Gauss sample); GalerkinSingleLayer / HelmholtzKernel instead drop
+            % it, so the two differ by the known Delta term in the header.
+            value = -alpha;
         else
             value = stableExpm1OverR(-alpha * r, r);
         end
