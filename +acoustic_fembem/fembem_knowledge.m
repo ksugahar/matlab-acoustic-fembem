@@ -11,9 +11,9 @@ function text = fembem_knowledge(topic)
 % (acoustic_fembem.repository_root), exercised by the runnable acoustic_fembem.fembem_acoustic_gate.
 %
 % Topics: overview, spaces, galerkin_bem, coupled_fem_bem, multiphysics,
-%         acoustic, public_acoustic_blog_lessons,
+%         acoustic, convolution_quadrature, public_acoustic_blog_lessons,
 %         public_acoustic_nonboundary_10, sonic_crystal, adjoint_ad,
-%         matlab_execution_policy,
+%         matlab_execution_policy, mathworks_agentic_toolkit,
 %         vol_visualization, pde_vol_bridge, gmsh_artifact,
 %         radia_ngsolve_crossval, ngsolve_bem_50, catalog_100,
 %         vibroacoustic_drum, curved_vol_geometry,
@@ -39,6 +39,9 @@ switch t
         text = COUPLED_FEM_BEM;
     case {"acoustic", "helmholtz", "scattering"}
         text = ACOUSTIC;
+    case {"convolution_quadrature", "cq", "time_domain", "time_domain_bem", ...
+            "lubich", "retarded", "td_bem"}
+        text = CONVOLUTION_QUADRATURE;
     case {"public_acoustic_blog_lessons", "acoustic_blog", ...
             "method_selection", "public_acoustic_modeling_lessons"}
         text = PUBLIC_ACOUSTIC_BLOG_LESSONS;
@@ -73,6 +76,9 @@ switch t
     case {"matlab_execution_policy", "execution_policy", "no_live_documents", ...
             "scripts", "mcp_json"}
         text = MATLAB_EXECUTION_POLICY;
+    case {"mathworks_agentic_toolkit", "agentic_toolkit", ...
+            "official_matlab_mcp", "matlab_mcp_server", "mcp_runtime"}
+        text = MATHWORKS_AGENTIC_TOOLKIT;
     case {"optimization_link", "optimization", "inverse", "design"}
         text = OPTIMIZATION_LINK;
     case {"multiphysics", "interface", "coupling_difficulty", ...
@@ -80,10 +86,12 @@ switch t
         text = MULTIPHYSICS;
     case "all"
         text = strjoin([OVERVIEW, SPACES, GALERKIN_BEM, COUPLED_FEM_BEM, ...
-            MULTIPHYSICS, ACOUSTIC, PUBLIC_ACOUSTIC_BLOG_LESSONS, ...
+            MULTIPHYSICS, ACOUSTIC, CONVOLUTION_QUADRATURE, ...
+            PUBLIC_ACOUSTIC_BLOG_LESSONS, ...
             PUBLIC_ACOUSTIC_NONBOUNDARY_10, ...
             SONIC_CRYSTAL, ADJOINT_AD, ...
             MATLAB_EXECUTION_POLICY, VOL_VISUALIZATION, PDE_VOL_BRIDGE, ...
+            MATHWORKS_AGENTIC_TOOLKIT, ...
             GMSH_ARTIFACT, ...
             RADIA_NGSOLVE_CROSSVAL, NGSOLVE_BEM_50, CATALOG_100, ...
             VIBROACOUSTIC_DRUM, CURVED_VOL_GEOMETRY, ...
@@ -92,9 +100,10 @@ switch t
     otherwise
         text = "Unknown topic '" + topic + "'. Available: overview, " + ...
             "spaces, galerkin_bem, coupled_fem_bem, multiphysics, acoustic, " + ...
+            "convolution_quadrature, " + ...
             "public_acoustic_blog_lessons, public_acoustic_nonboundary_10, " + ...
             "sonic_crystal, adjoint_ad, " + ...
-            "matlab_execution_policy, " + ...
+            "matlab_execution_policy, mathworks_agentic_toolkit, " + ...
             "vol_visualization, pde_vol_bridge, gmsh_artifact, " + ...
             "radia_ngsolve_crossval, ngsolve_bem_50, catalog_100, " + ...
             "vibroacoustic_drum, curved_vol_geometry, " + ...
@@ -227,6 +236,17 @@ s = strjoin([
     "-> 7% fine; residual is the P1 INTERIOR elasticity, not the"
     "coupling). Run it: acoustic_fembem.fembem_acoustic_gate(""fsi"")."
     ""
+    "ARBITRARY SHAPE (a box, not just the analytic sphere): the SAME FSI runs on a"
+    "non-separable RECTANGULAR box via the BEM exterior (no truncation - the only"
+    "mesh is the scatterer surface).  A box has no analytic reference, so its"
+    "goldens are SHAPE-INDEPENDENT physics: far-field reciprocity"
+    "f(x_hat; d) = f(-d; -x_hat) (to discretisation error ~1.5%) and the Sommerfeld"
+    "1/r radiation decay (testElasticBoxScattering).  Box .vol comes from"
+    "structuredBoxVol (no PDE Toolbox) or writePdeGeometryVol (any PDE geometry)."
+    "DECISION RULE (FEM the scatterer?): FEM the interior ONLY when it carries"
+    "physics BEM cannot - elastic (this FSI) or inhomogeneous fluid.  Rigid/soft ="
+    "pure BEM (a surface BC; FEM would mesh + truncate the exterior, what BEM avoids)."
+    ""
     "FAST EXTERIOR (spherical DtN, not a Kelvin acoustic boundary): for a SPHERE truncation,"
     "ExteriorMethod=""dtn"" swaps the dense Galerkin single/double layer for"
     "the EXACT spherical Helmholtz DtN (sphericalDtnOperator, Lambda_n ="
@@ -275,6 +295,49 @@ s = strjoin([
     "envelope), Anderson fluid-sphere transmission (log-derivative-stable"
     "per-mode solve; size the series on the FARTHEST probe k*r_max)."
     "Run any of these via acoustic_fembem.fembem_acoustic_gate."
+    ], newline);
+end
+
+
+function s = CONVOLUTION_QUADRATURE()
+s = strjoin([
+    "# Convolution quadrature (Lubich CQ) - the time-domain acoustic BEM"
+    ""
+    "CQ is the canonical time-domain lane, and for acoustics it is the STRONGEST"
+    "route: it inherits the Laplace-domain kernel's A-stability, so it stays"
+    "causal and late-time stable where direct marching-on-in-time (MOT) is"
+    "notoriously unstable.  The retarded single/double layer are never formed as"
+    "time kernels - the BDF generating function delta(zeta) is sampled on a"
+    "contour, the Laplace-domain BEM V(s), K(s) are evaluated at s = delta(zeta)/dt,"
+    "and an FFT recovers the time sequence."
+    ""
+    "THE COMPACTNESS IS STRUCTURAL: CQ = (frequency-domain operator) x (a thin,"
+    "generic FFT wrapper).  The hard physics (the BEM kernel, the FEM/BEM coupling"
+    "block) is the SAME frequency-domain code, evaluated at complex frequencies."
+    "So you validate ONCE in the frequency domain and the time-domain solver"
+    "inherits its correctness plus CQ's stability.  volTdBemConvolutionQuadrature"
+    "(exterior single-layer Dirichlet) and volFemBemCoupledConvolutionQuadrature"
+    "(volume-FEM/BEM coupled) share ONE goldened operator, laplaceSingleLayerGalerkin."
+    ""
+    "THE GOLDEN (the CQ correctness anchor): the CQ core is the Laplace-domain"
+    "single layer V(s), kernel exp(-s r/c)/(4 pi r).  On the IMAGINARY axis"
+    "s = -1i c k it becomes exp(1i k r) = the Helmholtz kernel, so"
+    "  laplaceSingleLayerGalerkin(surface, -1i c k, c, q)"
+    "     == GalerkinSingleLayer(surface, k, q).matrix + Delta"
+    "to machine precision (measured relerr ~3e-17, all quad orders and k).  This"
+    "pins the s/c scaling, the exponent sign, and the 1/(4 pi) to the analytically-"
+    "validated (Faran/Anderson/soft-sphere) frequency-domain single layer - far"
+    "stronger than a self-consistent CQ residual (all the old smoke checks tested)."
+    ""
+    "THE COINCIDENT-NODE CONVENTION (a real subtlety, verified): the smooth"
+    "correction (exp(-alpha r)-1)/(4 pi r) is a REGULAR integrand with the finite"
+    "limit -alpha/(4 pi) at coincident quadrature points.  Keeping that limit is"
+    "the correct product-Gauss sample and the MORE accurate choice;"
+    "GalerkinSingleLayer/HelmholtzKernel instead ZERO the smooth diagonal, so the"
+    "two differ by the KNOWN term Delta_ij = (-alpha/4 pi) sum_g w_g^2 phi_i phi_j."
+    "Do NOT bend the CQ to zero it just to make the golden exact (that moves the CQ"
+    "~1e-2..3e-1 away from the validated operator) - keep -alpha and add Delta on"
+    "the reference side.  Golden: testLaplaceSingleLayerGalerkin."
     ], newline);
 end
 
@@ -519,6 +582,18 @@ s = strjoin([
     "  writePdeMeshVol(model.Mesh, ""box.vol"");"
     "  mesh = VolMesh(""box.vol"");"
     ""
+    "GENERAL geometry (any PDE Toolbox shape, not just a box):"
+    "  writePdeGeometryVol(""sphere.vol"", multisphere(0.5), Hmax=0.12)"
+    "  writePdeGeometryVol(""cyl.vol"",    multicylinder(0.4, 1.0), Hmax=0.15)"
+    "  writePdeGeometryVol(""part.vol"",   importGeometry(""part.step""), Hmax=0.05)"
+    "writePdeBoxVol is a thin box wrapper over it.  In R2026a the geometry builders"
+    "are BUILT-INS (exist == 5), so an availability check must use exist(name)==0,"
+    "NOT exist(...,""file"")==2 (which wrongly rejects an installed toolbox)."
+    ""
+    "NO-TOOLBOX box: structuredBoxVol writes a box .vol with a structured"
+    "6-tet-per-hex (Kuhn) mesh and NO PDE Toolbox at all - the box scatterer test"
+    "uses it so it runs on a minimal checkout."
+    ""
     "Policy: no implicit element conversion. The bridge accepts only"
     "linear tetrahedral PDE meshes; boundary faces are derived as"
     "outward-oriented triangles, and the round trip is checked by"
@@ -621,6 +696,41 @@ s = strjoin([
     "Checks: Gmsh v4.1, tet element type 4, two NodeData views, P1 volume"
     "FEM, P1 boundary BEM, Johnson-Nedelec/Calderon form, double-layer"
     "K(s), high-order impedance lane recorded, not Kelvin, residual < 1e-8."
+    ], newline);
+end
+
+
+function s = MATHWORKS_AGENTIC_TOOLKIT()
+s = strjoin([
+    "# MathWorks MATLAB MCP Server and Agentic Toolkit policy"
+    ""
+    "Use the official MathWorks MATLAB MCP Server as the execution runtime."
+    "It owns MATLAB process/session management, code evaluation, test running,"
+    "Code Analyzer checks, and toolbox detection.  This repository must not"
+    "vendor, fork, or wrap a second general MATLAB MCP server."
+    ""
+    "Use the MATLAB Agentic Toolkit as the setup and skills reference layer."
+    "The toolkit can install/update the official MCP server and register"
+    "agent skills.  Its role is agent guidance and configuration, not domain"
+    "solver logic.  Keep only the skill groups that are relevant to this"
+    "acoustic FEM/BEM project so tool selection stays reliable."
+    ""
+    "This repository contributes the thin domain extension:"
+    "  - mcp/extensions/acoustic-fembem-tools.json is the MCP contract;"
+    "  - +acoustic_fembem functions are ordinary MATLAB entry points;"
+    "  - matlab_api contains the readable P1 FEM/BEM/CQ implementation;"
+    "  - tests verify the extension without requiring an MCP client."
+    ""
+    "Existing-session policy: when sharing a MATLAB session with COMSOL"
+    "LiveLink, attach to that already-running MATLAB session through the"
+    "official server's existing-session workflow.  Do not start a second"
+    "MATLAB only to reach COMSOL.  Pure MATLAB acoustic FEM/BEM checks may"
+    "run in batch when they do not touch COMSOL."
+    ""
+    "Domain division: MathWorks runtime and skills teach MATLAB mechanics;"
+    "the acoustic_fembem extension teaches .vol tri/tet intake, P1 volume FEM,"
+    "P1 boundary BEM, Johnson-Nedelec coupling, Lubich CQ, Gmsh artifacts,"
+    "and NGSolve.BEM/radia-ngsolve cross-validation gates."
     ], newline);
 end
 
