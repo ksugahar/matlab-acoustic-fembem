@@ -1,53 +1,74 @@
 # MATLAB Acoustic FEM/BEM
 
-Readable MATLAB prototypes for learning the FEM/BEM ideas behind Gypsilab,
-NGSolve, and NGSolve.BEM.
+Readable MATLAB prototypes for acoustic FEM/BEM: tetrahedral volume FEM,
+triangular boundary BEM, Laplace/Helmholtz kernels, FEM/BEM coupling,
+fluid-structure interaction, and Lubich convolution-quadrature time-domain
+solvers.
 
 This repository is an educational solver laboratory.  It favors short,
 inspectable MATLAB classes and reproducible validation artifacts over
-production speed.  The main target is a student-friendly FEM/BEM codebase that
-shows how tetrahedral volume FEM, triangular boundary BEM, trace maps, acoustic
-kernels, and small optimization gates fit together.
+production speed, and it is designed to be **driven through an MCP server**
+rather than read as a hand-written API manual.
+
+## How To Use This Repository (MCP-first)
+
+**There is no generated API reference, and this README does not enumerate one.**
+The public surface is deliberately just two things:
+
+1. the short, readable MATLAB classes under `matlab_api/` -- open the file when
+   you need the exact signature or convention; each class is meant to be read in
+   one sitting; and
+2. an **MCP server** that exposes the solver's gates, cross-validation, and
+   teaching knowledge as tools.
+
+The MCP layer is the intended entry point for AI agents, and the fastest way for
+a human to drive a workflow without memorizing signatures.  It runs on the
+official **MathWorks MATLAB MCP Server** as the execution substrate; this
+repository supplies only the acoustic FEM/BEM domain tools, through the
+`+acoustic_fembem` package and the extension file
+[`mcp/extensions/acoustic-fembem-tools.json`](mcp/extensions/acoustic-fembem-tools.json):
+
+| MCP tool | Purpose |
+|----------|---------|
+| `acoustic_fembem_knowledge` | Serve compact FEM/BEM/CQ teaching knowledge and conventions |
+| `acoustic_fembem_vol_mesh_summary` | Summarize a `.vol` mesh (counts, bbox, orientation) with viewer guidance |
+| `acoustic_fembem_acoustic_gate` | Run acoustic gates vs analytic references (`focus_adjoint`, `radiation_force`, `thrust_adjoint`) |
+| `acoustic_fembem_crossval_gate` | `.vol`-backed cross-validation against NGSolve / `ngsolve.bem` references |
+| `acoustic_fembem_check_result_manifest_file` | Validate a result manifest (versions, dates, schema/convention ids) |
+| `acoustic_fembem_repository_health` | Pre-push health check for the repo and the MCP extension |
+
+Setup and the full tool contract live in [mcp/README.md](mcp/README.md).  Install
+the official MathWorks MATLAB MCP Server, then start it with the extension:
+
+```powershell
+--extension-file=<repo>\mcp\extensions\acoustic-fembem-tools.json
+```
+
+For direct MATLAB use -- reading the classes, running a solve by hand -- see
+[Quick Start](#quick-start) below, but treat the readable classes as the
+reference, not a separate API document.
 
 ## What Is Included
 
-- Netgen `.vol` mesh intake for first-order triangle/tetrahedron meshes.
-- MATLAB PDE Toolbox mesh export to first-order `.vol` for simple geometries.
+- Netgen `.vol` intake and **pure-MATLAB `.vol` read/write** (`readVolTriTet`,
+  `writeVol`, `icosphereVol`, `structuredBoxVol`) -- no PDE Toolbox required.
 - Volume FEM spaces: H1 P1 tetrahedra and HCurl/Nedelec0 tetrahedra.
 - Boundary BEM spaces: scalar P1 traces and RWG0 edge basis functions.
 - FEM/BEM trace maps with explicit row identity.
-- Dense Galerkin Laplace and Helmholtz BEM kernels.
-- Low-frequency-stable Helmholtz kernel splitting.
-- A readable educational H-matrix matvec.
+- Dense Galerkin Laplace and Helmholtz BEM kernels, with low-frequency-stable
+  Helmholtz splitting.
+- A readable educational H-matrix with **reference-guarded ACA+** low-rank
+  far-field blocks -- rows and columns are sampled on the fly and the dense far
+  block is never formed.
 - Acoustic scattering, FEM/BEM coupling, FSI, radiation-force, and adjoint
   teaching gates.
-- Adjoint automatic differentiation gates for acoustic wavefront and
-  radiation-force optimization.
-- 100 validation examples organized under `examples`.
+- Lubich convolution-quadrature time-domain BEM (single-layer), including the
+  drum-roll / scatterer demonstration.
+- Reverse-mode adjoint gates for acoustic wavefront and radiation-force
+  optimization.
 
 The detailed solver story, including the validation ladder and acoustic/FSI
 notes, lives in [docs/TEACHING_LADDER.md](docs/TEACHING_LADDER.md).
-
-## Relationship To Gypsilab
-
-Gypsilab is the style reference: compact notation, readable operators, and
-MATLAB code close to the mathematics.  This repository does not vendor the
-Gypsilab source tree.  Optional cross-checks against a separately installed
-Gypsilab checkout are kept behind explicit validation helpers.
-
-Because Gypsilab is GPL-3.0 software and this project intentionally follows
-that ecosystem, this repository is released under GNU GPL v3.0.
-
-## Requirements
-
-- MATLAB R2021a or later.
-- No required external solver for the fast unit-test lane.
-- Optional: MATLAB PDE Toolbox for simple-geometry mesh generation before
-  exporting first-order tetrahedral `.vol` files.
-- Optional: NGSolve / NGSolve.BEM for regenerating cross-code reference
-  artifacts.
-- Optional: a separately installed Gypsilab checkout for the explicit
-  Gypsilab comparison helper.
 
 ## Quick Start
 
@@ -78,6 +99,22 @@ sol.totalCharge
 sol.potentialAt([3 0 0])
 ```
 
+## MATLAB `.vol` Read/Write (no PDE Toolbox)
+
+Meshes can be created, written, and read back entirely in MATLAB:
+
+```matlab
+icosphereVol("ball.vol", Radius=1, Subdivisions=2, ...
+    BoundaryName="outer", MaterialName="air");   % closed volume ball
+mesh = VolMesh("ball.vol");                       % round-trips through readVolTriTet
+```
+
+`writeVol` emits the same first-order Netgen `mesh3d` contract used by the
+FEM/BEM classes (surface triangles + optional volume tetrahedra, boundary and
+material names).  For toolbox users, MATLAB PDE Toolbox export
+(`writePdeMeshVol`) remains available as an optional path; it is not required to
+build `.vol` meshes.
+
 ## Mesh Policy
 
 The mesh handoff is Netgen `.vol`.
@@ -107,41 +144,44 @@ interactive session needs a quick boundary preview, and use the MCP tool
 `acoustic_fembem_vol_mesh_summary` for headless counts, bounding boxes,
 orientation, and viewer guidance.
 
-## MATLAB Execution Policy
-
-This repository does not use MATLAB Live Editor documents as the default
-interface.  Durable workflows should be ordinary `.m` functions/scripts, MCP
-tools that print compact JSON, and result manifests with versions, dates,
-timing, schema ids, and convention ids.
-
 ## Repository Layout
 
 ```text
 matlab_api/
-  mesh/      .vol parser, PDE Toolbox exporter, preview plotter, VolMesh
+  mesh/      .vol read/write (readVolTriTet/writeVol/icosphereVol/structuredBoxVol),
+             PDE Toolbox exporters, preview plotter, VolMesh/SurfaceMesh
   fem/       H1Space, Nedelec0Space
   bem/       SurfaceP1Space, RwgSpace, TraceOperator
   kernel/    HelmholtzKernel
-  hmatrix/   HMatrix
-  acoustic/  acoustic reports and single-layer helpers
+  hmatrix/   HMatrix (reference-guarded ACA+)
+  acoustic/  acoustic reports, single-layer and convolution-quadrature helpers
   model/     FemBemModel and coupling manifests
   gates/     readable report gates for optimization, ports, far fields, traces
 
-fixtures/    committed .vol meshes used by tests and examples
-examples/    100 validation example entry points
-validation/  cross-code/reference generators and validation runners
-tests/       fast MATLAB unit tests
-docs/        design notes and the detailed teaching ladder
++acoustic_fembem/   MATLAB MCP gate package (domain tools over the MathWorks server)
+mcp/                MCP extension file, verifier, and the tool contract
+fixtures/           committed .vol meshes used by tests and validation
+examples/           worked validation example entry points
+validation/         cross-code / reference generators and runners
+tests/              fast MATLAB unit-test lane
+validation_test/    heavier numerical validation lane (analytic + cross-code)
+docs/               design notes and the detailed teaching ladder
+tools/              repository utilities
 ```
 
 ## Run Tests
 
-From MATLAB:
+Two lanes, matching the fast-regression / validation split:
 
 ```matlab
 repoRoot = "path/to/matlab-acoustic-fembem";
-run(fullfile(repoRoot, "run_tests.m"))
+run(fullfile(repoRoot, "run_tests.m"))             % fast lane   (tests/)
+run(fullfile(repoRoot, "run_validation_test.m"))   % validation  (validation_test/)
 ```
+
+`tests/` is the quick developer loop of fast unit checks.  `validation_test/`
+holds the heavier numerical validation: analytic (Faran) FSI comparisons, the
+convolution-quadrature drum roll, resonance sweeps, and cross-code references.
 
 Focused validation examples can also be run directly:
 
@@ -154,48 +194,35 @@ runMeshTopologyExample("GYP-001");
 cases = validationCatalog();
 ```
 
-## MATLAB-Only Mesh Path
+## Requirements
 
-For simple teaching geometries, MATLAB PDE Toolbox can generate a linear
-tetrahedral mesh and export it to the same first-order `.vol` contract used by
-the FEM/BEM classes:
-
-```matlab
-model = createpde();
-model.Geometry = multicuboid(1, 1, 1);
-generateMesh(model, "Hmax", 0.25, "GeometricOrder", "linear");
-
-writePdeMeshVol(model.Mesh, "box.vol", ...
-    MaterialName="air", BoundaryName="outer");
-mesh = VolMesh("box.vol");
-```
-
-The exporter rejects non-tetrahedral or higher-order meshes instead of
-silently converting them.
+- MATLAB R2021a or later.
+- No required external solver for the fast unit-test lane.
+- Optional: the official MathWorks MATLAB MCP Server (with the MATLAB Agentic
+  Toolkit) to drive the repository through MCP tools.
+- Optional: NGSolve / `ngsolve.bem` for regenerating cross-code reference
+  artifacts.
+- Optional: MATLAB PDE Toolbox, only for the `writePdeMeshVol` export path;
+  `.vol` meshes can otherwise be built with `writeVol` / `icosphereVol`.
 
 ## Validation Status
 
-The public validation campaign currently has:
-
-- `100 / 100` example scripts present.
-- `100 / 100` catalog entries marked verified.
+- Fast lane (`tests/`) and validation lane (`validation_test/`) are both green.
+- Acoustic and BEM checks against analytic references (e.g. Faran elastic-sphere
+  scattering), committed NGSolve / `ngsolve.bem` reference artifacts, and MATLAB
+  fixtures.
 - Mesh/topology checks comparing MATLAB `.vol` intake with NGSolve `.vol`
   intake.
-- Acoustic and BEM checks against analytic references, committed NGSolve /
-  NGSolve.BEM reference artifacts, and MATLAB fixtures.
 
 Generated logs are written under a local sibling `_crossval` directory and are
 not required for a basic checkout.
 
-## MATLAB MCP Integration
+## MATLAB Execution Policy
 
-This repository includes its own MATLAB MCP layer under [mcp](mcp/).  It uses
-the official MathWorks MATLAB MCP Server as the runtime and exposes the acoustic
-FEM/BEM gates through `+acoustic_fembem`.
-
-```powershell
---extension-file=<repo>\mcp\extensions\acoustic-fembem-tools.json
-```
+This repository does not use MATLAB Live Editor documents as the default
+interface.  Durable workflows should be ordinary `.m` functions/scripts, MCP
+tools that print compact JSON, and result manifests with versions, dates,
+timing, schema ids, and convention ids.
 
 ## Adjoint Optimization
 
@@ -212,6 +239,16 @@ Current gates include:
 
 The MCP entry point `acoustic_fembem_acoustic_gate` exposes these as
 `focus_adjoint`, `radiation_force`, and `thrust_adjoint`.
+
+## Relationship To Gypsilab
+
+Gypsilab is the style reference: compact notation, readable operators, and
+MATLAB code close to the mathematics.  This repository does not vendor the
+Gypsilab source tree.  Optional cross-checks against a separately installed
+Gypsilab checkout are kept behind explicit validation helpers.
+
+Because Gypsilab is GPL-3.0 software and this project intentionally follows
+that ecosystem, this repository is released under GNU GPL v3.0.
 
 ## License
 
