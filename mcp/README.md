@@ -44,6 +44,27 @@ Install the official MathWorks MATLAB MCP Server separately, then pass:
 The official server supplies the MCP runtime.  This repository supplies the
 domain tools and validation gates.
 
+## MATLAB Agentic Toolkit
+
+Use the MathWorks MATLAB Agentic Toolkit as the setup and skills reference
+layer.  It can install/update the official MATLAB MCP Server and register
+agent skills for MATLAB workflows.  This repository does not replace those
+pieces; it adds only the acoustic FEM/BEM/CQ domain extension.
+
+Recommended split:
+
+- official MATLAB MCP Server: MATLAB session/runtime, code execution, tests,
+  Code Analyzer checks, and toolbox detection;
+- MATLAB Agentic Toolkit: skills and setup guidance, selected narrowly for the
+  project;
+- `matlab-acoustic-fembem`: `.vol` tri/tet intake, P1 FEM/BEM, Johnson-Nedelec
+  coupling, Lubich CQ, Gmsh artifacts, and NGSolve.BEM/radia cross-validation
+  gates.
+
+When COMSOL LiveLink is involved, attach to the already shared MATLAB session
+through the official server's existing-session workflow.  Pure MATLAB acoustic
+FEM/BEM checks may run separately when they do not touch COMSOL.
+
 ## Repository Boundary
 
 The acoustic FEM/BEM MCP layer stays inside this repository.  Do not maintain a

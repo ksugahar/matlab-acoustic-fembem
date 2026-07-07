@@ -27,8 +27,12 @@ readme = string(fileread(fullfile(root, "mcp", "README.md")));
 requirements = string(fileread(fullfile(root, "mcp", "REQUIREMENTS.md")));
 verifySubstring(testCase, readme, "stays inside this repository");
 verifySubstring(testCase, readme, "official MathWorks server remains the runtime");
+verifySubstring(testCase, readme, "MATLAB Agentic Toolkit");
+verifySubstring(testCase, readme, "existing-session workflow");
 verifySubstring(testCase, requirements, "extension is intentionally thin");
 verifySubstring(testCase, requirements, "process/session management");
+verifySubstring(testCase, requirements, "matlab-agentic-toolkit");
+verifySubstring(testCase, requirements, "Existing MATLAB Session Policy");
 end
 
 
@@ -67,6 +71,17 @@ verifySubstring(testCase, body, "plotVolMesh");
 verifySubstring(testCase, body, "acoustic_fembem_vol_mesh_summary");
 verifySubstring(testCase, body, "Ng_LoadMesh");
 verifySubstring(testCase, body, ".sol files are mesh-free");
+end
+
+
+function testKnowledgeIncludesConvolutionQuadratureTopic(testCase)
+body = acoustic_fembem.fembem_knowledge("convolution_quadrature");
+verifyGreaterThan(testCase, strlength(body), 400);
+verifySubstring(testCase, body, "Lubich CQ");
+verifySubstring(testCase, body, "laplaceSingleLayerGalerkin");
+verifySubstring(testCase, body, "A-stability");
+verifySubstring(testCase, body, "IMAGINARY axis");
+verifyEqual(testCase, acoustic_fembem.fembem_knowledge("cq"), body);
 end
 
 
@@ -207,6 +222,19 @@ verifyGreaterThan(testCase, strlength(body), 300);
 verifySubstring(testCase, body, ".m functions/scripts");
 verifySubstring(testCase, body, "MCP tools");
 verifySubstring(testCase, body, "JSON manifests");
+end
+
+
+function testKnowledgeIncludesMathWorksAgenticToolkitPolicy(testCase)
+body = acoustic_fembem.fembem_knowledge("mathworks_agentic_toolkit");
+verifyGreaterThan(testCase, strlength(body), 500);
+verifySubstring(testCase, body, "official MathWorks MATLAB MCP Server");
+verifySubstring(testCase, body, "MATLAB Agentic Toolkit");
+verifySubstring(testCase, body, "runtime");
+verifySubstring(testCase, body, "skills");
+verifySubstring(testCase, body, "existing-session");
+verifySubstring(testCase, body, "acoustic_fembem extension");
+verifyEqual(testCase, acoustic_fembem.fembem_knowledge("matlab_mcp_server"), body);
 end
 
 
