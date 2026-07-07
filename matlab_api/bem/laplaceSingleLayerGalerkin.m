@@ -59,47 +59,10 @@ Bw = quad.weightedBasis();
 V = Bw.' * P / (4 * pi);
 
 % --- smooth retarded correction: regular product Gauss quadrature ---
-correction = laplaceSingleLayerCorrection(quad.points, quad.points, s, ...
+% singleLayerSmoothCorrection keeps the finite coincident limit -alpha/(4 pi) at
+% r = 0 (the correct product-Gauss sample -- GalerkinSingleLayer / HelmholtzKernel
+% drop it, hence the known Delta term in the header).
+correction = singleLayerSmoothCorrection(quad.points, quad.points, s, ...
     soundSpeed, quad.weights);
 V = V + Bw.' * (correction * quad.basis);
-end
-
-
-function C = laplaceSingleLayerCorrection(targetPoints, sourcePoints, s, soundSpeed, sourceWeights)
-%LAPLACESINGLELAYERCORRECTION Smooth part (exp(-s r/c) - 1)/(4 pi r) with weights.
-nTarget = size(targetPoints, 1);
-nSource = size(sourcePoints, 1);
-C = complex(zeros(nTarget, nSource));
-alpha = s / soundSpeed;
-for i = 1:nTarget
-    for j = 1:nSource
-        r = norm(targetPoints(i, :) - sourcePoints(j, :));
-        if r == 0
-            % Coincident quadrature point: the smooth correction
-            % (exp(-alpha r) - 1)/(4 pi r) is regular with the finite limit
-            % -alpha/(4 pi) as r -> 0.  Keep that limit (the correct product-
-            % Gauss sample); GalerkinSingleLayer / HelmholtzKernel instead drop
-            % it, so the two differ by the known Delta term in the header.
-            value = -alpha;
-        else
-            value = stableExpm1OverR(-alpha * r, r);
-        end
-        C(i, j) = sourceWeights(j) * value / (4 * pi);
-    end
-end
-end
-
-
-function value = stableExpm1OverR(z, r)
-%STABLEEXPM1OVERR (exp(z) - 1)/r, Taylor-stable for small |z|.
-if abs(z) < 1e-5
-    value = 0;
-    term = 1;
-    for k = 1:10
-        term = term * z / k;
-        value = value + term / r;
-    end
-else
-    value = (exp(z) - 1) / r;
-end
 end

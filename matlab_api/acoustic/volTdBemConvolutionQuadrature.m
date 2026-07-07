@@ -117,13 +117,25 @@ densityHat        = zeros(N, nBoundary);
 pressureHat       = zeros(N, size(obs, 1));
 relativeResiduals = zeros(N, 1);
 conditionNumbers  = zeros(N, 1);
+% Precompute the s-INDEPENDENT analytic Laplace panel matrix for the observation
+% potential ONCE (the CQ grid-radiation dominant cost -- the panel integral does
+% not depend on the node s).  Per node only the smooth exp(-s r/c) correction is
+% recomputed, so radiating to a large movie grid no longer redoes the panels N times.
+obsPanel = zeros(size(obs, 1), nBoundary);
+tris = surface.tri;
+for tface = 1:size(tris, 1)
+    [~, I1] = laplacePanelIntegrals(surface.vtx(tris(tface, :), :), obs);
+    obsPanel(:, tris(tface, :)) = obsPanel(:, tris(tface, :)) + I1 / (4 * pi);
+end
+quadObs = SurfaceQuadrature(surface, options.QuadratureOrder);
 for ell = 1:N
     V   = laplaceSingleLayerGalerkin(surface, s(ell), options.SoundSpeed, ...
         options.QuadratureOrder);
     rhs = boundaryMass * boundaryHat(ell, :).';      % Galerkin load M ghat
     q   = V \ rhs;                                   % surface density q(s)
-    Sobs = laplaceSingleLayerPotential(surface, obs, s(ell), ...
-        options.SoundSpeed, options.QuadratureOrder);
+    corrObs = singleLayerSmoothCorrection(obs, quadObs.points, s(ell), ...
+        options.SoundSpeed, quadObs.weights);
+    Sobs = obsPanel + corrObs * quadObs.basis;       % cached panel + smooth part
     densityHat(ell, :)     = q.';
     pressureHat(ell, :)    = (Sobs * q).';           % p(x, s) = S(s) q(s)
     relativeResiduals(ell) = norm(V * q - rhs) / max(1, norm(rhs));

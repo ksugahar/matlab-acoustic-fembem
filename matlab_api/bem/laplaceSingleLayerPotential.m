@@ -19,42 +19,6 @@ for t = 1:size(tri, 1)
 end
 
 quad = SurfaceQuadrature(surface, quadratureOrder);
-correction = singleLayerCorrection(points, quad.points, s, soundSpeed, quad.weights);
+correction = singleLayerSmoothCorrection(points, quad.points, s, soundSpeed, quad.weights);
 rows = rows + correction * quad.basis;
-end
-
-
-function C = singleLayerCorrection(targetPoints, sourcePoints, s, soundSpeed, sourceWeights)
-%SINGLELAYERCORRECTION Smooth part (exp(-s r/c) - 1)/(4 pi r) with weights.
-nTarget = size(targetPoints, 1);
-nSource = size(sourcePoints, 1);
-C = complex(zeros(nTarget, nSource));
-alpha = s / soundSpeed;
-for i = 1:nTarget
-    for j = 1:nSource
-        r = norm(targetPoints(i, :) - sourcePoints(j, :));
-        if r == 0
-            value = -alpha;      % finite limit -alpha/(4 pi) of the smooth part
-        else
-            z = -alpha * r;
-            value = stableExpm1OverR(z, r);
-        end
-        C(i, j) = sourceWeights(j) * value / (4 * pi);
-    end
-end
-end
-
-
-function value = stableExpm1OverR(z, r)
-%STABLEEXPM1OVERR (exp(z) - 1)/r, Taylor-stable for small |z|.
-if abs(z) < 1e-5
-    value = 0;
-    term = 1;
-    for k = 1:10
-        term = term * z / k;
-        value = value + term / r;
-    end
-else
-    value = (exp(z) - 1) / r;
-end
 end
