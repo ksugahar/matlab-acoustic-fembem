@@ -100,12 +100,12 @@ for ell = 1:N
     Kdyn = A + alpha^2 * Mv;
     V = laplaceSingleLayerGalerkin(surface, s(ell), options.ExteriorSoundSpeed, ...
         options.QuadratureOrder);
-    Sobs = cqSingleLayerPotential(surface, obs, s(ell), ...
+    Sobs = laplaceSingleLayerPotential(surface, obs, s(ell), ...
         options.ExteriorSoundSpeed, options.QuadratureOrder);
     if useJohnsonNedelec
-        K = cqDoubleLayerGalerkin(surface, s(ell), options.ExteriorSoundSpeed, ...
+        K = laplaceDoubleLayerGalerkin(surface, s(ell), options.ExteriorSoundSpeed, ...
             options.QuadratureOrder);
-        Dobs = cqDoubleLayerPotential(surface, obs, s(ell), ...
+        Dobs = laplaceDoubleLayerPotential(surface, obs, s(ell), ...
             options.ExteriorSoundSpeed, options.QuadratureOrder);
         couplingRow = (0.5 * Mb - K) * T;
         bemBlock = V;
@@ -205,155 +205,6 @@ if all(structfun(@(v) logical(v), result.checks))
     result.status = "ok";
 else
     result.status = "needs_attention";
-end
-end
-
-
-function K = cqDoubleLayerGalerkin(surface, s, soundSpeed, quadratureOrder)
-quad = SurfaceQuadrature(surface, quadratureOrder);
-signs = surface.orientation.triangleOrientationSignsToOutward(:);
-if any(signs == 0)
-    error("volFemBemCoupledConvolutionQuadrature:orientation", ...
-        "Surface orientation is unknown for %d triangle(s); cannot assemble K(s).", ...
-        sum(signs == 0));
-end
-
-nGauss = quad.nPoints();
-nNodes = size(surface.vtx, 1);
-tri = surface.tri;
-vtx = surface.vtx;
-
-P = complex(zeros(nGauss, nNodes));
-for t = 1:size(tri, 1)
-    [~, J1] = laplaceDoubleLayerPanelIntegrals(vtx(tri(t, :), :), quad.points);
-    P(:, tri(t, :)) = P(:, tri(t, :)) + signs(t) * J1;
-end
-Bw = quad.weightedBasis();
-K = Bw.' * P / (4 * pi);
-
-correction = cqDoubleLayerCorrection(quad.points, quad.points, s, ...
-    soundSpeed, quad.weights, quad.outwardNormals());
-K = K + Bw.' * (correction * quad.basis);
-end
-
-
-function rows = cqDoubleLayerPotential(surface, points, s, soundSpeed, quadratureOrder)
-signs = surface.orientation.triangleOrientationSignsToOutward(:);
-if any(signs == 0)
-    error("volFemBemCoupledConvolutionQuadrature:orientation", ...
-        "Surface orientation is unknown for %d triangle(s); cannot evaluate D(s).", ...
-        sum(signs == 0));
-end
-
-tri = surface.tri;
-vtx = surface.vtx;
-rows = complex(zeros(size(points, 1), size(vtx, 1)));
-for t = 1:size(tri, 1)
-    [~, J1] = laplaceDoubleLayerPanelIntegrals(vtx(tri(t, :), :), points);
-    rows(:, tri(t, :)) = rows(:, tri(t, :)) + signs(t) * J1 / (4 * pi);
-end
-
-quad = SurfaceQuadrature(surface, quadratureOrder);
-correction = cqDoubleLayerCorrection(points, quad.points, s, ...
-    soundSpeed, quad.weights, quad.outwardNormals());
-rows = rows + correction * quad.basis;
-end
-
-
-function rows = cqSingleLayerPotential(surface, points, s, soundSpeed, quadratureOrder)
-tri = surface.tri;
-vtx = surface.vtx;
-rows = zeros(size(points, 1), size(vtx, 1));
-for t = 1:size(tri, 1)
-    [~, I1] = laplacePanelIntegrals(vtx(tri(t, :), :), points);
-    rows(:, tri(t, :)) = rows(:, tri(t, :)) + I1 / (4 * pi);
-end
-
-quad = SurfaceQuadrature(surface, quadratureOrder);
-correction = cqSingleLayerCorrection(points, quad.points, s, ...
-    soundSpeed, quad.weights);
-rows = rows + correction * quad.basis;
-end
-
-
-function C = cqDoubleLayerCorrection(targetPoints, sourcePoints, s, soundSpeed, ...
-        sourceWeights, sourceNormals)
-nTarget = size(targetPoints, 1);
-nSource = size(sourcePoints, 1);
-C = complex(zeros(nTarget, nSource));
-alpha = s / soundSpeed;
-for i = 1:nTarget
-    for j = 1:nSource
-        delta = targetPoints(i, :) - sourcePoints(j, :);
-        r = norm(delta);
-        if r == 0
-            value = 0.0;
-        else
-            normalDot = dot(delta, sourceNormals(j, :));
-            base = normalDot / r^3;
-            z = -alpha * r;
-            value = base * stableExpTimesOneMinusZMinusOne(z);
-        end
-        C(i, j) = sourceWeights(j) * value / (4 * pi);
-    end
-end
-end
-
-
-function C = cqSingleLayerCorrection(targetPoints, sourcePoints, s, soundSpeed, sourceWeights)
-nTarget = size(targetPoints, 1);
-nSource = size(sourcePoints, 1);
-C = complex(zeros(nTarget, nSource));
-alpha = s / soundSpeed;
-for i = 1:nTarget
-    for j = 1:nSource
-        r = norm(targetPoints(i, :) - sourcePoints(j, :));
-        if r == 0
-            value = -alpha;
-        else
-            z = -alpha * r;
-            value = stableExpm1OverR(z, r);
-        end
-        C(i, j) = sourceWeights(j) * value / (4 * pi);
-    end
-end
-end
-
-
-function value = stableExpTimesOneMinusZMinusOne(z)
-%STABLEEXPTIMESONEMINUSZMINUSONE exp(z)*(1-z)-1, Taylor near z=0.
-
-if abs(z) < 1e-5
-    value = 0;
-    for k = 2:10
-        value = value + (1 - k) * z^k / factorial(k);
-    end
-else
-    value = exp(z) * (1 - z) - 1;
-end
-end
-
-
-function delta = bdfDelta(zeta, method)
-switch upper(method)
-    case "BDF1"
-        delta = 1 - zeta;
-    case "BDF2"
-        delta = 1.5 - 2*zeta + 0.5*zeta.^2;
-end
-end
-
-
-function value = stableExpm1OverR(z, r)
-if abs(z) < 1e-5
-    value = 0;
-    term = 1;
-    for k = 1:10
-        term = term * z / k;
-        value = value + term / r;
-    end
-else
-    value = (exp(z) - 1) / r;
 end
 end
 

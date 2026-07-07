@@ -87,7 +87,7 @@ ZuB = sparse(3*nV,nB); ZBB = sparse(nB,nB);
 for l = 1:N
     Kdyn = Ks + s(l)^2*Ms;                                     % Laplace elastodynamics
     V = laplaceSingleLayerGalerkin(surface, s(l), c0, options.QuadratureOrder);
-    K = cqDoubleLayerGalerkin(surface, s(l), c0, options.QuadratureOrder);
+    K = laplaceDoubleLayerGalerkin(surface, s(l), c0, options.QuadratureOrder);
     pinc = ghat(l).*exp(-s(l).*zNode./c0);                     % retarded incident, nodal
     Minc = incidentNormalFlux(surface, s(l), c0, ghat(l));     % (grad pinc . n)
     lhs = [ Kdyn,          G.',           ZuB;
@@ -96,8 +96,8 @@ for l = 1:N
     rhs = [ -G.'*pinc; -Minc; zeros(nB,1) ];
     x = lhs\rhs;
     u = x(1:3*nV); ps = x(3*nV+(1:nB)); qs = x(3*nV+nB+(1:nB));
-    Sobs = cqSingleLayerPotential(surface, obs, s(l), c0, options.QuadratureOrder);
-    Dobs = cqDoubleLayerPotential(surface, obs, s(l), c0, options.QuadratureOrder);
+    Sobs = laplaceSingleLayerPotential(surface, obs, s(l), c0, options.QuadratureOrder);
+    Dobs = laplaceDoubleLayerPotential(surface, obs, s(l), c0, options.QuadratureOrder);
     Uhat(l,:) = u.'; Qhat(l,:) = qs.'; Phat(l,:) = (Dobs*ps - Sobs*qs).';
     resid(l) = norm(lhs*x - rhs)/max(1, norm(rhs));
     condno(l) = condest(sparse(lhs));
@@ -149,8 +149,10 @@ end
 
 
 % ===================================================================== %
-% locals -- interface + CQ single/double layer.  The CQ layer operators
-% duplicate volFemBemConvolutionQuadrature's; promote to matlab_api/bem/.
+% locals -- FSI interface only.  The CQ single/double-layer operators and
+% bdfDelta are the SHARED matlab_api/bem/ files (laplaceSingleLayerGalerkin,
+% laplaceDoubleLayerGalerkin, laplaceSingleLayerPotential,
+% laplaceDoubleLayerPotential, bdfDelta).
 % ===================================================================== %
 function G = couplingMatrix(surface, ids, nV)
 % G_ij = int_Gamma mu_i (n . phi_struct_j), geometry-only (no incident).
@@ -184,78 +186,6 @@ for tt = 1:size(tri,1)
     qn = dpz*nrm(3);                          % (grad pinc).n = dpz * n_z
     Minc(lc) = Minc(lc) + (area/3)*qn;
 end
-end
-
-function K = cqDoubleLayerGalerkin(surface, s, c, q)
-qd = SurfaceQuadrature(surface, q);
-sg = surface.orientation.triangleOrientationSignsToOutward(:);
-nG = qd.nPoints(); nN = size(surface.vtx,1); tri = surface.tri; vtx = surface.vtx;
-P = complex(zeros(nG, nN));
-for t = 1:size(tri,1)
-    [~, J1] = laplaceDoubleLayerPanelIntegrals(vtx(tri(t,:),:), qd.points);
-    P(:, tri(t,:)) = P(:, tri(t,:)) + sg(t)*J1;
-end
-Bw = qd.weightedBasis(); K = Bw.'*P/(4*pi);
-C = dlCorr(qd.points, qd.points, s, c, qd.weights, qd.outwardNormals());
-K = K + Bw.'*(C*qd.basis);
-end
-
-function rows = cqDoubleLayerPotential(surface, pts, s, c, q)
-sg = surface.orientation.triangleOrientationSignsToOutward(:);
-tri = surface.tri; vtx = surface.vtx;
-rows = complex(zeros(size(pts,1), size(vtx,1)));
-for t = 1:size(tri,1)
-    [~, J1] = laplaceDoubleLayerPanelIntegrals(vtx(tri(t,:),:), pts);
-    rows(:, tri(t,:)) = rows(:, tri(t,:)) + sg(t)*J1/(4*pi);
-end
-qd = SurfaceQuadrature(surface, q);
-C = dlCorr(pts, qd.points, s, c, qd.weights, qd.outwardNormals());
-rows = rows + C*qd.basis;
-end
-
-function rows = cqSingleLayerPotential(surface, pts, s, c, q)
-tri = surface.tri; vtx = surface.vtx;
-rows = zeros(size(pts,1), size(vtx,1));
-for t = 1:size(tri,1)
-    [~, I1] = laplacePanelIntegrals(vtx(tri(t,:),:), pts);
-    rows(:, tri(t,:)) = rows(:, tri(t,:)) + I1/(4*pi);
-end
-qd = SurfaceQuadrature(surface, q);
-C = slCorr(pts, qd.points, s, c, qd.weights);
-rows = rows + C*qd.basis;
-end
-
-function C = dlCorr(tp, sp, s, c, w, nr)
-nT = size(tp,1); nS = size(sp,1); C = complex(zeros(nT,nS)); al = s/c;
-for i = 1:nT, for j = 1:nS
-    d = tp(i,:) - sp(j,:); r = norm(d);
-    if r == 0, vv = 0;
-    else
-        z = -al*r;
-        if abs(z) < 1e-5, e = 0; for k = 2:10, e = e + (1-k)*z^k/factorial(k); end
-        else, e = exp(z)*(1-z) - 1; end
-        vv = dot(d, nr(j,:))/r^3 * e;
-    end
-    C(i,j) = w(j)*vv/(4*pi);
-end, end
-end
-
-function C = slCorr(tp, sp, s, c, w)
-nT = size(tp,1); nS = size(sp,1); C = complex(zeros(nT,nS)); al = s/c;
-for i = 1:nT, for j = 1:nS
-    r = norm(tp(i,:) - sp(j,:));
-    if r == 0, vv = -al;
-    else
-        z = -al*r;
-        if abs(z) < 1e-5, vv = 0; tm = 1; for k = 1:10, tm = tm*z/k; vv = vv + tm/r; end
-        else, vv = (exp(z)-1)/r; end
-    end
-    C(i,j) = w(j)*vv/(4*pi);
-end, end
-end
-
-function d = bdfDelta(z, m)
-switch upper(m), case "BDF1", d = 1 - z; case "BDF2", d = 1.5 - 2*z + 0.5*z.^2; end
 end
 
 function volFile = defaultFixture()

@@ -113,7 +113,7 @@ for ell = 1:N
         options.QuadratureOrder);
     rhs = boundaryHat(ell, :).';
     q   = V \ rhs;                                   % surface density q(s)
-    Sobs = cqSingleLayerPotential(surface, obs, s(ell), ...
+    Sobs = laplaceSingleLayerPotential(surface, obs, s(ell), ...
         options.SoundSpeed, options.QuadratureOrder);
     densityHat(ell, :)     = q.';
     pressureHat(ell, :)    = (Sobs * q).';           % p(x, s) = S(s) q(s)
@@ -179,68 +179,6 @@ if all(structfun(@(v) logical(v), result.checks))
     result.status = "ok";
 else
     result.status = "needs_attention";
-end
-end
-
-
-function rows = cqSingleLayerPotential(surface, points, s, soundSpeed, quadratureOrder)
-tri = surface.tri;
-vtx = surface.vtx;
-rows = zeros(size(points, 1), size(vtx, 1));
-for t = 1:size(tri, 1)
-    [~, I1] = laplacePanelIntegrals(vtx(tri(t, :), :), points);
-    rows(:, tri(t, :)) = rows(:, tri(t, :)) + I1 / (4 * pi);
-end
-
-quad = SurfaceQuadrature(surface, quadratureOrder);
-correction = cqSingleLayerCorrection(points, quad.points, s, ...
-    soundSpeed, quad.weights);
-rows = rows + correction * quad.basis;
-end
-
-
-function C = cqSingleLayerCorrection(targetPoints, sourcePoints, s, soundSpeed, sourceWeights)
-nTarget = size(targetPoints, 1);
-nSource = size(sourcePoints, 1);
-C = complex(zeros(nTarget, nSource));
-alpha = s / soundSpeed;
-for i = 1:nTarget
-    for j = 1:nSource
-        r = norm(targetPoints(i, :) - sourcePoints(j, :));
-        if r == 0
-            % Coincident quadrature point: finite limit of the regular smooth
-            % correction (exp(-alpha r)-1)/(4 pi r) -> -alpha/(4 pi) as r -> 0.
-            value = -alpha;
-        else
-            z = -alpha * r;
-            value = stableExpm1OverR(z, r);
-        end
-        C(i, j) = sourceWeights(j) * value / (4 * pi);
-    end
-end
-end
-
-
-function delta = bdfDelta(zeta, method)
-switch upper(method)
-    case "BDF1"
-        delta = 1 - zeta;
-    case "BDF2"
-        delta = 1.5 - 2*zeta + 0.5*zeta.^2;
-end
-end
-
-
-function value = stableExpm1OverR(z, r)
-if abs(z) < 1e-5
-    value = 0;
-    term = 1;
-    for k = 1:10
-        term = term * z / k;
-        value = value + term / r;
-    end
-else
-    value = (exp(z) - 1) / r;
 end
 end
 
