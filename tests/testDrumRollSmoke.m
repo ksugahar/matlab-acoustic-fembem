@@ -1,8 +1,8 @@
 function tests = testDrumRollSmoke
 %TESTDRUMROLLSMOKE Fast drum-roll smoke for the tests/ lane.
 %
-% The heavy drum-roll validation -- directionality, full movies, Gmsh artifacts,
-% the drum+scatterer scene -- lives in validation_test/ (run before release).
+% The heavy drum-roll validation -- directionality, full movies, and the
+% drum+scatterer scene -- lives in validation_test/ (run before release).
 % This keeps a quick check in the fast lane: the two-spot CQ drum roll still
 % runs, alternates A/B, and is causal + real at minimal resolution.
 

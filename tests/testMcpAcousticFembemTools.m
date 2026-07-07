@@ -125,17 +125,17 @@ end
 
 
 function testKnowledgeIncludesGmshArtifactTopic(testCase)
+% The MATLAB lane is gmsh-free: the topic documents the native GIF path and
+% points gmsh acoustic movies to the radia-acoustic (GmshPostExport) side.
 body = acoustic_fembem.fembem_knowledge("gmsh_artifact");
 verifyGreaterThan(testCase, strlength(body), 500);
-verifySubstring(testCase, body, "writeVolFemBemCqGmsh3dArtifact");
-verifySubstring(testCase, body, "writeGmshPostLaunchArtifact");
-verifySubstring(testCase, body, "P1 FEM/BEM CQ");
-verifySubstring(testCase, body, "Gmsh MSH v4.1");
-verifySubstring(testCase, body, "interior_pressure");
-verifySubstring(testCase, body, "boundary_density");
-verifySubstring(testCase, body, "Johnson-Nedelec");
-verifySubstring(testCase, body, "high-order impedance boundary");
-verifySubstring(testCase, body, "NOT Kelvin");
+verifySubstring(testCase, body, "gmsh-free");
+verifySubstring(testCase, body, "writeSoftSphereScatterGif");
+verifySubstring(testCase, body, "drumScatterField");
+verifySubstring(testCase, body, "does not require Gmsh");
+verifySubstring(testCase, body, "GmshPostExport");
+verifySubstring(testCase, body, "radia-acoustic");
+verifySubstring(testCase, body, ".msh v4.1");
 end
 
 
@@ -201,7 +201,7 @@ verifySubstring(testCase, body, "-S(s)q + D(s)Tu");
 verifySubstring(testCase, body, "Calderon/Johnson-Nedelec coupled CQ");
 verifySubstring(testCase, body, "retarded double-layer K(s)");
 verifySubstring(testCase, body, "SingleLayerTeaching");
-verifySubstring(testCase, body, "writeVolFemBemCqGmsh3dArtifact");
+verifySubstring(testCase, body, "GmshPostExport");
 verifySubstring(testCase, body, "replace the interior acoustic volume FEM with structural membrane/shell FEM");
 verifySubstring(testCase, body, "does not require Gmsh");
 end

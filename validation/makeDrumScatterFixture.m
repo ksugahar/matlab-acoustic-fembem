@@ -8,7 +8,7 @@ function makeDrumScatterFixture(outFile)
 %   above the drum RIM at center [1.0 0 1.4] -- its off-axis radius (1.0)
 %   equals the drum radius, and its bottom (z = 0.9) floats 0.3 above the
 %   drumhead.  The two bodies are disjoint, so the .vol carries two closed
-%   boundary surfaces (the same two-body class writeDrumScatterGmsh3dArtifact
+%   boundary surfaces (the same two-body class drumScatterField
 %   and the CQ single-layer solver expect).
 %
 %   The mesh is generated with the PDE Toolbox (multicylinder + multisphere
