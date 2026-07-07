@@ -19,14 +19,15 @@ arguments
     volFile (1,1) string = "S:/MATLAB/Gypsilab/fixtures/mesh_topology/unit_sphere_coarse.vol"
     options.Radius (1,1) double {mustBePositive} = 1.0
     options.SoundSpeed (1,1) double {mustBePositive} = 1.0
-    options.NumTime (1,1) double {mustBeInteger, mustBeGreaterThan(options.NumTime, 3)} = 22
-    options.TimeStep (1,1) double {mustBePositive} = 0.32
+    options.NumTime (1,1) double {mustBeInteger, mustBeGreaterThan(options.NumTime, 3)} = 200
+    options.TimeStep (1,1) double {mustBePositive} = 0.035
     options.PulseStart (1,1) double = -3.0
     options.PulseWidth (1,1) double {mustBePositive} = 0.7
     options.GridExtent (1,1) double {mustBePositive} = 4.0
     options.NumGrid (1,1) double {mustBeInteger, mustBeGreaterThan(options.NumGrid, 3)} = 70
     options.QuadratureOrder (1,1) double {mustBeMember(options.QuadratureOrder,[1 3 7])} = 1
     options.Method (1,1) string {mustBeMember(options.Method,["BDF1","BDF2"])} = "BDF2"
+    options.CqRadius double = []
 end
 
 c0 = options.SoundSpeed;
@@ -34,6 +35,15 @@ R = options.Radius;
 N = options.NumTime;
 dt = options.TimeStep;
 t = (0:N-1).' * dt;
+
+% movie-stable CQ radius (N-independent round-off amplification): at large N the
+% CQ's optimal rho = eps^(1/2N) blows the tail up (rho^-N ~ 7e7); rho = eps^(0.3/2N)
+% keeps rho^-N ~ 2e2 for any frame count, at ~0.5% aliasing hidden by the colormap.
+if isempty(options.CqRadius)
+    cqRadius = eps^(0.3 / (2 * N));
+else
+    cqRadius = options.CqRadius;
+end
 
 % --- incident plane-wave Ricker pulse travelling in +z ------------------------ %
 z0 = options.PulseStart;
@@ -67,7 +77,7 @@ obsAll = [gridOut; listener];
 % --- radiate the scattered field with the CQ solver --------------------------- %
 cq = volTdBemConvolutionQuadrature(volFile, ...
     NumTime=N, TimeStep=dt, SoundSpeed=c0, Method=options.Method, ...
-    QuadratureOrder=options.QuadratureOrder, ...
+    QuadratureOrder=options.QuadratureOrder, CqRadius=cqRadius, ...
     BoundaryTimeData=boundaryData, ObservationPoints=obsAll);
 scatOut = real(cq.pressure(:, 1:end-1));                 % (N x nGridOut) scattered
 scatL = real(cq.pressure(:, end));                       % back-scatter listener
