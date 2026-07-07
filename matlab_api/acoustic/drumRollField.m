@@ -1,31 +1,24 @@
 function field = drumRollField(volFile, options)
-%DRUMROLLFIELD Time-domain x-z field of a two-spot alternating drum roll (CQ).
+%DRUMROLLFIELD Time-domain x-z field of a two-spot alternating cylinder drum roll.
 %
-%   field = drumRollField() strikes the sphere ALTERNATELY at two spots (the +x
-%   and -x poles), radiates the drum roll with the Lubich CQ time-domain BEM, and
-%   samples the radiated pressure on an x-z plane grid at every CQ time step.  It
-%   is the SPATIAL-FIELD (movie) companion of the listener-time-series
-%   drumRollConvolutionQuadrature, shaped for writeSoftSphereScatterGif.
+%   field = drumRollField() strikes the DRUMHEAD (the top face) of a CYLINDRICAL
+%   drum ALTERNATELY at two spots (+x on odd beats, -x on even), radiates the
+%   drum roll with the Lubich CQ time-domain BEM, and samples the radiated
+%   pressure on an x-z plane grid at every CQ time step.  It is the SPATIAL-FIELD
+%   (movie) companion of the listener-time-series drumRollConvolutionQuadrature,
+%   shaped for writeSoftSphereScatterGif.
 %
-%   Spot A fires on beats 1,3,5,..., spot B on 2,4,6,..., so the wavefronts
-%   radiate alternately from the +x then the -x pole.  field.pressure is
-%   [nz, nx, nt] with NaN inside the sphere; field.checks are the finite/real/
-%   residual/alternating gates.
+%   The drum sits with its axis along z (bottom z=0, drumhead z=H); the wavefronts
+%   radiate up and around from the alternating +x/-x drumhead strikes.
+%   field.pressure is [nz, nx, nt] with NaN inside the drum cross-section.
 %
-%   FRAME COUNT / CQ RADIUS.  The number of movie frames IS the number of CQ
-%   time steps N = ceil(finalTime / TimeStep); the default TimeStep = 0.03 gives
-%   ~200 frames (smooth playback AND enough time resolution to resolve the
-%   StrikeWidthTime taps and the moving wavefronts).  At the CQ solver's
-%   theoretically-optimal radius rho = eps^(1/(2N)) the rho^-n unscaling
-%   amplifies round-off by 1/sqrt(eps) ~ 7e7 at the last step, which blows the
-%   late-time tail up for large N.  A movie only needs ~visual accuracy, so this
-%   renderer uses a slightly LARGER, N-INDEPENDENT radius rho = eps^(0.3/(2N))
-%   by default: rho^-N = eps^-0.15 ~ 2e2 (stable to arbitrarily many frames) at
-%   the cost of ~rho^N = eps^0.15 ~ 5e-3 aliasing -- invisible under the
-%   auto-scaled colormap.  Pass an explicit CqRadius in (0,1) to override.
+%   FRAME COUNT / CQ RADIUS: the default TimeStep = 0.03 gives ~200 frames; the
+%   renderer uses a movie-stable radius rho = eps^(0.3/2N) (rho^-N ~ 2e2,
+%   N-independent) so the tail stays physical at large frame counts (~0.5%
+%   aliasing hidden by the auto-scaled colormap).  Pass CqRadius to override.
 
 arguments
-    volFile (1,1) string = "S:/MATLAB/Gypsilab/fixtures/mesh_topology/unit_sphere_coarse.vol"
+    volFile (1,1) string = "S:/MATLAB/Gypsilab/fixtures/mesh_topology/drum_cylinder.vol"
     options.Radius (1,1) double {mustBePositive} = 1.0
     options.SoundSpeed (1,1) double {mustBePositive} = 1.0
     options.NumBeats (1,1) double {mustBeInteger, mustBePositive} = 3
@@ -33,7 +26,8 @@ arguments
     options.TimeStep (1,1) double {mustBePositive} = 0.03
     options.TailTime (1,1) double {mustBePositive} = 3.0
     options.StrikeWidthTime (1,1) double {mustBePositive} = 0.35
-    options.StrikeWidthSpace (1,1) double {mustBePositive} = 0.6
+    options.StrikeWidthSpace (1,1) double {mustBePositive} = 0.33
+    options.StrikeOffset (1,1) double {mustBePositive} = 0.6
     options.GridExtent (1,1) double {mustBePositive} = 3.5
     options.NumGrid (1,1) double {mustBeInteger, mustBeGreaterThan(options.NumGrid, 3)} = 90
     options.QuadratureOrder (1,1) double {mustBeMember(options.QuadratureOrder,[1 3 7])} = 1
@@ -47,19 +41,22 @@ R = options.Radius;
 mesh = VolMesh(volFile);
 surface = mesh.boundary();
 X = surface.vtx; nB = size(X, 1);
+zTop = max(X(:, 3));
+zBot = min(X(:, 3));
 
-% --- two strike spots: surface nodes furthest along +x (A) and -x (B) --------- %
-[~, iA] = max(X(:,1)); spotA = X(iA, :);
-[~, iB] = min(X(:,1)); spotB = X(iB, :);
-wA = exp(-sum((X - spotA).^2, 2) / (2*options.StrikeWidthSpace^2));
-wB = exp(-sum((X - spotB).^2, 2) / (2*options.StrikeWidthSpace^2));
+% --- two strike spots on the drumhead (top face) at +x and -x ----------------- %
+headTol = 0.05 * (zTop - zBot + eps);
+topMask = abs(X(:, 3) - zTop) < max(headTol, 1e-6);
+spotA = [ options.StrikeOffset 0 zTop];
+spotB = [-options.StrikeOffset 0 zTop];
+wA = exp(-sum((X - spotA).^2, 2) / (2*options.StrikeWidthSpace^2)) .* topMask;
+wB = exp(-sum((X - spotB).^2, 2) / (2*options.StrikeWidthSpace^2)) .* topMask;
 
 dt = options.TimeStep;
 finalTime = options.NumBeats*options.BeatInterval + options.TailTime;
 N = max(8, ceil(finalTime / dt));
 t = (0:N-1).' * dt;
 
-% movie-stable CQ radius (N-independent round-off amplification); see header
 if isempty(options.CqRadius)
     cqRadius = eps^(0.3 / (2 * N));
 else
@@ -70,8 +67,7 @@ end
 boundaryData = zeros(N, nB);
 beatSpot = strings(options.NumBeats, 1);
 for b = 1:options.NumBeats
-    tb = b * options.BeatInterval;
-    tap = rickerTap(t, tb, options.StrikeWidthTime);
+    tap = rickerTap(t, b * options.BeatInterval, options.StrikeWidthTime);
     if mod(b, 2) == 1
         boundaryData = boundaryData + tap .* wA.'; beatSpot(b) = "A";
     else
@@ -79,13 +75,13 @@ for b = 1:options.NumBeats
     end
 end
 
-% --- x-z plane grid (poles on the horizontal axis); skip inside the sphere ---- %
+% --- x-z plane grid (y=0); skip nodes inside the drum cross-section ----------- %
 ext = options.GridExtent;
 ax = linspace(-ext, ext, options.NumGrid);
-az = linspace(-ext, ext, options.NumGrid);
+az = linspace(zBot - 1.2, zTop + ext - 0.4, options.NumGrid);
 [GX, GZ] = meshgrid(ax, az);
-inside = (GX(:).^2 + GZ(:).^2) < (R*1.05)^2;
-gridOut = [GX(~inside), zeros(nnz(~inside),1), GZ(~inside)];
+inDrum = (abs(GX(:)) <= R*1.06) & (GZ(:) >= zBot - 0.05) & (GZ(:) <= zTop + 0.05);
+gridOut = [GX(~inDrum), zeros(nnz(~inDrum),1), GZ(~inDrum)];
 
 % --- radiate the drum roll with the (mass-consistent) CQ solver --------------- %
 cq = volTdBemConvolutionQuadrature(volFile, ...
@@ -97,7 +93,7 @@ scatOut = real(cq.pressure);
 pressure = nan(options.NumGrid, options.NumGrid, N);
 for k = 1:N
     frame = nan(numel(GX), 1);
-    frame(~inside) = scatOut(k, :).';
+    frame(~inDrum) = scatOut(k, :).';
     pressure(:, :, k) = reshape(frame, size(GX));
 end
 
@@ -111,7 +107,7 @@ field.time = t;
 field.time_step = dt;
 field.x = ax;
 field.z = az;
-field.mask_inside = reshape(inside, size(GX));
+field.mask_inside = reshape(inDrum, size(GX));
 field.pressure = pressure;
 field.strikeSpotA = spotA;
 field.strikeSpotB = spotB;

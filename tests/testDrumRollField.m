@@ -18,11 +18,12 @@ verifyEqual(testCase, field.kind, "drum_roll_two_spot_field");
 verifyEqual(testCase, field.status, "ok");
 verifySize(testCase, field.pressure, [40, 40, field.summary.num_time]);
 
-% struck A / B / A at the +x and -x poles
+% struck A / B / A at the +x and -x drumhead spots (cylinder top face)
 verifyEqual(testCase, cellstr(field.beatSpot(:)).', {'A', 'B', 'A'});
 verifyTrue(testCase, field.checks.alternating_two_spot);
-verifyGreaterThan(testCase, field.strikeSpotA(1), 0);        % +x pole
-verifyLessThan(testCase, field.strikeSpotB(1), 0);           % -x pole
+verifyGreaterThan(testCase, field.strikeSpotA(1), 0);        % +x on the drumhead
+verifyLessThan(testCase, field.strikeSpotB(1), 0);           % -x on the drumhead
+verifyEqual(testCase, field.strikeSpotA(3), field.strikeSpotB(3));  % same drumhead height (top face)
 
 % inherited CQ health + physical field
 verifyTrue(testCase, field.checks.finite_pressure);

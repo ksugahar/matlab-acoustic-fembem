@@ -17,12 +17,14 @@ result = drumRollConvolutionQuadrature();
 verifyEqual(testCase, result.kind, "drum_roll_two_spot_alternating_cq_time_response");
 verifyEqual(testCase, result.status, "ok");
 
-% three beats, struck A / B / A at the +x and -x poles
+% three beats, struck A / B / A at the +x and -x drumhead spots (cylinder top face)
 verifyEqual(testCase, result.summary.num_time, 20);
 verifyEqual(testCase, cellstr(result.beatSpot(:)).', {'A', 'B', 'A'});
 verifyTrue(testCase, result.checks.alternating_two_spot);
-verifyGreaterThan(testCase, result.strikeSpotA(1), 0);   % +x pole
-verifyLessThan(testCase, result.strikeSpotB(1), 0);      % -x pole
+verifyGreaterThan(testCase, result.strikeSpotA(1), 0);   % +x on the drumhead
+verifyLessThan(testCase, result.strikeSpotB(1), 0);      % -x on the drumhead
+verifyEqual(testCase, result.strikeSpotA(3), result.strikeSpotB(3));  % same drumhead height
+verifyTrue(testCase, result.checks.drumhead_strikes_on_top_face);     % a cylinder drum, not a sphere
 
 % inherited CQ health: causal, real, well conditioned
 verifyGreaterThan(testCase, result.summary.max_abs_pressure, 0);
