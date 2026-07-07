@@ -39,6 +39,15 @@ surface = mesh.boundary();
 meshSeconds = toc(meshTimer);
 
 nBoundary = size(surface.vtx, 1);
+
+% Boundary P1 mass.  The Galerkin single-layer load is <g, phi_i> = (M g)_i,
+% so the discrete boundary integral equation is  V(s) q = M ghat  -- NOT the
+% raw nodal ghat.  Dropping M scales the density by ~the mean nodal area
+% (mesh-dependent) and is physically wrong: verified 12x off the analytic
+% soft-sphere scattered field at kR = 1.8, versus 3.6% with M.  The coupled and
+% elastic CQ lanes already carry this same boundary mass.
+[boundaryMass, ~] = SurfaceP1Space(surface).mass();
+
 if isempty(options.ObservationPoints)
     obs = defaultObservationPoints(mesh.vtx);
 else
@@ -101,7 +110,7 @@ boundaryHat    = fft(scaledBoundary, [], 1);
 
 % --- Phase 3: one independent frequency-domain BEM solve per node. ---- %
 % For each Laplace node s(ell): assemble the Galerkin single layer V(s),
-% solve V q = g_hat for the surface density q(s), and apply the single-layer
+% solve V q = M g_hat for the surface density q(s), and apply the single-layer
 % potential S(s) to carry q to the observation points.  cond(V) and the solve
 % residual are recorded so the health of every node stays auditable/visible.
 densityHat        = zeros(N, nBoundary);
@@ -111,7 +120,7 @@ conditionNumbers  = zeros(N, 1);
 for ell = 1:N
     V   = laplaceSingleLayerGalerkin(surface, s(ell), options.SoundSpeed, ...
         options.QuadratureOrder);
-    rhs = boundaryHat(ell, :).';
+    rhs = boundaryMass * boundaryHat(ell, :).';      % Galerkin load M ghat
     q   = V \ rhs;                                   % surface density q(s)
     Sobs = laplaceSingleLayerPotential(surface, obs, s(ell), ...
         options.SoundSpeed, options.QuadratureOrder);

@@ -60,3 +60,42 @@ verifyError(testCase, @() volTdBemConvolutionQuadrature("", ...
     "BoundaryTimeData", zeros(8, 2)), ...
     "volTdBemConvolutionQuadrature:BoundaryTimeData");
 end
+
+
+function testCqSingleLayerRhsIsMassConsistent(testCase)
+% Regression lock for the boundary-mass fix.  The CQ single layer solves the
+% GALERKIN boundary integral equation  V(s) q = M ghat, so its OWN primitives
+% (laplaceSingleLayerGalerkin + laplaceSingleLayerPotential, evaluated at the
+% imaginary node s = -1i c0 k exactly as the solver does) must reproduce the
+% analytic soft-sphere scattered field WITH the boundary P1 mass M, and be
+% grossly wrong WITHOUT it.  Dropping M -- the pre-fix bug -- scaled the
+% scattered amplitude ~12x the analytic value; the auto-scaled movie hid it,
+% and every shape/causality/ratio check passed regardless.
+%
+% This is an OPERATOR-level analytic anchor by necessity: the exterior
+% first-kind single layer is singular at the interior Dirichlet eigenvalues
+% kR = n*pi, so a full time-domain response cannot be cleanly cross-checked by
+% a real-frequency inverse FFT (any pulse with energy near kR = pi blows the
+% reference up).  k = 1.8 < pi is below the first irregular frequency, giving a
+% clean direct comparison to the partial-wave series on the movie's own mesh.
+repoRoot = fileparts(fileparts(mfilename("fullpath")));
+volFile = fullfile(repoRoot, "fixtures", "mesh_topology", "unit_sphere_fine.vol");
+surface = VolMesh(volFile).boundary();
+[massB, ~] = SurfaceP1Space(surface).mass();
+
+c0 = 1.0; k = 1.8; order = 7;
+sNode = -1i * c0 * k;                             % laplaceSingleLayerGalerkin(-i c0 k) == Helmholtz(k)
+probes = [2 0 0; 0 0 3; -1.2 1.6 0];
+V = laplaceSingleLayerGalerkin(surface, sNode, c0, order);
+Spot = laplaceSingleLayerPotential(surface, probes, sNode, c0, order);
+g = -exp(1i * k * surface.vtx(:, 3));            % soft-sphere Dirichlet trace
+ref = softSphereScattering(k, 1.0, probes);
+verifyLessThan(testCase, ref.truncationTail, 1e-12);
+
+pWithMass    = Spot * (V \ (massB * g));
+pWithoutMass = Spot * (V \ g);
+relWithMass    = max(abs(pWithMass    - ref.scattered) ./ abs(ref.scattered));
+relWithoutMass = max(abs(pWithoutMass - ref.scattered) ./ abs(ref.scattered));
+verifyLessThan(testCase, relWithMass, 6e-2);     % measured 3.7e-2 (mass-consistent)
+verifyGreaterThan(testCase, relWithoutMass, 1.0);% measured ~12 (the pre-fix bug)
+end

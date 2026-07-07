@@ -96,9 +96,12 @@ end
 
 function testShippedCqSolveUsesThisOperator(testCase)
 % End-to-end: rebuild the CQ boundary density from laplaceSingleLayerGalerkin at
-% the CQ's OWN Laplace nodes and confirm it reproduces the shipped
-% result.boundaryDensity.  This protects the operator the CQ actually uses - a
-% mutated operator (or a reverted private copy in volTdBem) would diverge here.
+% the CQ's OWN Laplace nodes -- solving the GALERKIN system V q = M ghat, where
+% the boundary P1 mass M is required (the raw nodal ghat is off by ~the mean
+% nodal area) -- and confirm it reproduces the shipped result.boundaryDensity.
+% This protects the operator AND the mass-consistent RHS the CQ actually uses; a
+% mutated operator, a dropped mass matrix, or a reverted private copy in volTdBem
+% would all diverge here.
 repoRoot = fileparts(fileparts(mfilename("fullpath")));
 volFile = fullfile(repoRoot, "fixtures", "mesh_topology", "unit_tetra.vol");
 N = 8;
@@ -107,6 +110,7 @@ result = volTdBemConvolutionQuadrature(volFile, "NumTime", N, "TimeStep", 0.6, .
     "QuadratureOrder", q, "Method", "BDF1");
 surface = VolMesh(volFile).boundary();
 nB = size(surface.vtx, 1);
+[massB, ~] = SurfaceP1Space(surface).mass();       % Galerkin load is M ghat, not raw ghat
 n = (0:N-1).';
 rho = result.cqRadius;
 s = result.cqLaplaceParameter;
@@ -114,7 +118,7 @@ boundaryHat = fft((rho .^ n) .* result.boundaryData, [], 1);
 densityHat = zeros(N, nB);
 for ell = 1:N
     V = laplaceSingleLayerGalerkin(surface, s(ell), 1.0, q);   % c = 1 (CQ default)
-    densityHat(ell, :) = (V \ boundaryHat(ell, :).').';
+    densityHat(ell, :) = (V \ (massB * boundaryHat(ell, :).')).';
 end
 density = real((rho .^ (-n)) .* ifft(densityHat, [], 1));
 relErr = norm(density - result.boundaryDensity, "fro") / ...
