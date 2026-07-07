@@ -59,6 +59,27 @@ verifyLessThanOrEqual(testCase, stats.compressionRatio, 1.0);
 end
 
 
+function testAcaPlusCompressesSeparatedBlockBelowFullRank(testCase)
+% Two well-separated clusters: the admissible far block must compress to
+% rank << min(m, n) via ACA+ (genuine low rank, sampled without forming the
+% dense block), and the matvec must still match the dense kernel.
+m = 60;
+t = linspace(0, 1, m).';
+target = [t, zeros(m, 1), zeros(m, 1)];             % a line cluster near the origin
+source = target + [5 0 0];                          % a far parallel line
+
+H = HMatrix(target, source, "LeafSize", 128, "Eta", 2.0, "RankTolerance", 1e-8);
+stats = H.stats();
+
+verifyGreaterThan(testCase, stats.lowRankBlocks, 0);
+verifyLessThan(testCase, stats.maxRank, 15);        % genuinely low rank, not full
+verifyLessThan(testCase, stats.compressionRatio, 0.6);
+
+x = randn(m, 1);
+verifyEqual(testCase, H.matvec(x), directLaplace(target, source) * x, "AbsTol", 1e-6);
+end
+
+
 function A = directLaplace(target, source)
 A = zeros(size(target, 1), size(source, 1));
 for i = 1:size(target, 1)

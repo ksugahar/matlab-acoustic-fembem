@@ -11,7 +11,8 @@ classdef HMatrix
 %
 %   - cluster trees by recursive bisection of the longest bbox axis
 %   - admissible far blocks: diameter <= Eta * distance
-%   - low-rank far-field blocks by truncated SVD
+%   - low-rank far-field blocks by reference-guarded ACA+ (rows and columns
+%     are sampled on the fly; the dense far block is never formed)
 %   - dense near-field blocks
 %   - a recursive block-tree matvec
 %
@@ -153,22 +154,12 @@ block.cols = sourceCluster.ids(:);
 block.children = {};
 
 if isAdmissible(targetCluster, sourceCluster, eta)
-    dense = laplaceBlock(targetPoints(block.rows, :), sourcePoints(block.cols, :), ...
-        sourceWeights(block.cols), diagonalValue);
-    [u, s, v] = svd(dense, "econ");
-    singularValues = diag(s);
-    if isempty(singularValues)
-        rank = 0;
-    else
-        rank = find(singularValues > rankTolerance * singularValues(1), 1, "last");
-    end
-    if isempty(rank)
-        rank = 0;
-    end
+    [Alr, Blr] = acaPlus(targetPoints(block.rows, :), sourcePoints(block.cols, :), ...
+        sourceWeights(block.cols), rankTolerance);
     block.kind = "low_rank";
-    block.rank = rank;
-    block.U = u(:, 1:rank) * s(1:rank, 1:rank);
-    block.V = v(:, 1:rank);
+    block.rank = size(Alr, 2);
+    block.U = Alr;                                 % block ~ U * V.' = Alr * Blr.'
+    block.V = Blr;
     return
 end
 
@@ -231,6 +222,87 @@ for i = 1:nRows
     values = sourceWeights ./ (4 * pi * r);
     values(r == 0) = diagonalValue;
     A(i, :) = values.';
+end
+end
+
+
+function [A, B] = acaPlus(targetPoints, sourcePoints, sourceWeights, tol)
+%ACAPLUS Reference-guarded ACA+ low-rank factor A*B.' of a far single-layer block.
+%
+% Builds the rank-r factors by sampling only individual ROWS and COLUMNS of the
+% kernel w_j/(4*pi*r_ij) -- the dense far block is never formed (this is what
+% makes an H-matrix build sub-quadratic).  A reference source column per row,
+% updated each step, guards both the greedy pivot and the stopping test; that
+% reference guard is exactly what turns plain ACA into ACA+ (robust against the
+% "false convergence" where a greedy pivot lands on a small entry).  The block
+% is admissible (far), so r_ij > 0 and no self term appears here.
+%
+% ACA+ is the reference-guarded adaptive cross approximation of Bebendorf (2000)
+% and Grasedyck (2005).
+
+m = size(targetPoints, 1);
+n = size(sourcePoints, 1);
+w = sourceWeights(:);
+rowKernel = @(ii) (w.') ./ (4*pi*sqrt(sum((sourcePoints - targetPoints(ii, :)).^2, 2)).');  % 1 x n
+colKernel = @(jj) w(jj) ./ (4*pi*sqrt(sum((targetPoints - sourcePoints(jj, :)).^2, 2)));      % m x 1
+
+% ACA+ reference: one source column per row (deterministic cycle) and its value
+Iy = mod((0:m-1).', n) + 1;
+ref = zeros(m, 1);
+for r = 1:m
+    ref(r) = w(Iy(r)) / (4*pi*norm(targetPoints(r, :) - sourcePoints(Iy(r), :)));
+end
+refNorm = max(norm(ref), eps);
+
+Ir = (1:m).';                                      % rows not yet used as a pivot
+Ic = (1:n).';                                      % columns not yet used as a pivot
+A = zeros(m, 0);
+B = zeros(n, 0);
+approxNorm2 = 0;                                   % running ||A*B.'||_F^2
+rank = 0;
+rmax = min(m, n);
+
+while true
+    if rank == 0
+        [~, p] = max(abs(ref));                    % first pivot row from the reference
+    else
+        [greedy, p] = max(abs(A(Ir, rank)));       % greedy: largest entry of the last column
+        [guard, g] = max(abs(ref(Ir)));            % ACA+ guard: largest reference residual
+        if guard > greedy
+            p = g;
+        end
+    end
+    iRow = Ir(p);
+    newRow = rowKernel(iRow).' - B * A(iRow, :).'; % n x 1 residual row
+    [~, q] = max(abs(newRow(Ic)));
+    jCol = Ic(q);
+    delta = newRow(jCol);
+    if abs(delta) < 1e-12
+        delta = 1e-12;
+    end
+    newCol = (colKernel(jCol) - A * B(jCol, :).') / delta;   % m x 1
+
+    A(:, rank+1) = newCol;
+    B(:, rank+1) = newRow;
+    Ir(p) = [];
+    Ic(q) = [];
+    rank = rank + 1;
+
+    a2 = newCol.' * newCol;
+    b2 = newRow.' * newRow;
+    if rank > 1
+        cross = (newCol.' * A(:, 1:rank-1)) * (newRow.' * B(:, 1:rank-1)).';
+        approxNorm2 = approxNorm2 + 2*real(cross) + a2*b2;
+    else
+        approxNorm2 = a2 * b2;
+    end
+    ref = ref - A(:, rank) .* B(Iy, rank);         % update the reference residual
+
+    stepNorm = sqrt(a2 * b2);                       % ||latest rank-1 term||_F
+    converged = (stepNorm <= tol*sqrt(max(approxNorm2, eps))) && (norm(ref) <= tol*refNorm);
+    if converged || rank >= rmax || isempty(Ir) || isempty(Ic)
+        break
+    end
 end
 end
 
