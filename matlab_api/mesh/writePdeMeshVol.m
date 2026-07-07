@@ -22,45 +22,18 @@ end
 [points, tets] = pdeNodesAndTets(pdeMesh);
 tri = boundaryTriangles(points, tets);
 
-outDir = fileparts(volFile);
-if outDir ~= "" && ~isfolder(outDir)
-    mkdir(outDir);
-end
-
-fid = fopen(volFile, "w");
-if fid < 0
-    error("writePdeMeshVol:file", "Cannot open .vol output: %s", volFile);
-end
-cleanup = onCleanup(@() fclose(fid));
-
-fprintf(fid, "mesh3d\n");
-fprintf(fid, "dimension\n3\n");
-fprintf(fid, "geomtype\n0\n");
-fprintf(fid, "facedescriptors\n1\n");
-fprintf(fid, "%d %d 0 1 1\n", options.BoundaryId, options.BoundaryId);
-
-fprintf(fid, "surfaceelements\n%d\n", size(tri, 1));
-for k = 1:size(tri, 1)
-    fprintf(fid, "1 %d 1 0 3 %d %d %d\n", options.BoundaryId, tri(k, :));
-end
-
-fprintf(fid, "volumeelements\n%d\n", size(tets, 1));
-for k = 1:size(tets, 1)
-    fprintf(fid, "%d 4 %d %d %d %d\n", options.MaterialId, tets(k, :));
-end
-
-fprintf(fid, "points\n%d\n", size(points, 1));
-for k = 1:size(points, 1)
-    fprintf(fid, "%.17g %.17g %.17g\n", points(k, :));
-end
-
-fprintf(fid, "pointelements\n0\n");
-fprintf(fid, "materials\n1\n%d %s\n", options.MaterialId, char(options.MaterialName));
-fprintf(fid, "bcnames\n1\n%d %s\n", options.BoundaryId, char(options.BoundaryName));
-fprintf(fid, "endmesh\n");
-clear cleanup
-
-roundtrip = readVolTriTet(volFile);
+% Delegate the .vol formatting to the pure-MATLAB array writer so there is a
+% single canonical writer; this adapter only turns a PDE mesh into arrays.
+bnames = strings(1, options.BoundaryId);
+bnames(options.BoundaryId) = options.BoundaryName;
+mnames = strings(1, options.MaterialId);
+mnames(options.MaterialId) = options.MaterialName;
+wr = writeVol(volFile, points, tri, ...
+    Tets=tets, ...
+    TriBoundaryId=repmat(options.BoundaryId, size(tri, 1), 1), ...
+    TetMaterialId=repmat(options.MaterialId, size(tets, 1), 1), ...
+    BoundaryNames=bnames, ...
+    MaterialNames=mnames);
 report = struct();
 report.tool = "write_pde_mesh_vol";
 report.status = "ok";
@@ -74,8 +47,8 @@ report.material_id = options.MaterialId;
 report.material_name = options.MaterialName;
 report.boundary_id = options.BoundaryId;
 report.boundary_name = options.BoundaryName;
-report.roundtrip_summary = roundtrip.summary;
-report.boundary_orientation = roundtrip.boundaryOrientation.boundaryOrientation;
+report.roundtrip_summary = wr.roundtrip_summary;
+report.boundary_orientation = wr.boundary_orientation;
 end
 
 
