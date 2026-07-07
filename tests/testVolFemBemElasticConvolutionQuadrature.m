@@ -64,6 +64,63 @@ verifyGreaterThan(testCase, rel, 1e-3);   % interior stiffness reaches the exter
 end
 
 
+function testBlockReducesToFrequencyFsiAtImaginaryNode(testCase)
+% CORRECTNESS ANCHOR: the Laplace-domain elastic-CQ block at s = -i c0 k must
+% reproduce the validated frequency solver fsiCoupledSolve(k).  (On the fine
+% unit-ball at quad 7 the match is 1.2e-3; on this coarse fast fixture a loose
+% band still catches any sign / operator / coupling regression -- those are O(1).)
+vol = volumeFixture();
+model = FemBemModel(vol); mesh = model.mesh; surface = model.surface;
+k = 1.2; c0 = 1.0; q = 3;
+cL = 2.0; cT = 1.0; rhoS = 1.5; rhoF = 1.0;
+mu = rhoS*cT^2; lamE = rhoS*(cL^2 - 2*cT^2);
+
+ref = fsiCoupledSolve(model, Wavenumber=k, LongitudinalSpeed=cL, ShearSpeed=cT, ...
+    DensityRatio=rhoS, FluidDensity=rhoF, QuadratureOrder=q, ExteriorMethod="bem");
+
+% reassemble the CQ block at s = -i c0 k (s^2 = -k^2) with the SHARED operators
+s = -1i*c0*k;
+[Ks, Ms] = elasticityMatrices(mesh, lamE, mu, rhoS);
+nV = size(mesh.vtx,1); ids = surface.volNodeIds; nB = numel(ids);
+[Mb, ~] = SurfaceP1Space(surface).mass();
+[G, Minc] = interfaceCoupling(surface, ids, nV, ...
+    @(X)[zeros(size(X,1),2), 1i*k*exp(1i*k*X(:,3))]);
+pincB = exp(1i*k*surface.vtx(:,3));
+V = laplaceSingleLayerGalerkin(surface, s, c0, q);
+K = laplaceDoubleLayerGalerkin(surface, s, c0, q);
+ZuB = sparse(3*nV,nB); ZBB = sparse(nB,nB);
+lhs = [ Ks+s^2*Ms, G.',        ZuB;
+        rhoF*s^2*G, ZBB,        Mb;
+        ZuB.',      0.5*Mb-K,   V ];
+x = lhs \ [ -G.'*pincB; -Minc; zeros(nB,1) ];
+ps = x(3*nV+(1:nB));
+
+rel = norm(ps - ref.surfacePressure) / max(1, norm(ref.surfacePressure));
+verifyLessThan(testCase, rel, 5e-2);
+end
+
+
+function [G, Minc] = interfaceCoupling(surface, ids, nV, incGrad)
+% G_ij = int_Gamma mu_i (n . phi_struct_j), Minc_i = int_Gamma mu_i (grad p_inc . n);
+% the same P1-lumped centroid rule as fsiCoupledSolve (mirrored here for the test).
+signs = surface.orientation.triangleOrientationSignsToOutward(:);
+tri = surface.tri; vtx = surface.vtx; nB = size(vtx,1);
+massTri = (ones(3)+eye(3))/12; nE = 27*size(tri,1);
+Grow = zeros(nE,1); Gcol = zeros(nE,1); Gval = zeros(nE,1); Minc = zeros(nB,1); cur = 1;
+for t = 1:size(tri,1)
+    lc = tri(t,:); X = vtx(lc,:);
+    cr = cross(X(2,:)-X(1,:), X(3,:)-X(1,:));
+    area = 0.5*norm(cr); nrm = signs(t)*cr/norm(cr); vid = ids(lc);
+    for a = 1:3, for b = 1:3, for c = 1:3
+        Grow(cur) = lc(a); Gcol(cur) = 3*vid(b)-3+c; Gval(cur) = area*massTri(a,b)*nrm(c); cur = cur+1;
+    end, end, end
+    Xc = mean(X,1);
+    Minc(lc) = Minc(lc) + (area/3)*(incGrad(Xc)*nrm.');
+end
+G = sparse(Grow, Gcol, Gval, nB, 3*nV);
+end
+
+
 function vol = volumeFixture()
 repoRoot = fileparts(fileparts(mfilename("fullpath")));
 vol = string(fullfile(repoRoot, "fixtures", "mesh_topology", "four_tet_interior_node.vol"));
