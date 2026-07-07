@@ -82,13 +82,32 @@ if numel(source) ~= N
 end
 
 cqTimer = tic;
-n = (0:N-1).';
+
+% ===================================================================== %
+% CONVOLUTION QUADRATURE.  The time-domain coupled FEM/BEM convolution is
+% turned into N DECOUPLED complex-frequency solves by the DFT (Lubich); the
+% CQ weights are never formed.  visualizeConvolutionQuadrature(result) draws
+% the four phases below.
+% ===================================================================== %
+
+% --- Phase 1: sample the CQ contour, map it to Laplace nodes. --------- %
+% zeta on the rho-circle -> s = delta(zeta)/dt, all in Re(s) > 0 (A-stable),
+% so every retarded kernel exp(-s r/c) decays (each node is a screened-Laplace
+% coupled solve, never an oscillatory Helmholtz one).
+n    = (0:N-1).';
 zeta = rho * exp(-2i * pi * n / N);
-s = bdfDelta(zeta, options.Method) / dt;
+s    = bdfDelta(zeta, options.Method) / dt;
+
+% --- Phase 2: rho-weight and FFT the interior volume source. ---------- %
 sourceHat = fft((rho .^ n) .* source);
-unitLoad = Mv * ones(nVolume, 1);
+unitLoad  = Mv * ones(nVolume, 1);
 useJohnsonNedelec = options.CouplingForm == "JohnsonNedelec";
 
+% --- Phase 3: one coupled FEM(volume)+BEM(surface) solve per node. ---- %
+% Interior Helmholtz FEM  Kdyn = A + (s/c1)^2 Mv  couples through the trace T to
+% the exterior BEM; Johnson-Nedelec closes the exterior with (1/2 Mb - K) p +
+% V q = 0 (the SingleLayerTeaching form keeps V alone).  cond(lhs) and the
+% residual are recorded so every node stays auditable.
 Uhat = zeros(N, nVolume);
 Qhat = zeros(N, nBoundary);
 Phat = zeros(N, size(obs, 1));
@@ -97,7 +116,7 @@ conditionNumbers = zeros(N, 1);
 doubleLayerNorms = zeros(N, 1);
 for ell = 1:N
     alpha = s(ell) / options.InteriorSoundSpeed;
-    Kdyn = A + alpha^2 * Mv;
+    Kdyn = A + alpha^2 * Mv;                          % interior Helmholtz FEM
     V = laplaceSingleLayerGalerkin(surface, s(ell), options.ExteriorSoundSpeed, ...
         options.QuadratureOrder);
     Sobs = laplaceSingleLayerPotential(surface, obs, s(ell), ...
@@ -117,7 +136,7 @@ for ell = 1:N
         fieldRow = @(u, q) Sobs * q;
         doubleLayerNorms(ell) = 0.0;
     end
-    lhs = [Kdyn, -T.' * Mb; couplingRow, bemBlock];
+    lhs = [Kdyn, -T.' * Mb; couplingRow, bemBlock];   % coupled FEM/BEM block
     rhs = [unitLoad * sourceHat(ell); zeros(nBoundary, 1)];
     x = lhs \ rhs;
     u = x(1:nVolume);
@@ -128,6 +147,10 @@ for ell = 1:N
     relativeResiduals(ell) = norm(lhs * x - rhs) / max(1, norm(rhs));
     conditionNumbers(ell) = cond(full(lhs));
 end
+
+% --- Phase 4: inverse FFT + rho^-n unscaling -> causal time signals. -- %
+% rho^-n undoes the Phase-2 weighting; it also amplifies round-off at the last
+% steps, so pushing N too far lets the tail drown in machine noise.
 interiorComplex = (rho .^ (-n)) .* ifft(Uhat, [], 1);
 densityComplex = (rho .^ (-n)) .* ifft(Qhat, [], 1);
 pressureComplex = (rho .^ (-n)) .* ifft(Phat, [], 1);

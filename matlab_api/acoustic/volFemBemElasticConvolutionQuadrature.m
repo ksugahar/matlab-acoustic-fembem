@@ -77,9 +77,17 @@ if ~(isscalar(rho) && rho > 0 && rho < 1)
     error("volFemBemElasticConvolutionQuadrature:CqRadius", ...
         "CqRadius must be a scalar in (0, 1).");
 end
+% CONVOLUTION QUADRATURE (Lubich): the coupled elastic-FEM/acoustic-BEM time
+% convolution becomes N decoupled complex-frequency solves; the CQ weights are
+% never formed.  visualizeConvolutionQuadrature(result) draws the four phases.
+% --- Phase 1: sample the CQ contour, map it to Laplace nodes (Re s>0). --- %
 n = (0:N-1).'; zeta = rho.*exp(-2i*pi*n/N); s = bdfDelta(zeta, options.Method)/dt;
+% --- Phase 2: rho-weight and FFT the incident plane-wave pulse. ---------- %
 g = rickerPulse(t, dt); ghat = fft((rho.^n).*g);       % incident-pulse spectrum
 
+% --- Phase 3: one coupled elastic-FEM + acoustic-BEM solve per node. ----- %
+% Kdyn = Ks + s^2 Ms is the Laplace elastodynamic interior; it couples to the
+% exterior BEM (V, K) through G, with the incident pulse retarded per node.
 cqTimer = tic;
 Uhat = zeros(N,3*nV); Qhat = zeros(N,nB); Phat = zeros(N,size(obs,1));
 resid = zeros(N,1); condno = zeros(N,1);
@@ -102,6 +110,9 @@ for l = 1:N
     resid(l) = norm(lhs*x - rhs)/max(1, norm(rhs));
     condno(l) = condest(sparse(lhs));
 end
+% --- Phase 4: inverse FFT + rho^-n unscaling -> causal time signals. ----- %
+% rho^-n undoes the Phase-2 weighting; it also amplifies round-off at the last
+% steps, so pushing N too far lets the tail drown in machine noise.
 uC = (rho.^(-n)).*ifft(Uhat,[],1);
 qC = (rho.^(-n)).*ifft(Qhat,[],1);
 pC = (rho.^(-n)).*ifft(Phat,[],1);
