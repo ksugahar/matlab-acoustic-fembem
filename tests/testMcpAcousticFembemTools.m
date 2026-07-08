@@ -210,9 +210,10 @@ end
 function testKnowledgeIncludesCurvedVolGeometryTopic(testCase)
 body = acoustic_fembem.fembem_knowledge("curved_vol_geometry");
 verifyGreaterThan(testCase, strlength(body), 500);
-verifySubstring(testCase, body, "first-order unknowns");
-verifySubstring(testCase, body, "CurvedBoundaryView");
-verifySubstring(testCase, body, "EnableCurvedGeometry=true");
+verifySubstring(testCase, body, "superparametric");
+verifySubstring(testCase, body, "CurvedPanelQuadrature");
+verifySubstring(testCase, body, "curvedSingleLayerDirichletSolve");
+verifySubstring(testCase, body, "curvedelements");
 end
 
 

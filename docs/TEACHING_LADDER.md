@@ -198,6 +198,32 @@ both sides. The first-kind V_k equation is taught WITH its
 irregular-frequency caveat (unit sphere: first interior Dirichlet
 eigenvalue at kR = pi); CHIEF / Burton-Miller is the next acoustic rung.
 
+### Curved (Isoparametric) Panels -- Removing the Faceting Ceiling
+
+Because the analytic deviation above is "geometry, not implementation", the
+next accuracy lever is the geometry itself. `CurvedPanelQuadrature` +
+`curvedSingleLayerDirichletSolve` replace the straight panels by quadratic
+(6-node) isoparametric panels while keeping the P1 density -- the readable
+"curved P1" (superparametric) element. A single `Projection` handle is the
+only knob: `@(X) X` leaves the edge nodes straight (the quadratic map
+degenerates to the affine one and reproduces `SurfaceQuadrature` to 2e-16),
+while `CurvedPanelQuadrature.sphereProjection(R)` snaps the edge midpoints
+onto the sphere. Singular self/incident panels use a Duffy-regularised curved
+quadrature (the vertex-collapse Jacobian cancels the 1/r); far panels use
+plain curved Gauss.
+
+The A/B is clean because only the geometry changes. On the unit sphere the
+curved lane is 10-200x closer to the analytic truth at the SAME mesh:
+Laplace capacitance -> `4*pi*R` improves 74x/186x (coarse/fine), sound-soft
+plane-wave scattering vs the partial-wave series improves 24x/40x at k=0.5 and
+7x/12x at k=2.0. Curving helps most at low k (geometry-dominated) and never
+hurts. Locked by `tests/testCurvedPanelBem` and
+`validation_test/testCurvedPanelSphereConvergence` (+ committed
+`curvedPanelSphereConvergence.json`). Note this SELF-GENERATES the curved
+panels from an analytic surface; it does not parse a Netgen curved `.vol`
+(whose `curvedelements` section is Netgen's internal coefficient basis, not
+node coordinates) -- general high-order `.vol` curving stays NGSolve's job.
+
 ### Sonic-Crystal Chain (multi-body, 4-leg validated)
 
 Multiple scatterers need no new machinery - the all-pairs Galerkin

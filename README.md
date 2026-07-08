@@ -57,6 +57,11 @@ reference, not a separate API document.
 - FEM/BEM trace maps with explicit row identity.
 - Dense Galerkin Laplace and Helmholtz BEM kernels, with low-frequency-stable
   Helmholtz splitting.
+- **Curved (isoparametric) panel BEM** (`CurvedPanelQuadrature`,
+  `curvedSingleLayerDirichletSolve`): quadratic-geometry panels with a P1
+  density -- the readable "curved P1" element that removes the O(h^2)
+  straight-panel faceting error (~10-200x closer to the analytic sphere at the
+  same mesh; a single `Projection` knob recovers the flat lane exactly).
 - A readable educational H-matrix with **reference-guarded ACA+** low-rank
   far-field blocks -- rows and columns are sampled on the fly and the dense far
   block is never formed.
