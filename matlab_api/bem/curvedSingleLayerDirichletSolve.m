@@ -26,6 +26,7 @@ arguments
     options.Wavenumber (1,1) double {mustBeNonnegative} = 0.0
     options.QuadratureOrder (1,1) double {mustBeMember(options.QuadratureOrder, [1 3 7])} = 7
     options.Projection (1,1) function_handle = @(X) X
+    options.CurveOrder (1,1) double {mustBeMember(options.CurveOrder, [1 2 3])} = 2
     options.DuffyOrder (1,1) double {mustBePositive, mustBeInteger} = 6
 end
 
@@ -39,7 +40,8 @@ end
 k = options.Wavenumber;
 op = curvedCollocationSingleLayer(surface, "Wavenumber", k, ...
     "QuadratureOrder", options.QuadratureOrder, ...
-    "Projection", options.Projection, "DuffyOrder", options.DuffyOrder);
+    "Projection", options.Projection, "CurveOrder", options.CurveOrder, ...
+    "DuffyOrder", options.DuffyOrder);
 
 q = op.matrix \ g;
 residualNorm = norm(op.matrix * q - g);

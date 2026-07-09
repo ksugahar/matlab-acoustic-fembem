@@ -219,7 +219,17 @@ plane-wave scattering vs the partial-wave series improves 24x/40x at k=0.5 and
 7x/12x at k=2.0. Curving helps most at low k (geometry-dominated) and never
 hurts. Locked by `tests/testCurvedPanelBem` and
 `validation_test/testCurvedPanelSphereConvergence` (+ committed
-`curvedPanelSphereConvergence.json`). Note this SELF-GENERATES the curved
+`curvedPanelSphereConvergence.json`).
+
+Curve order is the lever, not fes order. Sweeping the curve order 1->2->3 with
+the solution fixed at P1 (`validation_test/testCurvedPanelCurveOrderSweep`)
+separates the two error channels: Laplace capacitance keeps improving
+(1.3e-2 -> 1.7e-4 -> 4.7e-5) because geometry stays the bottleneck, while k=2
+scattering jumps 1->2 (7x) then plateaus 2->3 (5.0e-3 -> 4.7e-3) because the P1
+density error is now the floor. So on a curved boundary raise the curve order
+first; fes order only takes over once the geometry is resolved.
+
+Note this SELF-GENERATES the curved
 panels from an analytic surface; it does not parse a Netgen curved `.vol`
 (whose `curvedelements` section is Netgen's internal coefficient basis, not
 node coordinates) -- general high-order `.vol` curving stays NGSolve's job.

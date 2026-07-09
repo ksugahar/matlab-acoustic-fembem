@@ -1,7 +1,7 @@
 {
   "kind": "curved_panel_sphere_convergence",
   "policy": "isoparametric_curved_panel_removes_flat_faceting_error",
-  "generated_at_utc": "2026-07-08T23:05:53Z",
+  "generated_at_utc": "2026-07-09T03:39:24Z",
   "matlab_version": "26.1.0.3251617 (R2026a) Update 2",
   "hostname": "LAB",
   "radius": 1,
@@ -42,8 +42,8 @@
       "n_tri": 126,
       "n_node": 65,
       "flat_error": 0.014300675994827358,
-      "curved_error": 0.00060136441248461174,
-      "improvement": 23.780382905836312
+      "curved_error": 0.00060136441248455743,
+      "improvement": 23.780382905838461
     },
     {
       "mesh": "unit_sphere_coarse",
@@ -52,8 +52,8 @@
       "n_tri": 126,
       "n_node": 65,
       "flat_error": 0.035997112338931513,
-      "curved_error": 0.0049671170061144449,
-      "improvement": 7.2470836291191887
+      "curved_error": 0.0049671170061143313,
+      "improvement": 7.2470836291193548
     },
     {
       "mesh": "unit_sphere_fine",
@@ -62,8 +62,8 @@
       "n_tri": 318,
       "n_node": 161,
       "flat_error": 0.0053856745004194247,
-      "curved_error": 2.8899492722926806E-5,
-      "improvement": 186.3587901716632
+      "curved_error": 2.889949272278545E-5,
+      "improvement": 186.35879017257474
     },
     {
       "mesh": "unit_sphere_fine",
@@ -72,8 +72,8 @@
       "n_tri": 318,
       "n_node": 161,
       "flat_error": 0.0060815089304170162,
-      "curved_error": 0.0001537183612082857,
-      "improvement": 39.56267086517191
+      "curved_error": 0.00015371836120851303,
+      "improvement": 39.5626708651134
     },
     {
       "mesh": "unit_sphere_fine",
@@ -82,8 +82,8 @@
       "n_tri": 318,
       "n_node": 161,
       "flat_error": 0.01419829153910271,
-      "curved_error": 0.001214510947418765,
-      "improvement": 11.690542246061057
+      "curved_error": 0.0012145109474184677,
+      "improvement": 11.690542246063918
     }
   ]
 }

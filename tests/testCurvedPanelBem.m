@@ -78,6 +78,40 @@ verifyLessThan(testCase, eC, 0.5 * eF);
 end
 
 
+function testLagrangeShapesAreValid(testCase)
+% curve orders 1/2/3: partition of unity, derivative sums vanish, and the
+% analytic (u,v) derivatives match a central finite difference.
+L2 = (0.07:0.11:0.9).'; L3 = 0.5 * (1 - L2); bary = [1 - L2 - L3, L2, L3];
+h = 1e-6;
+for p = [1 2 3]
+    [N, dNdu, dNdv] = CurvedPanelQuadrature.lagrangeShapes(p, bary);
+    verifyLessThan(testCase, max(abs(sum(N, 2) - 1)), 1e-12);
+    verifyLessThan(testCase, max(abs(sum(dNdu, 2))), 1e-12);
+    verifyLessThan(testCase, max(abs(sum(dNdv, 2))), 1e-12);
+    Np = CurvedPanelQuadrature.lagrangeShapes(p, [1 - (L2+h) - L3, L2+h, L3]);
+    Nm = CurvedPanelQuadrature.lagrangeShapes(p, [1 - (L2-h) - L3, L2-h, L3]);
+    verifyLessThan(testCase, max(abs((Np - Nm)/(2*h) - dNdu), [], "all"), 1e-7);
+end
+end
+
+
+function testCurveOrderMonotoneCapacitance(testCase)
+% raising the CURVE order (fes fixed at P1) drives the Laplace capacitance
+% monotonically toward 4*pi*R -- curve order is the geometry lever.
+surface = fixtureSurface("unit_sphere_coarse.vol");
+proj = CurvedPanelQuadrature.sphereProjection(1.0);
+g = ones(size(surface.vtx, 1), 1);
+e = zeros(1, 3);
+for co = [1 2 3]
+    sol = curvedSingleLayerDirichletSolve(surface, g, "Projection", proj, "CurveOrder", co);
+    e(co) = abs(sol.totalCharge - 4*pi) / (4*pi);
+end
+verifyLessThan(testCase, e(2), e(1));      % curved beats flat
+verifyLessThan(testCase, e(3), e(2));      % cubic beats quadratic
+verifyLessThan(testCase, e(3), 1e-4);
+end
+
+
 function surface = fixtureSurface(name)
 repoRoot = fileparts(fileparts(mfilename("fullpath")));
 file = fullfile(repoRoot, "fixtures", "mesh_topology", name);

@@ -1,37 +1,37 @@
 classdef CurvedPanelQuadrature
-%CURVEDPANELQUADRATURE Isoparametric (quadratic) curved-panel Gauss quadrature.
+%CURVEDPANELQUADRATURE Isoparametric curved-panel Gauss quadrature (curve order 1/2/3).
 %
-% Superparametric surface quadrature: the panel GEOMETRY is a curved 6-node
-% (quadratic) triangle -- the 3 corner nodes on the surface plus 3 edge
-% nodes obtained by projecting each straight edge midpoint onto the true
-% surface -- while the SOLUTION field stays P1 (values at the 3 corners).
-% This is the readable "curved P1" (superparametric) element: curving the
-% geometry alone removes the O(h^2) flat-faceting error that caps a
-% straight-panel BEM (testHelmholtzScattering documents that its analytic
-% deviations are "faceted-geometry dominated").
+% Superparametric surface quadrature: the panel GEOMETRY is a Lagrange curved
+% triangle of curve order 1 (flat), 2 (6-node quadratic), or 3 (10-node cubic)
+% -- corner nodes on the surface plus edge/interior nodes projected onto the
+% true surface -- while the SOLUTION field stays P1 (values at the 3 corners).
+% This is the readable "curved P1" (superparametric) element: raising the CURVE
+% order (not the fes order) removes the O(h^2) flat-faceting error that caps a
+% straight-panel BEM.  Because geometry error and field error are separate
+% channels, on a curved boundary the geometry channel is the binding one until
+% it is resolved -- so curve order is the lever (testCurvedPanelCurveOrderSweep).
 %
-% The single knob is a Projection function handle X(nx3) -> X(nx3) that
-% snaps a point onto the surface.  The default Projection = @(X) X leaves
-% the edge nodes at the straight midpoints, the quadratic map degenerates
-% to the affine one, and this reproduces SurfaceQuadrature EXACTLY -- so
-% "flat vs curved" is a one-line change and the A/B isolates geometry.
+% The single geometry knob besides curve order is a Projection function handle
+% X(nx3) -> X(nx3) that snaps a point onto the surface.  Projection = @(X) X
+% (the default) leaves the extra nodes at the straight lattice, every Lagrange
+% map degenerates to the affine one, and this reproduces SurfaceQuadrature
+% EXACTLY -- so "flat vs curved" is a one-line change and the A/B isolates
+% geometry.  Curve order 1 is flat for ANY projection (only corner nodes).
 %
 %   proj = CurvedPanelQuadrature.sphereProjection(R);
-%   cq = CurvedPanelQuadrature(surface, 7, proj);   % curved isoparametric
-%   fq = CurvedPanelQuadrature(surface, 7);          % flat (== SurfaceQuadrature)
-%   cq.points          % Gauss points on the curved surface ((nTris*order) x 3)
-%   cq.weights         % w * 0.5 * |x_u x x_v|  (curved surface Jacobian)
-%   cq.basis           % sparse (nPoints x nNodes) P1 values at the points
-%   cq.triangleIndex   % source triangle of each point
+%   cq = CurvedPanelQuadrature(surface, 7, proj);          % quadratic (default)
+%   cq = CurvedPanelQuadrature(surface, 7, proj, 3);       % cubic curve order
+%   fq = CurvedPanelQuadrature(surface, 7);                 % flat (== SurfaceQuadrature)
+%   cq.points / cq.weights / cq.triangleIndex / cq.basis / cq.outwardNormals
 %   cq.centroids()     % curved panel centroids (mapped bary [1/3 1/3 1/3])
-%   cq.outwardNormals()% unit outward normal at each Gauss point
-%   cq.nodes6          % the 6 geometry nodes per triangle (nTris x 6 x 3)
+%   cq.geomNodes       % the Lagrange geometry nodes per triangle (nTris x M x 3)
 
 properties
     surface        % SurfaceMesh carrying the P1 nodes
     order          % Gauss points per triangle: 1, 3, or 7
+    curveOrder     % geometry (Lagrange) order: 1 flat, 2 quadratic, 3 cubic
     projection     % X(nx3) -> X(nx3), snaps a point onto the surface
-    nodes6         % quadratic geometry nodes per triangle (nTris x 6 x 3)
+    geomNodes      % Lagrange geometry nodes per triangle (nTris x M x 3)
     points         % Gauss points on the curved surface ((nTris*order) x 3)
     weights        % curved quadrature weights ((nTris*order) x 1)
     triangleIndex  % source triangle of each point ((nTris*order) x 1)
@@ -39,14 +39,15 @@ properties
 end
 
 methods
-    function quad = CurvedPanelQuadrature(surface, order, projection)
+    function quad = CurvedPanelQuadrature(surface, order, projection, curveOrder)
         arguments
             surface (1,1) SurfaceMesh
             order (1,1) double {mustBeMember(order, [1 3 7])} = 7
             projection (1,1) function_handle = @(X) X
+            curveOrder (1,1) double {mustBeMember(curveOrder, [1 2 3])} = 2
         end
         [bary, wfrac] = triangleGaussRule(order);
-        [N, dNdu, dNdv] = CurvedPanelQuadrature.p2Shapes(bary);  % order x 6 each
+        [N, dNdu, dNdv] = CurvedPanelQuadrature.lagrangeShapes(curveOrder, bary);
 
         tri = surface.tri;
         vtx = surface.vtx;
@@ -55,8 +56,9 @@ methods
 
         quad.surface = surface;
         quad.order = order;
+        quad.curveOrder = curveOrder;
         quad.projection = projection;
-        quad.nodes6 = CurvedPanelQuadrature.buildNodes(vtx, tri, projection);
+        quad.geomNodes = CurvedPanelQuadrature.lagrangeNodes(curveOrder, vtx, tri, projection);
 
         quad.points = zeros(nTris * order, 3);
         quad.weights = zeros(nTris * order, 1);
@@ -68,11 +70,9 @@ methods
         cursor = 1;
         for t = 1:nTris
             span = (t - 1) * order + (1:order);
-            P = squeeze(quad.nodes6(t, :, :));      % 6 x 3 geometry nodes
+            P = squeeze(quad.geomNodes(t, :, :));   % M x 3 geometry nodes
             Xg = N * P;                             % order x 3 curved points
-            Xu = dNdu * P;                          % order x 3 tangents
-            Xv = dNdv * P;
-            cr = cross(Xu, Xv, 2);                  % order x 3 (2*area normal)
+            cr = cross(dNdu * P, dNdv * P, 2);      % order x 3 (2*area normal)
             detJ = sqrt(sum(cr.^2, 2));             % |x_u x x_v|
             quad.points(span, :) = Xg;
             quad.weights(span) = wfrac(:) .* 0.5 .* detJ;
@@ -99,12 +99,12 @@ methods
     end
 
     function c = centroids(quad)
-        %CENTROIDS Curved panel centroids: the quadratic map at bary [1/3 1/3 1/3].
-        N = CurvedPanelQuadrature.p2Shapes([1 1 1] / 3);   % 1 x 6
-        nTris = size(quad.nodes6, 1);
+        %CENTROIDS Curved panel centroids: the Lagrange map at bary [1/3 1/3 1/3].
+        N = CurvedPanelQuadrature.lagrangeShapes(quad.curveOrder, [1 1 1] / 3);
+        nTris = size(quad.geomNodes, 1);
         c = zeros(nTris, 3);
         for t = 1:nTris
-            c(t, :) = N * squeeze(quad.nodes6(t, :, :));
+            c(t, :) = N * squeeze(quad.geomNodes(t, :, :));
         end
     end
 
@@ -119,12 +119,12 @@ methods
                 "Surface orientation is unknown for %d triangle(s).", sum(signs == 0));
         end
         [bary, ~] = triangleGaussRule(quad.order);
-        [~, dNdu, dNdv] = CurvedPanelQuadrature.p2Shapes(bary);
-        nTris = size(quad.nodes6, 1);
+        [~, dNdu, dNdv] = CurvedPanelQuadrature.lagrangeShapes(quad.curveOrder, bary);
+        nTris = size(quad.geomNodes, 1);
         Nrm = zeros(quad.nPoints(), 3);
         for t = 1:nTris
             span = (t - 1) * quad.order + (1:quad.order);
-            P = squeeze(quad.nodes6(t, :, :));
+            P = squeeze(quad.geomNodes(t, :, :));
             cr = cross(dNdu * P, dNdv * P, 2);
             Nrm(span, :) = signs(t) * cr ./ sqrt(sum(cr.^2, 2));
         end
@@ -140,37 +140,76 @@ methods (Static)
         proj = @(X) radius * X ./ vecnorm(X, 2, 2);
     end
 
-    function nodes6 = buildNodes(vtx, tri, projection)
-        %BUILDNODES Quadratic geometry nodes [n1 n2 n3 m12 m23 m31] per triangle.
+    function nodes = lagrangeNodes(curveOrder, vtx, tri, projection)
+        %LAGRANGENODES Lagrange geometry nodes per triangle (nTris x M x 3).
         %
-        % Corners stay on the surface (already meshed there); each edge
-        % midpoint is projected onto the surface.  Projection = @(X) X leaves
-        % the midpoints straight, so the quadratic map is exactly affine.
+        % Corners stay on the surface; every higher-order lattice node is the
+        % straight-triangle Lagrange position projected onto the surface.
+        % Projection = @(X) X leaves them straight, so the map is exactly affine.
+        b = CurvedPanelQuadrature.referenceLattice(curveOrder);   % M x 3 barycentric
+        M = size(b, 1);
         nTris = size(tri, 1);
-        nodes6 = zeros(nTris, 6, 3);
-        P1 = vtx(tri(:, 1), :);
-        P2 = vtx(tri(:, 2), :);
-        P3 = vtx(tri(:, 3), :);
-        nodes6(:, 1, :) = P1;
-        nodes6(:, 2, :) = P2;
-        nodes6(:, 3, :) = P3;
-        nodes6(:, 4, :) = projection((P1 + P2) / 2);
-        nodes6(:, 5, :) = projection((P2 + P3) / 2);
-        nodes6(:, 6, :) = projection((P3 + P1) / 2);
+        P1 = vtx(tri(:, 1), :); P2 = vtx(tri(:, 2), :); P3 = vtx(tri(:, 3), :);
+        nodes = zeros(nTris, M, 3);
+        for m = 1:M
+            straight = b(m, 1) * P1 + b(m, 2) * P2 + b(m, 3) * P3;
+            nodes(:, m, :) = projection(straight);
+        end
     end
 
-    function [N, dNdu, dNdv] = p2Shapes(bary)
-        %P2SHAPES Quadratic triangle shapes at barycentric points (u = L2, v = L3).
+    function b = referenceLattice(curveOrder)
+        %REFERENCELATTICE Barycentric lattice of the Lagrange nodes (M x 3).
+        switch curveOrder
+            case 1
+                b = [1 0 0; 0 1 0; 0 0 1];
+            case 2
+                b = [1 0 0; 0 1 0; 0 0 1
+                     1/2 1/2 0; 0 1/2 1/2; 1/2 0 1/2];
+            case 3
+                b = [1 0 0; 0 1 0; 0 0 1
+                     2/3 1/3 0; 1/3 2/3 0
+                     0 2/3 1/3; 0 1/3 2/3
+                     1/3 0 2/3; 2/3 0 1/3
+                     1/3 1/3 1/3];
+        end
+    end
+
+    function [N, dNdu, dNdv] = lagrangeShapes(curveOrder, bary)
+        %LAGRANGESHAPES Lagrange triangle shapes at barycentric points (u=L2, v=L3).
         %
-        % Node order [n1 n2 n3 m12 m23 m31] <-> [L1(2L1-1) L2(2L2-1) L3(2L3-1)
-        % 4L1L2 4L2L3 4L3L1].  Returns N, dN/du, dN/dv (each nPts x 6) with
-        % L1 = 1-u-v so dL1/du = dL1/dv = -1, dL2/du = 1, dL3/dv = 1.
+        % L1 = 1-u-v so dL1/du = dL1/dv = -1, dL2/du = 1, dL3/dv = 1.  Node
+        % order matches referenceLattice(curveOrder).  Returns N, dN/du, dN/dv.
         L1 = bary(:, 1); L2 = bary(:, 2); L3 = bary(:, 3);
-        z = zeros(size(L1));
-        N = [L1 .* (2*L1 - 1), L2 .* (2*L2 - 1), L3 .* (2*L3 - 1), ...
-             4*L1.*L2, 4*L2.*L3, 4*L3.*L1];
-        dNdu = [-(4*L1 - 1), 4*L2 - 1, z, 4*(L1 - L2), 4*L3, -4*L3];
-        dNdv = [-(4*L1 - 1), z, 4*L3 - 1, -4*L2, 4*L2, 4*(L1 - L3)];
+        z = zeros(size(L1)); o = ones(size(L1));
+        switch curveOrder
+            case 1
+                N = [L1, L2, L3];
+                dNdu = [-o, o, z];
+                dNdv = [-o, z, o];
+            case 2
+                N = [L1.*(2*L1-1), L2.*(2*L2-1), L3.*(2*L3-1), ...
+                     4*L1.*L2, 4*L2.*L3, 4*L3.*L1];
+                dNdu = [-(4*L1-1), 4*L2-1, z, 4*(L1-L2), 4*L3, -4*L3];
+                dNdv = [-(4*L1-1), z, 4*L3-1, -4*L2, 4*L2, 4*(L1-L3)];
+            case 3
+                % dN/du = -dN/dL1 + dN/dL2 ; dN/dv = -dN/dL1 + dN/dL3
+                gL1 = [0.5*(27*L1.^2-18*L1+2), z, z, ...
+                       4.5*L2.*(6*L1-1), 4.5*L2.*(3*L2-1), z, z, ...
+                       4.5*L3.*(3*L3-1), 4.5*L3.*(6*L1-1), 27*L2.*L3];
+                gL2 = [z, 0.5*(27*L2.^2-18*L2+2), z, ...
+                       4.5*L1.*(3*L1-1), 4.5*L1.*(6*L2-1), ...
+                       4.5*L3.*(6*L2-1), 4.5*L3.*(3*L3-1), z, z, 27*L1.*L3];
+                gL3 = [z, z, 0.5*(27*L3.^2-18*L3+2), z, z, ...
+                       4.5*L2.*(3*L2-1), 4.5*L2.*(6*L3-1), ...
+                       4.5*L1.*(6*L3-1), 4.5*L1.*(3*L1-1), 27*L1.*L2];
+                N = [0.5*L1.*(3*L1-1).*(3*L1-2), 0.5*L2.*(3*L2-1).*(3*L2-2), ...
+                     0.5*L3.*(3*L3-1).*(3*L3-2), ...
+                     4.5*L1.*L2.*(3*L1-1), 4.5*L1.*L2.*(3*L2-1), ...
+                     4.5*L2.*L3.*(3*L2-1), 4.5*L2.*L3.*(3*L3-1), ...
+                     4.5*L3.*L1.*(3*L3-1), 4.5*L3.*L1.*(3*L1-1), 27*L1.*L2.*L3];
+                dNdu = -gL1 + gL2;
+                dNdv = -gL1 + gL3;
+        end
     end
 end
 end

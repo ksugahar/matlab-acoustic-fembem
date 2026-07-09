@@ -1,0 +1,97 @@
+{
+  "kind": "curved_panel_curve_order_sweep",
+  "policy": "curve_order_is_the_geometry_lever_until_fes_floor",
+  "lesson": "capacitance keeps improving with curve order (geometry-limited); k=2 scattering plateaus at curve order 2 (P1 fes density floor reached).",
+  "generated_at_utc": "2026-07-09T03:40:45Z",
+  "matlab_version": "26.1.0.3251617 (R2026a) Update 2",
+  "hostname": "LAB",
+  "radius": 1,
+  "scatter_wavenumber": 2,
+  "fes_order": 1,
+  "cases": [
+    {
+      "mesh": "unit_sphere_coarse",
+      "quantity": "laplace_capacitance",
+      "curve_order": 1,
+      "n_tri": 126,
+      "error": 0.012930975268217737
+    },
+    {
+      "mesh": "unit_sphere_coarse",
+      "quantity": "soft_sphere_scatter",
+      "curve_order": 1,
+      "n_tri": 126,
+      "error": 0.035997112338931728
+    },
+    {
+      "mesh": "unit_sphere_coarse",
+      "quantity": "laplace_capacitance",
+      "curve_order": 2,
+      "n_tri": 126,
+      "error": 0.00017454247627766696
+    },
+    {
+      "mesh": "unit_sphere_coarse",
+      "quantity": "soft_sphere_scatter",
+      "curve_order": 2,
+      "n_tri": 126,
+      "error": 0.0049671170061143313
+    },
+    {
+      "mesh": "unit_sphere_coarse",
+      "quantity": "laplace_capacitance",
+      "curve_order": 3,
+      "n_tri": 126,
+      "error": 4.681704127360357E-5
+    },
+    {
+      "mesh": "unit_sphere_coarse",
+      "quantity": "soft_sphere_scatter",
+      "curve_order": 3,
+      "n_tri": 126,
+      "error": 0.0047013272525081046
+    },
+    {
+      "mesh": "unit_sphere_fine",
+      "quantity": "laplace_capacitance",
+      "curve_order": 1,
+      "n_tri": 318,
+      "error": 0.0053856745004194247
+    },
+    {
+      "mesh": "unit_sphere_fine",
+      "quantity": "soft_sphere_scatter",
+      "curve_order": 1,
+      "n_tri": 318,
+      "error": 0.01419829153910254
+    },
+    {
+      "mesh": "unit_sphere_fine",
+      "quantity": "laplace_capacitance",
+      "curve_order": 2,
+      "n_tri": 318,
+      "error": 2.889949272278545E-5
+    },
+    {
+      "mesh": "unit_sphere_fine",
+      "quantity": "soft_sphere_scatter",
+      "curve_order": 2,
+      "n_tri": 318,
+      "error": 0.0012145109474184677
+    },
+    {
+      "mesh": "unit_sphere_fine",
+      "quantity": "laplace_capacitance",
+      "curve_order": 3,
+      "n_tri": 318,
+      "error": 5.6077651824219486E-6
+    },
+    {
+      "mesh": "unit_sphere_fine",
+      "quantity": "soft_sphere_scatter",
+      "curve_order": 3,
+      "n_tri": 318,
+      "error": 0.0011728309456329668
+    }
+  ]
+}

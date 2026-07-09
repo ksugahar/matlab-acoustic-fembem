@@ -30,11 +30,13 @@ arguments
     options.Wavenumber (1,1) double {mustBeNonnegative} = 0.0
     options.QuadratureOrder (1,1) double {mustBeMember(options.QuadratureOrder, [1 3 7])} = 7
     options.Projection (1,1) function_handle = @(X) X
+    options.CurveOrder (1,1) double {mustBeMember(options.CurveOrder, [1 2 3])} = 2
     options.DuffyOrder (1,1) double {mustBePositive, mustBeInteger} = 6
 end
 
 k = options.Wavenumber;
-quad = CurvedPanelQuadrature(surface, options.QuadratureOrder, options.Projection);
+quad = CurvedPanelQuadrature(surface, options.QuadratureOrder, ...
+    options.Projection, options.CurveOrder);
 tri = surface.tri;
 colloc = surface.vtx;                 % P1 collocation nodes (on the surface)
 nN = size(colloc, 1);
@@ -51,14 +53,14 @@ A = (K .* quad.weights.') * quad.basis;             % nN x nN
 for t = 1:nT
     nodes = tri(t, :);
     span = (t - 1) * order + (1:order);
-    P = squeeze(quad.nodes6(t, :, :));              % 6 x 3 curved geometry nodes
+    P = squeeze(quad.geomNodes(t, :, :));           % M x 3 curved geometry nodes
     Kt = quad.weights(span).';                      % 1 x order panel weights
     for p = 1:3
         i = nodes(p);
         xi = colloc(i, :);
         plainRow = (greenKernel(xi, quad.points(span, :), k) .* Kt) ...
             * quad.basis(span, nodes);              % 1 x 3 wrong (singular) part
-        duffyRow = duffyPanelRow(P, p, xi, k, gx, gw);   % 1 x 3 correct part
+        duffyRow = duffyPanelRow(P, p, xi, k, gx, gw, quad.curveOrder);   % 1 x 3
         A(i, nodes) = A(i, nodes) - plainRow + duffyRow;
     end
 end
@@ -88,7 +90,7 @@ G = exp(1i * k * D) ./ (4 * pi * D);
 end
 
 
-function row = duffyPanelRow(P, pv0, xi, k, gx, gw)
+function row = duffyPanelRow(P, pv0, xi, k, gx, gw, curveOrder)
 %DUFFYPANELROW int_T G_k(xi,y) [L1 L2 L3](y) dS over a curved panel, singular
 % at local vertex pv0.  Duffy: barycentric L(pv0)=1-s, and the opposite edge
 % is swept by t in [0,1]; du dv = s ds dt cancels the 1/r vertex singularity.
@@ -104,7 +106,7 @@ for a = 1:numel(gx)
         L(pv0) = 1 - s;
         L(pv1) = s * (1 - tt);
         L(pv2) = s * tt;
-        [N, dNdu, dNdv] = CurvedPanelQuadrature.p2Shapes(L);
+        [N, dNdu, dNdv] = CurvedPanelQuadrature.lagrangeShapes(curveOrder, L);
         y = N * P;
         cr = cross(dNdu * P, dNdv * P, 2);
         detJ = sqrt(sum(cr.^2, 2));
