@@ -27,6 +27,7 @@ arguments
     options.QuadratureOrder (1,1) double {mustBeMember(options.QuadratureOrder, [1 3 7])} = 7
     options.Projection (1,1) function_handle = @(X) X
     options.CurveOrder (1,1) double {mustBeMember(options.CurveOrder, [1 2 3])} = 2
+    options.GeomNodes double = []          % explicit curved nodes (e.g. from netgen); overrides Projection
     options.DuffyOrder (1,1) double {mustBePositive, mustBeInteger} = 6
 end
 
@@ -41,7 +42,7 @@ k = options.Wavenumber;
 op = curvedCollocationSingleLayer(surface, "Wavenumber", k, ...
     "QuadratureOrder", options.QuadratureOrder, ...
     "Projection", options.Projection, "CurveOrder", options.CurveOrder, ...
-    "DuffyOrder", options.DuffyOrder);
+    "GeomNodes", options.GeomNodes, "DuffyOrder", options.DuffyOrder);
 
 q = op.matrix \ g;
 residualNorm = norm(op.matrix * q - g);

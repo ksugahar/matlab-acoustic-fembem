@@ -39,26 +39,37 @@ properties
 end
 
 methods
-    function quad = CurvedPanelQuadrature(surface, order, projection, curveOrder)
+    function quad = CurvedPanelQuadrature(surface, order, projection, curveOrder, options)
         arguments
             surface (1,1) SurfaceMesh
             order (1,1) double {mustBeMember(order, [1 3 7])} = 7
             projection (1,1) function_handle = @(X) X
             curveOrder (1,1) double {mustBeMember(curveOrder, [1 2 3])} = 2
+            options.GeomNodes double = []   % explicit curved nodes (nTris x M x 3), e.g. from netgen
         end
-        [bary, wfrac] = triangleGaussRule(order);
-        [N, dNdu, dNdv] = CurvedPanelQuadrature.lagrangeShapes(curveOrder, bary);
-
         tri = surface.tri;
         vtx = surface.vtx;
         nTris = size(tri, 1);
         nNodes = size(vtx, 1);
 
+        if isempty(options.GeomNodes)
+            quad.geomNodes = CurvedPanelQuadrature.lagrangeNodes(curveOrder, vtx, tri, projection);
+        else
+            if size(options.GeomNodes, 1) ~= nTris || size(options.GeomNodes, 3) ~= 3
+                error("CurvedPanelQuadrature:geomNodes", ...
+                    "GeomNodes must be (nTris x M x 3); got %s.", mat2str(size(options.GeomNodes)));
+            end
+            quad.geomNodes = options.GeomNodes;
+            curveOrder = CurvedPanelQuadrature.curveOrderFromNodeCount(size(options.GeomNodes, 2));
+        end
+
+        [bary, wfrac] = triangleGaussRule(order);
+        [N, dNdu, dNdv] = CurvedPanelQuadrature.lagrangeShapes(curveOrder, bary);
+
         quad.surface = surface;
         quad.order = order;
         quad.curveOrder = curveOrder;
         quad.projection = projection;
-        quad.geomNodes = CurvedPanelQuadrature.lagrangeNodes(curveOrder, vtx, tri, projection);
 
         quad.points = zeros(nTris * order, 3);
         quad.weights = zeros(nTris * order, 1);
@@ -138,6 +149,18 @@ methods (Static)
             radius (1,1) double {mustBePositive} = 1.0
         end
         proj = @(X) radius * X ./ vecnorm(X, 2, 2);
+    end
+
+    function curveOrder = curveOrderFromNodeCount(M)
+        %CURVEORDERFROMNODECOUNT Lagrange curve order from node count (3/6/10 -> 1/2/3).
+        switch M
+            case 3,  curveOrder = 1;
+            case 6,  curveOrder = 2;
+            case 10, curveOrder = 3;
+            otherwise
+                error("CurvedPanelQuadrature:nodeCount", ...
+                    "Unsupported geometry node count %d (expect 3, 6, or 10).", M);
+        end
     end
 
     function nodes = lagrangeNodes(curveOrder, vtx, tri, projection)

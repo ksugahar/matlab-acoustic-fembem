@@ -58,10 +58,14 @@ reference, not a separate API document.
 - Dense Galerkin Laplace and Helmholtz BEM kernels, with low-frequency-stable
   Helmholtz splitting.
 - **Curved (isoparametric) panel BEM** (`CurvedPanelQuadrature`,
-  `curvedSingleLayerDirichletSolve`): quadratic-geometry panels with a P1
-  density -- the readable "curved P1" element that removes the O(h^2)
+  `curvedSingleLayerDirichletSolve`): Lagrange curve order 1/2/3 geometry with a
+  P1 density -- the readable "curved P1" element that removes the O(h^2)
   straight-panel faceting error (~10-200x closer to the analytic sphere at the
-  same mesh; a single `Projection` knob recovers the flat lane exactly).
+  same mesh; a single `Projection` knob recovers the flat lane exactly). Curve
+  order is the geometry lever, not fes order. An optional netgen path
+  (`curvedQuadratureFromNetgen` + `tools/export_curved_boundary_nodes.py`)
+  consumes a real curved mesh via a convention-free node companion, so the same
+  accuracy gain works for general geometry.
 - A readable educational H-matrix with **reference-guarded ACA+** low-rank
   far-field blocks -- rows and columns are sampled on the fly and the dense far
   block is never formed.

@@ -1,0 +1,35 @@
+{
+  "kind": "curved_panel_netgen_vol",
+  "policy": "netgen_curved_mesh_to_matlab_via_convention_free_node_companion",
+  "generated_at_utc": "2026-07-09T03:55:22Z",
+  "matlab_version": "26.1.0.3251617 (R2026a) Update 2",
+  "hostname": "LAB",
+  "fixture": "fixtures/curved_panels/ng_sphere.vol + ng_sphere_curved_p2.json",
+  "radius": 1,
+  "n_tri": 112,
+  "n_node": 58,
+  "netgen_vs_analytic_node_maxdiff": 0.00055021300327540157,
+  "cases": [
+    {
+      "quantity": "laplace_capacitance",
+      "wavenumber": 0,
+      "flat_error": 0.014192329225195989,
+      "netgen_error": 0.000336951629778136,
+      "analytic_error": 0.00021335219618032032
+    },
+    {
+      "quantity": "soft_sphere_scatter",
+      "wavenumber": 0.5,
+      "flat_error": 0.016178150857858935,
+      "netgen_error": 0.00088172392498865322,
+      "analytic_error": 0.00078480538089057328
+    },
+    {
+      "quantity": "soft_sphere_scatter",
+      "wavenumber": 2,
+      "flat_error": 0.040894004813437128,
+      "netgen_error": 0.0064836389826395443,
+      "analytic_error": 0.0063519147140175805
+    }
+  ]
+}

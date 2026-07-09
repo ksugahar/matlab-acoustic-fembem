@@ -229,10 +229,20 @@ scattering jumps 1->2 (7x) then plateaus 2->3 (5.0e-3 -> 4.7e-3) because the P1
 density error is now the floor. So on a curved boundary raise the curve order
 first; fes order only takes over once the geometry is resolved.
 
-Note this SELF-GENERATES the curved
-panels from an analytic surface; it does not parse a Netgen curved `.vol`
-(whose `curvedelements` section is Netgen's internal coefficient basis, not
-node coordinates) -- general high-order `.vol` curving stays NGSolve's job.
+Optional netgen path (SHIPPED, general geometry). The demo above self-generates
+the curved panels from the analytic sphere, but the curved nodes can also come
+from a real netgen curved mesh. `tools/export_curved_boundary_nodes.py` (NGSolve)
+evaluates each boundary triangle's curved geometry at the Lagrange nodes and
+writes the physical COORDINATES to a JSON companion -- the saved `.vol` stays P1,
+so MATLAB never parses Netgen's `curvedelements` coefficient basis.
+`curvedQuadratureFromNetgen(surface, json)` matches those onto the SurfaceMesh
+(by corner coordinates, raising on a miss) and a `GeomNodes` option threads them
+through the solver. On the committed netgen OCC-sphere fixture
+(`fixtures/curved_panels/`) this reaches the SAME accuracy as the analytic lane
+(capacitance 3.4e-4, scatter k2 6.5e-3, within ~1.6x of analytic, ~40x/6x below
+flat -- `validation_test/testCurvedPanelNetgenVol`). So "netgen curved mesh ->
+MATLAB high accuracy" works for general geometry, via the convention-free
+companion; general high-order `.vol` authoring stays NGSolve's job.
 
 ### Sonic-Crystal Chain (multi-body, 4-leg validated)
 
