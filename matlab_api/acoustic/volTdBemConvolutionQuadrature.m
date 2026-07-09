@@ -97,9 +97,8 @@ cqTimer = tic;
 % lies entirely in Re(s) > 0, so every kernel exp(-s r/c) DECAYS (a
 % screened-Laplace kernel) -- this is why CQ is stable where naive
 % marching-on-in-time would ring.
-n    = (0:N-1).';
-zeta = rho * exp(-2i * pi * n / N);
-s    = bdfDelta(zeta, options.Method) / dt;
+n = (0:N-1).';
+[zeta, s] = cqLaplaceNodes(n, rho, options.Method, dt);
 
 % --- Phase 2: rho-weight and FFT the boundary data. ------------------- %
 % The rho^n weighting is the CQ scaling trick that keeps the later inverse
@@ -147,8 +146,8 @@ end
 % the visualizer): rho^-n grows to 1/sqrt(eps) at the last step, so it also
 % amplifies round-off there -- pushing N too far lets the tail drown in
 % machine noise even while the per-node residuals stay ~1e-16.
-densityComplex  = (rho .^ (-n)) .* ifft(densityHat, [], 1);
-pressureComplex = (rho .^ (-n)) .* ifft(pressureHat, [], 1);
+densityComplex  = cqSynthesize(densityHat, rho, n);
+pressureComplex = cqSynthesize(pressureHat, rho, n);
 density  = real(densityComplex);                     % causal, real-valued
 pressure = real(pressureComplex);
 cqSeconds = toc(cqTimer);
@@ -234,4 +233,17 @@ end
 x = (t - centerTime) / width;
 source = (1 - 2 * x.^2) .* exp(-x.^2);
 source(abs(source) < 1e-14) = 0;
+end
+
+
+function [zeta, s] = cqLaplaceNodes(n, rho, method, dt)
+%CQLAPLACENODES CQ contour zeta on the rho-circle and its Laplace nodes s = delta/dt.
+zeta = rho .* exp(-2i * pi * n / numel(n));
+s = bdfDelta(zeta, method) / dt;
+end
+
+
+function yc = cqSynthesize(yhat, rho, n)
+%CQSYNTHESIZE Inverse CQ transform: the rho^-n-weighted inverse FFT (complex, pre-real).
+yc = (rho .^ (-n)) .* ifft(yhat, [], 1);
 end

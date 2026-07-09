@@ -109,54 +109,17 @@ end
 pincB = incValue(surface.vtx);
 
 % ---- exterior close + coupled block solve (method-dependent) ----
-dtnInfo = struct("used", false);
+% co bundles the shared coupling data (interior dynamic stiffness, interface
+% coupling G, boundary mass, incident loads) so each exterior method reads as a
+% self-contained block assembly + solve.
+co = struct("Kdyn", Kdyn, "G", G, "Mb", Mb, "pincB", pincB, "Minc", Minc, ...
+    "surface", surface, "nV", nV, "nB", nB, "rhoF", rhoF, "omega", omega);
 switch options.ExteriorMethod
     case "bem"
-        % dense Galerkin single/double layer; nodal unknowns (u, p_s, q_s)
-        % with the exterior Calderon row (1/2 Mb - K_k) p_s + V_k q_s = 0.
-        Vk = GalerkinSingleLayer(surface, "Wavenumber", k, ...
-            "QuadratureOrder", options.QuadratureOrder).matrix;
-        Kk = GalerkinDoubleLayer(surface, "Wavenumber", k, ...
-            "QuadratureOrder", options.QuadratureOrder).matrix;
-        ZuB = sparse(3 * nV, nB);
-        ZBB = sparse(nB, nB);
-        lhs = [ Kdyn,             G.',            ZuB;
-                -rhoF*omega^2*G,  ZBB,            Mb;
-                ZuB.',            0.5*Mb - Kk,    Vk ];
-        rhs = [ -G.' * pincB; -Minc; zeros(nB, 1) ];
-        x = lhs \ rhs;
-        u   = x(1:3 * nV);
-        psG = x(3 * nV + (1:nB));
-        qs  = x(3 * nV + nB + (1:nB));
+        [u, psG, qs, residual, rhsNorm, dtnInfo] = fsiBemExterior(co, k, options.QuadratureOrder);
     case "dtn"
-        % exact spherical Helmholtz DtN / radiating impedance operator:
-        % the scattered field is a spherical-harmonic expansion p_s = Phi c,
-        % q_s = dp_s/dn = Phi diag(Lambda) c. Reducing the exterior to its
-        % nModes harmonic coefficients c keeps the system FULL RANK (a nodal
-        % low-rank DtN would leave p_s under-determined in the mesh null space)
-        % and REPLACES the dense N^2 Galerkin assembly by a low-rank surface
-        % operator. Fail-loud if the truncation surface is not a sphere.
-        dtn = sphericalDtnOperator(surface, "Wavenumber", k, ...
-            "Degree", options.DtnDegree);
-        Phi = dtn.harmonics;                 % nB x nModes
-        lam = dtn.modeEigenvalues;           % nModes x 1 (Lambda per column)
-        nM = dtn.numModes;
-        %   Kdyn u               + (G' Phi) c              = -G' p_inc
-        %   -rhoF w^2 (Phi' G) u + (Gram diag(Lambda)) c   = -Phi' Minc
-        lhs = [ Kdyn,                       G.' * Phi;
-                -rhoF*omega^2*(Phi.' * G),  dtn.gram .* lam.' ];
-        rhs = [ -G.' * pincB; -(Phi.' * Minc) ];
-        x = lhs \ rhs;
-        u = x(1:3 * nV);
-        c = x(3 * nV + (1:nM));
-        psG = Phi * c;                       % nodal scattered pressure
-        qs  = Phi * (lam .* c);              % nodal scattered flux T[p_s]
-        dtnInfo = struct("used", true, "degree", dtn.degree, ...
-            "numModes", dtn.numModes, "radius", dtn.radius, ...
-            "sphericityDeviation", dtn.sphericityDeviation, ...
-            "gramCondition", dtn.gramCondition);
+        [u, psG, qs, residual, rhsNorm, dtnInfo] = fsiDtnExterior(co, k, options.DtnDegree);
 end
-residual = norm(lhs * x - rhs);
 
 q = options.QuadratureOrder;
 sol = struct();
@@ -177,7 +140,7 @@ sol.scatteredAt = @(points) ...
     - singleLayerPotentialMatrix(surface, points, k, q) * qs;
 sol.totalAt = @(points) incValue(points) + sol.scatteredAt(points);
 sol.checks = struct( ...
-    "solveResidualSmall", residual <= 1e-8 * max(1, norm(rhs)), ...
+    "solveResidualSmall", residual <= 1e-8 * max(1, rhsNorm), ...
     "fieldComplex", ~isreal(psG), ...
     "exteriorWellPosed", ~dtnInfo.used || dtnInfo.gramCondition < 1e12);
 if all(structfun(@(v) logical(v), sol.checks))
@@ -225,4 +188,53 @@ for t = 1:size(tri, 1)
     Minc(lc) = Minc(lc) + (area / 3) * qinc;
 end
 G = sparse(Grow, Gcol, Gval, nB, 3 * nV);
+end
+
+
+function [u, psG, qs, residual, rhsNorm, dtnInfo] = fsiBemExterior(co, k, quadOrder)
+%FSIBEMEXTERIOR Dense Galerkin single/double layer exterior; nodal (u, p_s, q_s)
+% with the exterior Calderon row (1/2 Mb - K_k) p_s + V_k q_s = 0 (any shape).
+Vk = GalerkinSingleLayer(co.surface, "Wavenumber", k, "QuadratureOrder", quadOrder).matrix;
+Kk = GalerkinDoubleLayer(co.surface, "Wavenumber", k, "QuadratureOrder", quadOrder).matrix;
+ZuB = sparse(3 * co.nV, co.nB);
+ZBB = sparse(co.nB, co.nB);
+lhs = [ co.Kdyn,                       co.G.',           ZuB;
+        -co.rhoF*co.omega^2*co.G,      ZBB,              co.Mb;
+        ZuB.',                         0.5*co.Mb - Kk,   Vk ];
+rhs = [ -co.G.' * co.pincB; -co.Minc; zeros(co.nB, 1) ];
+x = lhs \ rhs;
+u   = x(1:3 * co.nV);
+psG = x(3 * co.nV + (1:co.nB));
+qs  = x(3 * co.nV + co.nB + (1:co.nB));
+residual = norm(lhs * x - rhs);
+rhsNorm = norm(rhs);
+dtnInfo = struct("used", false);
+end
+
+
+function [u, psG, qs, residual, rhsNorm, dtnInfo] = fsiDtnExterior(co, k, dtnDegree)
+%FSIDTNEXTERIOR Exact spherical Helmholtz DtN exterior (radiating impedance).
+% The scattered field is a spherical-harmonic expansion p_s = Phi c,
+% q_s = dp_s/dn = Phi diag(Lambda) c; reducing the exterior to its nModes
+% coefficients c keeps the system FULL RANK and replaces the dense N^2 Galerkin
+% assembly by a low-rank surface operator.  Fail-loud if Gamma is not a sphere.
+%   Kdyn u               + (G' Phi) c              = -G' p_inc
+%   -rhoF w^2 (Phi' G) u + (Gram diag(Lambda)) c   = -Phi' Minc
+dtn = sphericalDtnOperator(co.surface, "Wavenumber", k, "Degree", dtnDegree);
+Phi = dtn.harmonics;                 % nB x nModes
+lam = dtn.modeEigenvalues;           % nModes x 1 (Lambda per column)
+nM = dtn.numModes;
+lhs = [ co.Kdyn,                             co.G.' * Phi;
+        -co.rhoF*co.omega^2*(Phi.' * co.G),  dtn.gram .* lam.' ];
+rhs = [ -co.G.' * co.pincB; -(Phi.' * co.Minc) ];
+x = lhs \ rhs;
+u = x(1:3 * co.nV);
+c = x(3 * co.nV + (1:nM));
+psG = Phi * c;                       % nodal scattered pressure
+qs  = Phi * (lam .* c);              % nodal scattered flux T[p_s]
+residual = norm(lhs * x - rhs);
+rhsNorm = norm(rhs);
+dtnInfo = struct("used", true, "degree", dtn.degree, "numModes", dtn.numModes, ...
+    "radius", dtn.radius, "sphericityDeviation", dtn.sphericityDeviation, ...
+    "gramCondition", dtn.gramCondition);
 end
