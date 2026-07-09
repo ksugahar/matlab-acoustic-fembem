@@ -1043,6 +1043,22 @@ s = strjoin([
     "not just analytic surfaces -- but via the convention-free companion, never"
     "by parsing curvedelements.  General curved high-order .vol authoring stays"
     "Radia/NGSolve's job."
+    ""
+    "NOT merged into CQ / FSI (measured -- do NOT re-attempt).  The Lubich"
+    "time-domain CQ (volTdBemConvolutionQuadrature) and the FSI coupled solve"
+    "(fsiCoupledSolve) stay FLAT Galerkin.  Curving them properly needs 4D"
+    "Sauter-Schwab singular quadrature (the coincident/adjacent Galerkin DOUBLE"
+    "integral); the cheap shortcut -- curve the outer/smooth integral but keep"
+    "the singular Laplace part on the flat CHORD (laplacePanelIntegrals over the"
+    "3 corners, curve-order independent) -- was prototyped and does NOT help: it"
+    "is bit-identical to GalerkinSingleLayer at curve order 1, but curve order"
+    "2/3 give NO improvement (soft-sphere scatter 3.3e-2 -> 4.2e-2 -> 4.3e-2, if"
+    "anything worse), because the singular near-field DOMINATES a Galerkin matrix"
+    "and a curved-test / flat-source split is inconsistent.  The standalone"
+    "collocation curvedSingleLayerDirichletSolve gets its 7-200x precisely"
+    "because Duffy curves the NEAR field too (and it is a single integral).  So"
+    "high-order curving lives ONLY in that standalone collocation solver; CQ/FSI"
+    "keep the validated flat-Galerkin path (keep-separate is the clean design)."
     ], newline);
 end
 
