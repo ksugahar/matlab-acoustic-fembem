@@ -1,0 +1,31 @@
+{
+  "tools": [
+    {
+      "name": "acoustic_fembem_cq_refinement_artifact_gate",
+      "title": "Coupled CQ Refinement Artifact Gate",
+      "description": "Validates an attach-only shared MATLAB P1 volume-FEM/P1 boundary-BEM Johnson-Nedelec CQ refinement family, including BDF symbol crosscheck, contour alias target, trusted-window refinement, replay determinism, and preserved shared-session state.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "summary_json": {
+            "type": "string",
+            "description": "JSON metadata for an already executed shared-session coupled CQ refinement study."
+          }
+        },
+        "required": ["summary_json"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "signatures": {
+    "acoustic_fembem_cq_refinement_artifact_gate": {
+      "function": "acoustic_fembem_check_cq_refinement_artifact_gate",
+      "input": {"order": ["summary_json"]}
+    }
+  }
+}

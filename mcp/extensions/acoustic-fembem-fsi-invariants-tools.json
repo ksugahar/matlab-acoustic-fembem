@@ -1,0 +1,28 @@
+{
+  "tools": [
+    {
+      "name": "acoustic_fembem_fsi_scattering_invariants",
+      "title": "Acoustic FSI Scattering Invariants",
+      "description": "Gates lossless P1 FEM/BEM scattering with far-field reciprocity, optical-theorem energy closure, dense-BEM versus high-order-DtN agreement, and coupled-solve residual evidence.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "reciprocity_error": {"type": "number", "minimum": 0},
+          "optical_error": {"type": "number", "minimum": 0},
+          "bem_dtn_error": {"type": "number", "minimum": 0},
+          "max_residual": {"type": "number", "minimum": 0},
+          "lossless": {"type": "boolean"},
+          "time_convention": {"type": "string"}
+        },
+        "required": ["reciprocity_error", "optical_error", "bem_dtn_error", "max_residual", "lossless", "time_convention"]
+      },
+      "annotations": {"readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false}
+    }
+  ],
+  "signatures": {
+    "acoustic_fembem_fsi_scattering_invariants": {
+      "function": "acoustic_fembem.check_fsi_scattering_invariants",
+      "input": {"order": ["reciprocity_error", "optical_error", "bem_dtn_error", "max_residual", "lossless", "time_convention"]}
+    }
+  }
+}

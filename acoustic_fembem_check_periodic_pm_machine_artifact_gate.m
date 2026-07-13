@@ -1,0 +1,4 @@
+function out = acoustic_fembem_check_periodic_pm_machine_artifact_gate(summary_json)
+%ACOUSTIC_FEMBEM_CHECK_PERIODIC_PM_MACHINE_ARTIFACT_GATE MCP dispatcher.
+out = acoustic_fembem.check_periodic_pm_machine_artifact_gate(summary_json);
+end

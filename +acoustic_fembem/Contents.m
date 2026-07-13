@@ -17,3 +17,5 @@
 %   check_fembem_acoustic_gate  MCP custom-tool entry point: print JSON verdict.
 %   fembem_crossval_gate      Run Gypsilab FEM/BEM vs radia-ngsolve/NGSolve.
 %   check_fembem_crossval_gate  MCP custom-tool entry point: print JSON verdict.
+%   check_adjoint_scaling       Gate reverse-mode solve scaling and direction.
+%   check_hmatrix_scaling        Run ACA+ scaling and gate rank/storage quality.

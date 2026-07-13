@@ -1,0 +1,31 @@
+{
+  "tools": [
+    {
+      "name": "acoustic_fembem_capstone_suite_artifact_gate",
+      "title": "First-Order FEM/BEM Capstone Suite Artifact Gate",
+      "description": "Validates a shared existing-session MATLAB replay of the native GYP-091..100 suite against one NGSolve capability query, including H1, HCurl, Laplace/Helmholtz BEM, low-frequency, analytic sphere, and P1 trace evidence.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "summary_json": {
+            "type": "string",
+            "description": "Compact JSON metadata for an already executed shared-session GYP-091..100 capstone run."
+          }
+        },
+        "required": ["summary_json"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "signatures": {
+    "acoustic_fembem_capstone_suite_artifact_gate": {
+      "function": "acoustic_fembem.check_capstone_suite_artifact_gate",
+      "input": {"order": ["summary_json"]}
+    }
+  }
+}

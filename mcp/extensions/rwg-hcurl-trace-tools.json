@@ -1,0 +1,31 @@
+{
+  "tools": [
+    {
+      "name": "acoustic_fembem_rwg_hcurl_trace_artifact_gate",
+      "title": "RWG-HCurl Trace Artifact Gate",
+      "description": "Validates a shared existing-session MATLAB replay of GYP-081..090 with .vol tri/tet first-order spaces, RWG-to-Nedelec trace evidence, related tests, an independent NGSolve HCurl reference, and explicit Maxwell-BEM capability disposition.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "summary_json": {
+            "type": "string",
+            "description": "Compact JSON metadata for an already executed shared-session RWG-HCurl trace run."
+          }
+        },
+        "required": ["summary_json"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "signatures": {
+    "acoustic_fembem_rwg_hcurl_trace_artifact_gate": {
+      "function": "acoustic_fembem_check_rwg_hcurl_trace_artifact_gate",
+      "input": {"order": ["summary_json"]}
+    }
+  }
+}

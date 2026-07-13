@@ -1,0 +1,31 @@
+{
+  "tools": [
+    {
+      "name": "acoustic_fembem_duct_band_gap_artifact_gate",
+      "title": "Acoustic Duct Band-Gap Artifact Gate",
+      "description": "Validates a shared-session acoustic duct Bloch/transmission study against empty-lattice, empty-duct, fresh-reference replay, and free-space-chain negative controls.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "summary_json": {
+            "type": "string",
+            "description": "JSON metadata for an already executed shared-session duct band-gap and free-space control study."
+          }
+        },
+        "required": ["summary_json"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "signatures": {
+    "acoustic_fembem_duct_band_gap_artifact_gate": {
+      "function": "acoustic_fembem_check_duct_band_gap_artifact_gate",
+      "input": {"order": ["summary_json"]}
+    }
+  }
+}

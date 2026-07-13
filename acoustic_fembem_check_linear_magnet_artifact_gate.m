@@ -1,0 +1,4 @@
+function out = acoustic_fembem_check_linear_magnet_artifact_gate(summary_json)
+%ACOUSTIC_FEMBEM_CHECK_LINEAR_MAGNET_ARTIFACT_GATE Top-level MCP dispatcher.
+out = acoustic_fembem.check_linear_magnet_artifact_gate(summary_json);
+end

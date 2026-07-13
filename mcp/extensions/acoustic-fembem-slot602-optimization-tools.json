@@ -1,0 +1,15 @@
+{
+  "tools": [{
+    "name": "acoustic_fembem_global_local_optimization_replay_gate",
+    "title": "Global-Local Optimization Replay Gate",
+    "description": "Validates an existing shared MATLAB session, source immutability, short/long stochastic replay, independent global search, local polish, and derivative evidence without opening arbitrary files.",
+    "inputSchema": {"type":"object","properties":{"summary_json":{"type":"string"}},"required":["summary_json"]},
+    "annotations": {"readOnlyHint":true,"destructiveHint":false,"idempotentHint":true,"openWorldHint":false}
+  }],
+  "signatures": {
+    "acoustic_fembem_global_local_optimization_replay_gate": {
+      "function": "acoustic_fembem.check_global_local_optimization_replay_gate",
+      "input": {"order":["summary_json"]}
+    }
+  }
+}

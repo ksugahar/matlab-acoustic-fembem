@@ -1,0 +1,31 @@
+{
+  "tools": [
+    {
+      "name": "matlab_dual_method_curve_artifact_gate",
+      "title": "MATLAB Dual-Method Curve Artifact Gate",
+      "description": "Validates an already executed shared-session two-method curve artifact, including source immutability, method identity, retained solver connectivity, and an independent solver-neutral gate.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "summary_json": {
+            "type": "string",
+            "description": "Compact JSON summary of an already executed shared-session curve validation."
+          }
+        },
+        "required": ["summary_json"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "signatures": {
+    "matlab_dual_method_curve_artifact_gate": {
+      "function": "acoustic_fembem.check_dual_method_curve_gate",
+      "input": {"order": ["summary_json"]}
+    }
+  }
+}

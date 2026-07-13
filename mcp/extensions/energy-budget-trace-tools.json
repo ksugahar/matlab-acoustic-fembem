@@ -1,0 +1,31 @@
+{
+  "tools": [
+    {
+      "name": "acoustic_fembem_energy_budget_trace_artifact_gate",
+      "title": "FEM/BEM Energy-Budget Trace Artifact Gate",
+      "description": "Validates a shared-session MATLAB replay of a .vol P1 FEM/BEM boundary-trace fit with an active FEM energy budget, analytic KKT reference, fmincon SQP and interior-point controls, gradient checks, and generated-mesh provenance.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "summary_json": {
+            "type": "string",
+            "description": "Compact JSON metadata for an already executed shared-session energy-budgeted trace optimization."
+          }
+        },
+        "required": ["summary_json"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "signatures": {
+    "acoustic_fembem_energy_budget_trace_artifact_gate": {
+      "function": "acoustic_fembem.check_energy_budget_trace_artifact_gate",
+      "input": {"order": ["summary_json"]}
+    }
+  }
+}

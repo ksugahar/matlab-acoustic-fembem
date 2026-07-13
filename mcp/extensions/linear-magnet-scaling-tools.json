@@ -1,0 +1,31 @@
+{
+  "tools": [
+    {
+      "name": "acoustic_fembem_linear_magnet_artifact_gate",
+      "title": "Linear Magnet Artifact Gate",
+      "description": "Validates an attach-only shared MATLAB replay of a source-native P1 triangle magnetostatic example, including path/UI-only migration, unchanged mesh and boundary conditions, fieldwise linear scaling, quadratic energy scaling, and preserved Java bridge.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "summary_json": {
+            "type": "string",
+            "description": "Compact JSON metadata for an already executed shared-session linear magnet scaling run."
+          }
+        },
+        "required": ["summary_json"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "signatures": {
+    "acoustic_fembem_linear_magnet_artifact_gate": {
+      "function": "acoustic_fembem_check_linear_magnet_artifact_gate",
+      "input": {"order": ["summary_json"]}
+    }
+  }
+}

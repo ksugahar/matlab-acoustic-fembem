@@ -1,0 +1,9 @@
+function check_balanced_learning_profile()
+%CHECK_BALANCED_LEARNING_PROFILE Print the balanced MCP learning profile.
+
+profile = balancedLearningProfile();
+disp(jsonencode(struct( ...
+    "tool", "acoustic_fembem_balanced_learning_profile", ...
+    "ok", profile.stage_count == 10, ...
+    "result", profile)));
+end

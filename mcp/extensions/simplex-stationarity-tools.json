@@ -1,0 +1,31 @@
+{
+  "tools": [
+    {
+      "name": "acoustic_fembem_simplex_stationarity_artifact_gate",
+      "title": "MATLAB Simplex Stationarity Artifact Gate",
+      "description": "Validates a shared-session derivative-free optimization audit with immutable source digests, retained solver connectivity, an independent gradient check, false-convergence detection, and an accepted control route.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "summary_json": {
+            "type": "string",
+            "description": "Compact JSON metadata for an already executed shared-session optimizer audit."
+          }
+        },
+        "required": ["summary_json"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "signatures": {
+    "acoustic_fembem_simplex_stationarity_artifact_gate": {
+      "function": "acoustic_fembem.check_simplex_stationarity_artifact_gate",
+      "input": {"order": ["summary_json"]}
+    }
+  }
+}

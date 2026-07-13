@@ -1,0 +1,31 @@
+{
+  "tools": [
+    {
+      "name": "acoustic_fembem_lsqnonlin_multistart_artifact_gate",
+      "title": "MATLAB Nonlinear Least-Squares Multistart Artifact Gate",
+      "description": "Validates an attach-only shared MATLAB lsqnonlin replay, including zero-start collapse detection, independent multistarts, residual and projected-stationarity tolerances, analytic and finite-difference Jacobian checks, and safe Python Engine JSON serialization.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "summary_json": {
+            "type": "string",
+            "description": "Compact JSON metadata for an already executed shared-session lsqnonlin audit."
+          }
+        },
+        "required": ["summary_json"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "signatures": {
+    "acoustic_fembem_lsqnonlin_multistart_artifact_gate": {
+      "function": "acoustic_fembem.check_lsqnonlin_multistart_artifact_gate",
+      "input": {"order": ["summary_json"]}
+    }
+  }
+}

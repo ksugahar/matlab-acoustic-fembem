@@ -1,0 +1,31 @@
+{
+  "tools": [
+    {
+      "name": "acoustic_fembem_double_layer_low_frequency_sweep_gate",
+      "title": "Double-Layer Low-Frequency Sweep Gate",
+      "description": "Validates shared-session GYP-052..054 evidence for the source-normal Helmholtz double-layer split, including O((k*r)^2) correction scaling, source-normal orientation, low-kr coverage, and an independent public gate.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "summary_json": {
+            "type": "string",
+            "description": "Compact JSON summary of an already executed shared-session sweep."
+          }
+        },
+        "required": ["summary_json"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "signatures": {
+    "acoustic_fembem_double_layer_low_frequency_sweep_gate": {
+      "function": "acoustic_fembem.check_double_layer_low_frequency_sweep_gate",
+      "input": {"order": ["summary_json"]}
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "tools": [
+    {
+      "name": "acoustic_fembem_periodic_pm_machine_artifact_gate",
+      "title": "Periodic PM Machine Artifact Gate",
+      "description": "Validates an attach-only shared MATLAB replay of a source-native unwrapped PM machine, including topology-aware half-turn antiperiodicity, rejection of a one-pole symmetry claim, physical-observable replay stability, and preserved session state.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "summary_json": {
+            "type": "string",
+            "description": "JSON metadata for an already executed shared-session PM-machine replay."
+          }
+        },
+        "required": ["summary_json"]
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ],
+  "signatures": {
+    "acoustic_fembem_periodic_pm_machine_artifact_gate": {
+      "function": "acoustic_fembem_check_periodic_pm_machine_artifact_gate",
+      "input": {"order": ["summary_json"]}
+    }
+  }
+}
