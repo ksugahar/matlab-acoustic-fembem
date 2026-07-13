@@ -19,7 +19,7 @@ function result = drumRollConvolutionQuadrature(volFile, options)
 %   summary, checks, status) and adds the drum-roll excitation + directionality.
 
 arguments
-    volFile (1,1) string = "S:/MATLAB/Gypsilab/fixtures/mesh_topology/drum_cylinder.vol"
+    volFile (1,1) string = ""
     options.SoundSpeed (1,1) double {mustBePositive} = 1.0
     options.NumBeats (1,1) double {mustBeInteger, mustBePositive} = 3
     options.BeatInterval (1,1) double {mustBePositive} = 1.0
@@ -34,6 +34,10 @@ arguments
     options.QuadratureOrder (1,1) double {mustBeMember(options.QuadratureOrder,[1 3 7])} = 1
     options.Method (1,1) string {mustBeMember(options.Method,["BDF1","BDF2"])} = "BDF2"
     options.ObservationPoints double = []
+end
+
+if strlength(volFile) == 0
+    volFile = defaultFixture("drum_cylinder.vol");
 end
 
 mesh = VolMesh(volFile);
@@ -141,4 +145,10 @@ function tap = rickerTap(t, centerTime, width)
 x = (t - centerTime) / width;
 tap = (1 - 2*x.^2) .* exp(-x.^2);
 tap(abs(tap) < 1e-14) = 0;
+end
+
+
+function volFile = defaultFixture(name)
+repoRoot = fileparts(fileparts(fileparts(mfilename("fullpath"))));
+volFile = string(fullfile(repoRoot, "fixtures", "mesh_topology", name));
 end

@@ -43,8 +43,8 @@ To promote or refresh a case:
 - run the MATLAB example
 - run the radia-ngsolve reference
 - compare with the declared tolerance
-- record the validation log under the sibling `_crossval` directory
-- update or preserve the catalog entry with `status = "verified"` and the log path
+- retain the validation log outside the public source tree
+- update or preserve the catalog entry with `status = "verified"` and a stable evidence id
 
 ## Secondary References
 

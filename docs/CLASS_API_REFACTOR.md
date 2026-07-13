@@ -113,10 +113,10 @@ The real consumers rewritten to the class API:
 
 1. Baseline: full `run_tests.m` green before any edit (2026-07-03, EXIT=0).
 2. Each stage adds the new classes next to the old functions and is gated by
-   a throwaway parity probe in `C:\temp` (new assembly output must equal the
+   a throwaway parity probe in the platform temporary directory (new assembly output must equal the
    old output exactly: same sparse triplets, same dense matrices, same ids).
 3. Consumers switch to the new API, the old functions are deleted in the same
    change (single canonical API, no wrapper layer), and the full suite runs
    green again.
-4. Final: full `run_tests.m` + 100-case batches green, validation log
-   recorded under the sibling `_crossval` directory.
+4. Final: full `run_tests.m` + 100-case batches green, with validation evidence
+   retained outside the public source tree.

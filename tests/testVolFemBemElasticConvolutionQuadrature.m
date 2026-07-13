@@ -2,7 +2,7 @@ function tests = testVolFemBemElasticConvolutionQuadrature
 %TESTVOLFEMBEMELASTICCONVOLUTIONQUADRATURE Golden for the elastic FEM + acoustic
 % BEM coupled CQ time-domain solver.
 %
-%   Locks the end-to-end gates that the validated C:\temp run established: a
+%   Locks the end-to-end gates that a validated temporary-directory run established: a
 %   vector-elastic interior, a causal / real / bounded / small-residual exterior
 %   response, and status = ok.  The correctness ANCHOR (the Laplace-domain block
 %   at s = -i c0 k reproduces the frequency solver fsiCoupledSolve to ~1e-3) was

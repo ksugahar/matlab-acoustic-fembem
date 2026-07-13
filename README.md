@@ -223,8 +223,8 @@ cases = validationCatalog();
 - Mesh/topology checks comparing MATLAB `.vol` intake with NGSolve `.vol`
   intake.
 
-Generated logs are written under a local sibling `_crossval` directory and are
-not required for a basic checkout.
+Generated logs are written under the platform temporary directory and are not
+required for a basic checkout.
 
 ## MATLAB Execution Policy
 

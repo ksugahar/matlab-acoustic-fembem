@@ -217,7 +217,7 @@ end
 
 
 function cases = markMeshTopologyVerified(cases)
-logPath = fullfile("_crossval", "gypsilab_mesh_topology_10of100_20260624.md");
+logPath = "validation-record:mesh-topology-10-of-100";
 for k = 1:10
     cases(k).status = "verified";
     cases(k).validationLog = logPath;
@@ -226,7 +226,7 @@ end
 
 
 function cases = markRemainingVerified(cases)
-logPath = fullfile("_crossval", "gypsilab_remaining_90of100_20260624.md");
+logPath = "validation-record:remaining-90-of-100";
 for k = 11:100
     cases(k).status = "verified";
     cases(k).validationLog = logPath;

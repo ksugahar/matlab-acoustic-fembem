@@ -7,11 +7,7 @@ end
 
 repoRoot = gypsilabRepoRoot();
 script = fullfile(repoRoot, "validation", "ngsolve_vol_summary.py");
-tempRoot = "C:\temp";
-if ~isfolder(tempRoot)
-    mkdir(tempRoot);
-end
-jsonOut = string(tempname(tempRoot)) + ".json";
+jsonOut = string(tempname(tempdir)) + ".json";
 cleanup = onCleanup(@() deleteIfExists(jsonOut));
 
 cmd = sprintf('python "%s" --output "%s" "%s"', script, jsonOut, volFile);

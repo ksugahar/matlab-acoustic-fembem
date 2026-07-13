@@ -45,7 +45,7 @@ end
 
 
 function writeRemainingLog(results, caps)
-logPath = fullfile(fileparts(gypsilabRepoRoot()), "_crossval", ...
+logPath = fullfile(tempdir, "gypsilab-validation", ...
     "gypsilab_remaining_90of100_20260624.md");
 logDir = fileparts(logPath);
 if ~isfolder(logDir)

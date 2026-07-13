@@ -4,10 +4,7 @@ function caps = ngsolveCapabilitySummary()
 repoRoot = gypsilabRepoRoot();
 script = fullfile(repoRoot, "validation", "ngsolve_capability_summary.py");
 volFile = fullfile(repoRoot, "fixtures", "mesh_topology", "unit_tetra.vol");
-if ~isfolder("C:\temp")
-    mkdir("C:\temp");
-end
-jsonOut = string(tempname("C:\temp")) + ".json";
+jsonOut = string(tempname(tempdir)) + ".json";
 cleanup = onCleanup(@() deleteIfExists(jsonOut));
 
 cmd = sprintf('python "%s" --vol-file "%s" --output "%s"', script, volFile, jsonOut);

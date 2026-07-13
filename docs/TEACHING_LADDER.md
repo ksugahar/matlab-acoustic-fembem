@@ -914,7 +914,7 @@ A case can become `verified` only after:
 - the radia-ngsolve reference exists
 - the comparison tolerance is declared
 - the run passes
-- the validation log is recorded under a local `_crossval` directory
+- validation evidence is retained outside the public source tree
 
 The test suite checks that the catalog has exactly 100 unique cases, that all
 verified cases have example scripts, and that validation logs are recorded.
@@ -924,10 +924,7 @@ Current progress:
 - `100 / 100` example scripts present
 - `100 / 100` verified
 - verified groups: all 10 categories
-- validation log:
-  `_crossval/gypsilab_mesh_topology_10of100_20260624.md`
-  `_crossval/gypsilab_remaining_90of100_20260624.md`
-  `_crossval/gypsilab_class_api_refactor_20260703.md`
+- validation evidence: reproducible from the committed fixtures and public tests
 
 For acoustic FEM/BEM cases, the public gates rely on analytic references,
 NGSolve/NGSolve.BEM reference artifacts, and committed MATLAB fixtures.
