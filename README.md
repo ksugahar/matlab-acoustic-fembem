@@ -35,7 +35,11 @@ repository supplies only the acoustic FEM/BEM domain tools, through the
 | `acoustic_fembem_acoustic_gate` | Run acoustic gates vs analytic references (`focus_adjoint`, `radiation_force`, `thrust_adjoint`) |
 | `acoustic_fembem_crossval_gate` | `.vol`-backed cross-validation against NGSolve / `ngsolve.bem` references |
 | `acoustic_fembem_check_result_manifest_file` | Validate a result manifest (versions, dates, schema/convention ids) |
-| `acoustic_fembem_repository_health` | Pre-push health check for the repo and the MCP extension |
+| `acoustic_fembem_cq_time_grid` | Validate convolution-quadrature time and Laplace grids |
+| `acoustic_fembem_cq_response_reality` | Check CQ conjugate symmetry and real time response |
+| `acoustic_fembem_soft_sphere_cq_causality` | Gate the causal soft-sphere CQ response |
+| `acoustic_fembem_adjoint_scaling` | Gate acoustic adjoint scaling behavior |
+| `acoustic_fembem_hmatrix_scaling` | Gate readable ACA/H-matrix scaling behavior |
 
 Setup and the full tool contract live in [mcp/README.md](mcp/README.md).  Install
 the official MathWorks MATLAB MCP Server, then start it with the extension:
